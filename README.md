@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+Repo URL= https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
 # Nunu's Windbound Bard v0.10 — Reliable Auto Next & Song Switching
 
 **Dalamud API 15 · .NET 10 · full Visual Studio source**
