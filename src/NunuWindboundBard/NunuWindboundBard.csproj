@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>0.9.0.0</Version>
+    <Author>Real Nunu</Author>
+    <Name>Nunu's Windbound Bard</Name>
+    <Punchline>A Bard Performance MIDI player and C3-C6 optimisation studio.</Punchline>
+    <Description>Private multi-device duets with clock sync and MIDI transfer, party-roster conductor assignments, saved Solo and Ensemble playlists, automatic Performance switching, per-track octaves, guitars, C3-C6 optimiser, chord playback, local ensemble and chat-safe Performance callbacks.</Description>
+    <Tags>bard;midi;performance;music</Tags>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="..\..\Samples\Bard-37-Note-Calibration.mid" Link="Bard-37-Note-Calibration.mid" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Samples\Bard-Chord-Callback-Test.mid" Link="Bard-Chord-Callback-Test.mid" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Assets\windbound-icon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+</Project>

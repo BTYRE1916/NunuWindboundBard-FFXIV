@@ -1,0 +1,18 @@
+Windbound Bard v0.9 — Multi-Device Ensemble (source build)
+
+Scope:
+- New Core/MultiDeviceEnsemble.cs private TCP conductor/follower session
+- Opt-in setting, host/join controls, no auto-connect on plugin load
+- Authenticated code pairing, 4 MB MIDI transfer, SHA-256 verification
+- Song arrangement and party track assignment propagation
+- Clock samples, readiness acknowledgements, scheduled cross-PC START/STOP
+- Independent Solo/Ensemble saved playlists and original local same-PC mode kept
+- Tests/MultiDeviceTransportSmokeTest.csproj + Run-v0.9-Tests.ps1
+
+Source inspection and archive checks run in Linux environment; Windows .NET SDK
+and FFXIV are not installed. Actual compiling, performance, firewall/network
+behaviour and two-PC synchronization still require user tests on Windows.
+
+Security: The transport is not encrypted. Use only trusted LAN or encrypted
+private network (Tailscale). NEVER expose/port-forward its listener on the
+public Internet. Stage code is held in RAM only and not saved.
