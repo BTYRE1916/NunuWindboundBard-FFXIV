@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>                                                                                                                 
-    <Version>0.11.0.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>                                                                                                                
+	  <Version>0.11.0.0</Version>
  <Authors> Real Nunu </Authors>
     <Version>0.11.0</Version>  
     <Name>Nunu's Windbound Bard</Name>
