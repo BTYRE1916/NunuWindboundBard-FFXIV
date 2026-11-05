@@ -8,7 +8,11 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
+<<<<<<< HEAD
     public int Version { get; set; } = 10;
+=======
+    public int Version { get; set; } = 9;
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
     // Master switch is deliberately opt-in; tone override is meaningful only while playing guitar.
     public bool GuitarToneOverridesEnabled { get; set; } = false;
     // Saved per MIDI path and separate track:channel; the same song may have several guitar parts.

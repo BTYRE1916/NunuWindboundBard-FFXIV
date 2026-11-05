@@ -16,6 +16,7 @@ behaviour and two-PC synchronization still require user tests on Windows.
 Security: The transport is not encrypted. Use only trusted LAN or encrypted
 private network (Tailscale). NEVER expose/port-forward its listener on the
 public Internet. Stage code is held in RAM only and not saved.
+<<<<<<< HEAD
 
 
 Windbound Bard v0.10 -- Reliable Auto Next / Song Transitions
@@ -26,3 +27,5 @@ Windbound Bard v0.10 -- Reliable Auto Next / Song Transitions
 - Version bumped to 0.10.0.0; configuration migrates additively to 10.
 - Tests/SongFlowCoordinatorTests.csproj and Run-v0.10-Tests.ps1 included.
 - C# / Windows / Dalamud compile and live FFXIV tests still required.
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0

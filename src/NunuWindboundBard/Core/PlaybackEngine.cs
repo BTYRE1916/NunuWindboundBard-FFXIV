@@ -47,7 +47,10 @@ public sealed class PlaybackEngine : IDisposable
         bool KeyDown, int Id, int Velocity, int Track, int Channel);
 
     public bool IsPlaying { get { lock (sync) return running; } }
+<<<<<<< HEAD
     public bool IsStopPending { get { lock (sync) return stopRequested; } }
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
     public bool IsEnsemblePlayback { get { lock (sync) return running && scheduledStartQpc.HasValue; } }
     public double EnsembleCountInSeconds { get { lock (sync) return scheduledStartQpc.HasValue && !ensembleStarted
         ? EnsembleCoordinator.RemainingSeconds(scheduledStartQpc.Value) : 0; } }

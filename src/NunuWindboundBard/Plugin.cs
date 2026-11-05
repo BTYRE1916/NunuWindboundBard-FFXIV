@@ -91,12 +91,15 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 9;
             Config.Save();
         }
+<<<<<<< HEAD
         if (Config.Version < 10)
         {
             // Auto-next now runs on Framework.Update; existing playlists stay intact.
             Config.Version = 10;
             Config.Save();
         }
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
         Config.PartyAssignmentsByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.GuitarTonesByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.InstrumentsByFile ??= new(StringComparer.OrdinalIgnoreCase);
@@ -112,7 +115,11 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
+<<<<<<< HEAD
         Log.Information("Windbound Bard v0.10 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
+=======
+        Log.Information("Windbound Bard v0.9 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -128,7 +135,10 @@ public sealed class Plugin : IDalamudPlugin
         main.PollPartyAssignments();
         main.PollEnsemble();
         Player.Update(performing && expandedKeyboard);
+<<<<<<< HEAD
         main.PollSongTransitions();
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
     }
 
     private void Draw()

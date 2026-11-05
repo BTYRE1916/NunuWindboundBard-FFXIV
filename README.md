@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Nunu's Windbound Bard v0.10 — Reliable Auto Next & Song Switching
 
 **Dalamud API 15 · .NET 10 · full Visual Studio source**
@@ -30,6 +31,11 @@ Run `Tests\Run-v0.10-Tests.ps1` in PowerShell on Windows with .NET 10 for source
 ---
 
 ## Previous v0.9 features — Multi-Device Ensemble / Duo Edition
+=======
+repo URL : https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
+
+# Nunu's Windbound Bard v0.9 — Multi-Device Ensemble / Duo Edition
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 
 **Dalamud API 15 · .NET 10 · FFXIV Performance MIDI Player**
 

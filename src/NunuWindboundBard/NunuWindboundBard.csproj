@@ -2,7 +2,11 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+<<<<<<< HEAD
     <Version>0.10.0.0</Version>
+=======
+    <Version>0.9.0.0</Version>
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
     <Author>Real Nunu</Author>
     <Name>Nunu's Windbound Bard</Name>
     <Punchline>A Bard Performance MIDI player and C3-C6 optimisation studio.</Punchline>
