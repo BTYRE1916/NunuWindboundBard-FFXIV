@@ -1,5 +1,4 @@
 repo URL : https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
- Copy URL
 
 # Nunu's Windbound Bard v0.9 — Multi-Device Ensemble / Duo Edition
 
