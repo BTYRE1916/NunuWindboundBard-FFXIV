@@ -1,17 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-<<<<<<< HEAD
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>                                                                                                                 
     <Version>0.11.0.0</Version>
-=======
-<<<<<<< HEAD
-    <Version>0.10.0.0</Version>
-=======
-    <Version>0.9.0.0</Version>
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-    <Author>Real Nunu</Author>
+ <Authors> Real Nunu </Authors>
+    <Version>0.11.0</Version>  
     <Name>Nunu's Windbound Bard</Name>
     <Punchline>Soulweaver adaptive arranging for FFXIV Bard Performance.</Punchline>
     <Description>Soulweaver Studio generates Solo, Duet, Quartet and Octet MIDI arrangements with instrument suggestions and party assignments. Also features multi-device ensembles, native instrument switching, per-track octaves, guitar tones, C3-C6 optimisation, chord-aware playback and saved playlists.</Description>

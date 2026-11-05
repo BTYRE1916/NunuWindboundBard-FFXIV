@@ -93,9 +93,12 @@ public sealed class Plugin : IDalamudPlugin
         }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         if (Config.Version < 10)
@@ -104,6 +107,7 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 10;
             Config.Save();
         }
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
         if (Config.Version < 11)
@@ -117,6 +121,10 @@ public sealed class Plugin : IDalamudPlugin
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -138,9 +146,12 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         Log.Information("Windbound Bard v0.11 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
 =======
 <<<<<<< HEAD
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         Log.Information("Windbound Bard v0.10 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
@@ -148,7 +159,10 @@ public sealed class Plugin : IDalamudPlugin
         Log.Information("Windbound Bard v0.9 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     }
@@ -171,10 +185,14 @@ public sealed class Plugin : IDalamudPlugin
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         main.PollSongTransitions();
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910

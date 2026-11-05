@@ -32,12 +32,18 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     private readonly SongFlowCoordinator songFlow = new();
 =======
     private bool wasPlaying;
     private bool pendingNext;
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+    private bool wasPlaying;
+    private bool pendingNext;
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
     private bool wasPlaying;
     private bool pendingNext;
@@ -69,11 +75,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     private sealed record PendingInstrumentSong(string Path, int InstrumentId, long StartedQpc);
 =======
     private sealed record PendingInstrumentSong(string Path, int InstrumentId);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+    private sealed record PendingInstrumentSong(string Path, int InstrumentId);
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
     private sealed record PendingInstrumentSong(string Path, int InstrumentId);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -102,7 +113,10 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         if (pendingNext && !plugin.Player.IsPlaying)
@@ -117,7 +131,10 @@ public sealed partial class MainWindow : Window, IDisposable
 
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), "NUNU'S WINDBOUND BARD   /windbound");
@@ -157,11 +174,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         if (ImGui.Button("Load typed path")) LoadFromUser(fileInput);
 =======
         if (ImGui.Button("Load typed path")) Load(fileInput);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+        if (ImGui.Button("Load typed path")) Load(fileInput);
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
         if (ImGui.Button("Load typed path")) Load(fileInput);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -176,11 +198,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             if (File.Exists(sample)) LoadFromUser(sample);
 =======
             if (File.Exists(sample)) Load(sample);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+            if (File.Exists(sample)) Load(sample);
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
             if (File.Exists(sample)) Load(sample);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -196,11 +223,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             if (File.Exists(sample)) LoadFromUser(sample);
 =======
             if (File.Exists(sample)) Load(sample);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+            if (File.Exists(sample)) Load(sample);
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
             if (File.Exists(sample)) Load(sample);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -246,12 +278,18 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                 SelectPlaylistSong(path);
 =======
                 activePlaylist = i;
                 Load(path);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+                activePlaylist = i;
+                Load(path);
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
                 activePlaylist = i;
                 Load(path);
@@ -311,9 +349,12 @@ public sealed partial class MainWindow : Window, IDisposable
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         if (ImGui.TreeNode("Song switching diagnostics"))
@@ -334,10 +375,15 @@ public sealed partial class MainWindow : Window, IDisposable
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -365,9 +411,12 @@ public sealed partial class MainWindow : Window, IDisposable
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     // These transitions run on the FFXIV framework thread, even if the ImGui
@@ -413,10 +462,15 @@ public sealed partial class MainWindow : Window, IDisposable
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -444,12 +498,18 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         songFlow.Cancel();
 =======
         wasPlaying = false;
         pendingNext = false;
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+        wasPlaying = false;
+        pendingNext = false;
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
         wasPlaying = false;
         pendingNext = false;
@@ -748,11 +808,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     private bool Load(string path)
 =======
     private void Load(string path)
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+    private void Load(string path)
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
     private void Load(string path)
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -797,9 +862,12 @@ public sealed partial class MainWindow : Window, IDisposable
             Rebuild();
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             if (arranged is null)
@@ -823,7 +891,10 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
@@ -833,7 +904,10 @@ public sealed partial class MainWindow : Window, IDisposable
         catch (Exception error) { status = "Could not load MIDI: " + error.Message; }
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     }
@@ -863,11 +937,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                 if (ok && files.Count > 0) LoadFromUser(files[0]);
 =======
                 if (ok && files.Count > 0) Load(files[0]);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+                if (ok && files.Count > 0) Load(files[0]);
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
                 if (ok && files.Count > 0) Load(files[0]);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -1184,9 +1263,12 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         // An interrupted request or missing Performance window should not
@@ -1211,11 +1293,17 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
         if (plugin.Instruments.InProgress || !plugin.Instruments.IsReadyFor(pending.InstrumentId)) return;
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+=======
+        if (plugin.Instruments.InProgress || !plugin.Instruments.IsReadyFor(pending.InstrumentId)) return;
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 =======
         if (plugin.Instruments.InProgress || !plugin.Instruments.IsReadyFor(pending.InstrumentId)) return;
@@ -1234,9 +1322,12 @@ public sealed partial class MainWindow : Window, IDisposable
             if (arranged is null) throw new InvalidOperationException("Load and prepare a MIDI first.");
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             if (plugin.Player.IsPlaying)
@@ -1256,7 +1347,10 @@ public sealed partial class MainWindow : Window, IDisposable
             }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
@@ -1265,7 +1359,10 @@ public sealed partial class MainWindow : Window, IDisposable
                 throw new InvalidOperationException("An instrument change is preparing your MIDI. Use STOP to cancel.");
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 
@@ -1286,11 +1383,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                 pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted, Stopwatch.GetTimestamp());
 =======
                 pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+                pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted);
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
                 pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted);
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -1317,11 +1419,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         songFlow.MarkStarted();
 =======
         wasPlaying = true;
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+        wasPlaying = true;
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
         wasPlaying = true;
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -1351,11 +1458,17 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             // Followers should not race off into the next song independently.
             // Users may still LOAD the next song by selecting it in the playlist.
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+            // Followers should not race off into the next song independently.
+            // Users may still LOAD the next song by selecting it in the playlist.
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
             // Followers should not race off into the next song independently.
             // Users may still LOAD the next song by selecting it in the playlist.
@@ -1367,9 +1480,12 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         if (cfg.Playlist.Count == 0) { status = "The active Solo playlist is empty."; return; }
@@ -1415,7 +1531,10 @@ public sealed partial class MainWindow : Window, IDisposable
         status = $"No playable MIDI in this playlist. Skipped {skipped} entries; select or add a valid song.";
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
@@ -1432,7 +1551,10 @@ public sealed partial class MainWindow : Window, IDisposable
         if (arranged != null) StartSong();
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     }
@@ -1776,11 +1898,16 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         songFlow.Cancel();
 =======
         pendingNext = false;
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+        pendingNext = false;
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
         pendingNext = false;
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
@@ -1915,10 +2042,14 @@ public sealed partial class MainWindow : Window, IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         songFlow.Cancel();
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910

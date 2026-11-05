@@ -4,7 +4,11 @@
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
 <<<<<<< HEAD
+<<<<<<< HEAD
     "AssemblyVersion": "0.10.0.0",
+=======
+    "AssemblyVersion": "0.11.0.0",
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
     "AssemblyVersion": "0.11.0.0",
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
@@ -24,8 +28,13 @@
     "IsHide": false,
     "IsTestingExclusive": false,
 <<<<<<< HEAD
+<<<<<<< HEAD
     "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/FFXIVMIDIPLAYER-v1.2/FFXIVMIDIPLAYER-BY-NUNU-Latest.zip",
     "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/FFXIVMIDIPLAYER-v1.2/FFXIVMIDIPLAYER-BY-NUNU-Latest.zip",
+=======
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/FFXIVMIDIPLAYER-v1.3/FFXIVMIDIPLAYER-BY-NUNU-Latest.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/FFXIVMIDIPLAYER-v1.3/FFXIVMIDIPLAYER-BY-NUNU-Latest.zip",
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
     "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/FFXIVMIDIPLAYER-v1.3/FFXIVMIDIPLAYER-BY-NUNU-Latest.zip",
     "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/FFXIVMIDIPLAYER-v1.3/FFXIVMIDIPLAYER-BY-NUNU-Latest.zip",

@@ -52,10 +52,14 @@ public sealed class PlaybackEngine : IDisposable
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     public bool IsStopPending { get { lock (sync) return stopRequested; } }
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 =======
 >>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
 >>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
