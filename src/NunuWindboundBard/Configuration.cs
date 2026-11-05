@@ -8,7 +8,21 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
+<<<<<<< HEAD
+<<<<<<< HEAD
+    public int Version { get; set; } = 11;
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     public int Version { get; set; } = 10;
+=======
+    public int Version { get; set; } = 9;
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+<<<<<<< HEAD
+>>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     // Master switch is deliberately opt-in; tone override is meaningful only while playing guitar.
     public bool GuitarToneOverridesEnabled { get; set; } = false;
     // Saved per MIDI path and separate track:channel; the same song may have several guitar parts.
@@ -48,6 +62,9 @@ public sealed class Configuration : IPluginConfiguration
     public Dictionary<string, Dictionary<string, ulong>> PartyAssignmentsByFile { get; set; }
         = new(StringComparer.OrdinalIgnoreCase);
     public bool FollowConductorAssignments { get; set; } = true;
+    // Offline Soulweaver presets persist independently for each original MIDI file.
+    public Dictionary<string, SoulweaverPreset> SoulweaverPresetsByFile { get; set; }
+        = new(StringComparer.OrdinalIgnoreCase);
     public string LastFile { get; set; } = "";
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }

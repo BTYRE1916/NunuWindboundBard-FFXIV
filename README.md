@@ -1,3 +1,60 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
+# Nunu's Windbound Bard v0.11 — Soulweaver Studio 🖤🎼
+
+**Dalamud API 15 · .NET 10 · Complete Visual Studio source project**
+
+## New: Soulweaver — adaptive ensemble arranging
+
+Open `/windbound` → **Soulweaver Studio** after loading a MIDI in **Songs & Playback**.
+
+Soulweaver creates an **entirely new playable MIDI with independent musician tracks** — not merely a list of original tracks. The first version uses transparent, deterministic musical heuristics (MIDI pitch/register, lane relationships, chord voices, onsets, durations and velocity) to identify melody, bass, countermelody, harmony and accompaniment. It does **not** use an external AI service, synthesize new harmony, or claim to identify music perfectly.
+
+1. Load your song. Adjust octaves in **Songs & Playback** or **FFXIV Optimiser** as desired.
+2. In **Soulweaver Studio**, choose **Solo (1)**, **Duet (2)**, **Quartet (4)** or **Octet (8)**.
+3. Keep **Analyse all non-percussion tracks** ON if you are a conductor; it prevents your own muted ensemble parts from disappearing from the generated file. If you want to arrange *only* your current selected tracks, turn it OFF.
+4. Choose a **per-performer chord limit** (0 = unlimited/preserve all notes; choose a limit only if very dense passages misbehave in-game).
+5. Click **Analyse & Generate Parts**. Inspect the key estimate, chord counts, phrase estimate, part registers, note counts and **coloured note timeline** (visual preview of the first 30 seconds).
+6. Override suggested **instruments** for any part; optionally assign each part to a named member of your current FFXIV party. Click **Auto-assign parts to FFXIV party order** for a quick starting point.
+7. Click **Export arrangement MIDI...** to choose a path, **or** **Export & add to Solo/Ensemble playlist**. Export always creates a different file: it will not overwrite your source or any existing file.
+8. Switch to the appropriate saved Solo/Ensemble library, **load the newly exported MIDI**, and play. Duet/Quartet/Octet exports have a dedicated tempo track plus one named track per performer. The chosen party assignments are stored against the exported file for the existing conductor to use.
+
+### Example: a duet with Edea
+
+- In Soulweaver choose **Duet**. Its default roles are Lead (Piano) and Supporting Voice (usually Violin; Cello is recommended for a lower-register accompaniment).
+- Assign the Lead part to your character and Supporting Voice to Edea from the **Player** dropdowns.
+- Click **Export & add to Ensemble playlist**.
+- Change to **Ensemble → Conductor**, open your exported MIDI, check the party assignments and send the MIDI + cue through existing **Multi-Device** mode. Each musician should equip their own desired Performance instrument before readying up.
+- **No foreground requirement; chat-safe direct Performance callbacks remain untouched.**
+
+### Fidelity, limitations and safety
+
+- The **FFXIV C3–C6 limit** still applies. Soulweaver uses the current per-track octave shifts and source-note repair rules.
+- **Original tempo changes, meter and key signatures are retained in exported MIDI**, along with original absolute note timing and note-off durations. Generated parts are normal format-1 Standard MIDI Files, suitable for editing in other MIDI software.
+- **All prepared notes are preserved by default**. Only choosing a chord cap deliberately drops notes; the report shows how many. Solo does not invent or replace notes. Some duet/quartet/octet parts may be empty if a source contains too little musical material. Try a smaller group or a richer MIDI.
+- Musical **key detection is an estimate**, not a claim of ground-truth key. The part-splitting engine is rule-based; listen to the output and adjust manually if a particular song needs custom voicing.
+- This version is **offline arrangement generation**, not yet live improvised call-and-response, real-time self-healing ensembles or AI composition. Those ambitious features need later, separately tested work.
+- A new instrument is chosen locally by each FFXIV player: assigning an instrument to a Soulweaver performer does not remotely equip another person's character.
+- As always, only use the experimental plugin in ways consistent with the game's rules, and keep network ensemble transport on a trusted LAN or encrypted private network.
+
+### Testing and included demonstration
+
+- `Samples/Soulweaver-Quartet-Demo.mid`: original synthetic four-part music with tempo change, simultaneous notes and sustained bass, useful to test all four arrangement sizes.
+- `Tests/Run-v0.11-Tests.ps1`: Windows/.NET 10 smoke tests for generated note and track counts, 37-key pitch range, note timings, saved tempo, and source-file non-overwrite checks.
+- Existing v0.10 auto-next tests and v0.9 networking tests are included unchanged.
+- **Build verification limitation:** This source was prepared and inspected in a non-Windows environment without the .NET SDK or live FFXIV. The plugin and new C# smoke tests have not been compiled or exercised in-game here; run them on your Windows setup before using Soulweaver on a full performance.
+
+### Installing / building
+
+Open `NunuWindboundBard.sln` in Visual Studio with .NET 10 and Dalamud API 15, or run `Build-Plugin.ps1` on Windows. Load the built development plugin via `/xlsettings` → Experimental. This is **source**, not a pre-built release ZIP. For your GitHub experimental repository, publish the built plugin in a new release ZIP and update the repository index from `0.10.0.0` to **`0.11.0.0`** and the download URL to your new release.
+
+---
+
+=======
+<<<<<<< HEAD
+>>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 # Nunu's Windbound Bard v0.10 — Reliable Auto Next & Song Switching
 
 **Dalamud API 15 · .NET 10 · full Visual Studio source**
@@ -30,6 +87,20 @@ Run `Tests\Run-v0.10-Tests.ps1` in PowerShell on Windows with .NET 10 for source
 ---
 
 ## Previous v0.9 features — Multi-Device Ensemble / Duo Edition
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
+=======
+repo URL : https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
+
+# Nunu's Windbound Bard v0.9 — Multi-Device Ensemble / Duo Edition
+>>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
+<<<<<<< HEAD
+>>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
+=======
+>>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 
 **Dalamud API 15 · .NET 10 · FFXIV Performance MIDI Player**
 

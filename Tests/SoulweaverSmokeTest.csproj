@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="SoulweaverSmokeTest.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MidiFileReader.cs" Link="MidiFileReader.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/NoteMapper.cs" Link="NoteMapper.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MidiOptimization.cs" Link="MidiOptimization.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/BardArrangement.cs" Link="BardArrangement.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/SoulweaverArranger.cs" Link="SoulweaverArranger.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/SoulweaverMidiExport.cs" Link="SoulweaverMidiExport.cs" />
+  </ItemGroup>
+</Project>
