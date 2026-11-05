@@ -1,6 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
 # Nunu's Windbound Bard v0.11 — Soulweaver Studio 🖤🎼
 
 **Dalamud API 15 · .NET 10 · Complete Visual Studio source project**
