@@ -27,28 +27,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private string fileInput;
     private string status = "Welcome to Windbound Bard. Load a MIDI or the bundled calibration file.";
     private bool outputArmed; // intentionally never persisted
-<<<<<<< HEAD
     private readonly SongFlowCoordinator songFlow = new();
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    private readonly SongFlowCoordinator songFlow = new();
-=======
-    private bool wasPlaying;
-    private bool pendingNext;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-    private bool wasPlaying;
-    private bool pendingNext;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-    private bool wasPlaying;
-    private bool pendingNext;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     private int activePlaylist = -1;
     private bool showPianoRoll = true;
     private string playlistFilter = "";
@@ -70,25 +49,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private RemoteArrangementSettings? networkArrangement;
     private long lastNetworkReadyQpc;
     private string ensembleStatus = "Solo / not connected.";
-<<<<<<< HEAD
     private sealed record PendingInstrumentSong(string Path, int InstrumentId, long StartedQpc);
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    private sealed record PendingInstrumentSong(string Path, int InstrumentId, long StartedQpc);
-=======
-    private sealed record PendingInstrumentSong(string Path, int InstrumentId);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-    private sealed record PendingInstrumentSong(string Path, int InstrumentId);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-    private sealed record PendingInstrumentSong(string Path, int InstrumentId);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     private PendingInstrumentSong? pendingInstrumentSong;
 
     public MainWindow(Plugin plugin) : base("Windbound Bard | Nunu's MIDI Studio###NunuWindboundBard")
@@ -109,34 +70,6 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-        if (pendingNext && !plugin.Player.IsPlaying)
-        {
-            pendingNext = false;
-            NextSong();
-        }
-        else if (wasPlaying && !plugin.Player.IsPlaying && plugin.Player.CompletedSuccessfully && cfg.AutoNext
-            && (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Solo)
-            NextSong();
-        wasPlaying = plugin.Player.IsPlaying;
-
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), "NUNU'S WINDBOUND BARD   /windbound");
         ImGui.SameLine();
         ImGui.TextDisabled("FFXIV • C3–C6 • Dalamud 15 • Chords + Multi-Device + Soulweaver");
@@ -169,74 +102,20 @@ public sealed partial class MainWindow : Window, IDisposable
         ImGui.SetNextItemWidth(-235);
         ImGui.InputText("##MidiPath", ref fileInput, 1024);
         ImGui.SameLine();
-<<<<<<< HEAD
         if (ImGui.Button("Load typed path")) LoadFromUser(fileInput);
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        if (ImGui.Button("Load typed path")) LoadFromUser(fileInput);
-=======
-        if (ImGui.Button("Load typed path")) Load(fileInput);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-        if (ImGui.Button("Load typed path")) Load(fileInput);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-        if (ImGui.Button("Load typed path")) Load(fileInput);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         ImGui.SameLine();
         if (ImGui.Button("Browse MIDI...")) BrowseMidiToLoad();
         if (ImGui.Button("Load sample"))
         {
             string sample = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName ?? "", "Bard-37-Note-Calibration.mid");
-<<<<<<< HEAD
             if (File.Exists(sample)) LoadFromUser(sample);
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-            if (File.Exists(sample)) LoadFromUser(sample);
-=======
-            if (File.Exists(sample)) Load(sample);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-            if (File.Exists(sample)) Load(sample);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-            if (File.Exists(sample)) Load(sample);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             else status = "Sample is included in the source ZIP under Samples. Enter its full path to load it.";
         }
         ImGui.SameLine();
         if (ImGui.Button("Load chord test"))
         {
             string sample = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName ?? "", "Bard-Chord-Callback-Test.mid");
-<<<<<<< HEAD
             if (File.Exists(sample)) LoadFromUser(sample);
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-            if (File.Exists(sample)) LoadFromUser(sample);
-=======
-            if (File.Exists(sample)) Load(sample);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-            if (File.Exists(sample)) Load(sample);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-            if (File.Exists(sample)) Load(sample);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             else status = "Chord test is included in Samples. Enter its full path to load it.";
         }
         ImGui.SameLine();
@@ -273,28 +152,7 @@ public sealed partial class MainWindow : Window, IDisposable
             matches++;
             if (ImGui.Selectable($"{i + 1:0000}. {name}##song{i}", activePlaylist == i))
             {
-<<<<<<< HEAD
                 SelectPlaylistSong(path);
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-                SelectPlaylistSong(path);
-=======
-                activePlaylist = i;
-                Load(path);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-                activePlaylist = i;
-                Load(path);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-                activePlaylist = i;
-                Load(path);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             }
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(path);
         }
@@ -347,16 +205,6 @@ public sealed partial class MainWindow : Window, IDisposable
         ImGui.SameLine();
         if (ImGui.Button("Next")) NextSong();
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         if (ImGui.TreeNode("Song switching diagnostics"))
         {
             string details = "Loaded MIDI: " + (string.IsNullOrWhiteSpace(loaded) ? "(none)" : loaded) + "\n" +
@@ -373,21 +221,6 @@ public sealed partial class MainWindow : Window, IDisposable
             ImGui.TreePop();
         }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         float speed = cfg.PlaybackSpeed;
         if (ImGui.SliderFloat("Playback speed", ref speed, .5f, 2f, "%.2fx"))
         {
@@ -409,16 +242,6 @@ public sealed partial class MainWindow : Window, IDisposable
         cfg.Save();
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     // These transitions run on the FFXIV framework thread, even if the ImGui
     // window is closed or FFXIV is in the background. Never advance from Draw().
     public void PollSongTransitions()
@@ -460,21 +283,6 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void SelectPlaylistSong(string path) => LoadFromUser(path);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     private void ClearLoadedMidiForPlaylistChange()
     {
         CancelPendingInstrumentStart();
@@ -493,28 +301,7 @@ public sealed partial class MainWindow : Window, IDisposable
         fileInput = "";
         activePlaylist = -1;
         waitingForEnsembleCue = false;
-<<<<<<< HEAD
         songFlow.Cancel();
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        songFlow.Cancel();
-=======
-        wasPlaying = false;
-        pendingNext = false;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-        wasPlaying = false;
-        pendingNext = false;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-        wasPlaying = false;
-        pendingNext = false;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         status = "Select a MIDI from the current saved playlist.";
     }
 
@@ -803,25 +590,7 @@ public sealed partial class MainWindow : Window, IDisposable
         catch (Exception error) { arranged = null; status = "Arrangement error: " + error.Message; }
     }
 
-<<<<<<< HEAD
     private bool Load(string path)
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    private bool Load(string path)
-=======
-    private void Load(string path)
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-    private void Load(string path)
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-    private void Load(string path)
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     {
         try
         {
@@ -860,16 +629,6 @@ public sealed partial class MainWindow : Window, IDisposable
                 TryPublishPartyAssignments();
             }
             Rebuild();
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             if (arranged is null)
                 throw new InvalidDataException("The MIDI arrangement could not be prepared.");
             if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting)
@@ -889,27 +648,6 @@ public sealed partial class MainWindow : Window, IDisposable
             status = "Could not load MIDI: " + error.Message;
             return false;
         }
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-            if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting)
-                TryShareNetworkSession();
-        }
-        catch (Exception error) { status = "Could not load MIDI: " + error.Message; }
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     }
 
     private string GetFileDialogStartFolder()
@@ -932,25 +670,7 @@ public sealed partial class MainWindow : Window, IDisposable
         fileDialogs.OpenFileDialog("Open MIDI for Windbound Bard", MidiFilter,
             (bool ok, List<string> files) =>
             {
-<<<<<<< HEAD
                 if (ok && files.Count > 0) LoadFromUser(files[0]);
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-                if (ok && files.Count > 0) LoadFromUser(files[0]);
-=======
-                if (ok && files.Count > 0) Load(files[0]);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-                if (ok && files.Count > 0) Load(files[0]);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-                if (ok && files.Count > 0) Load(files[0]);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             }, 1, GetFileDialogStartFolder());
     }
 
@@ -1261,16 +981,6 @@ public sealed partial class MainWindow : Window, IDisposable
             status = "Instrument switch failed; playback not started: " + plugin.Instruments.Status;
             return;
         }
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         // An interrupted request or missing Performance window should not
         // leave Windbound permanently waiting. The switcher itself controls its
         // bounded native retries; do not forcibly reset the user's instrument.
@@ -1291,24 +1001,6 @@ public sealed partial class MainWindow : Window, IDisposable
                 plugin.Instruments.Diagnostics + " Press Play to retry.";
             return;
         }
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
-        if (plugin.Instruments.InProgress || !plugin.Instruments.IsReadyFor(pending.InstrumentId)) return;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-=======
-        if (plugin.Instruments.InProgress || !plugin.Instruments.IsReadyFor(pending.InstrumentId)) return;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-=======
-        if (plugin.Instruments.InProgress || !plugin.Instruments.IsReadyFor(pending.InstrumentId)) return;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         if (!plugin.IsGameOutputSafe()) return;
         pendingInstrumentSong = null;
         try { StartSongCore(null); }
@@ -1320,16 +1012,6 @@ public sealed partial class MainWindow : Window, IDisposable
         try
         {
             if (arranged is null) throw new InvalidOperationException("Load and prepare a MIDI first.");
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             if (plugin.Player.IsPlaying)
             {
                 if (!ensembleStartQpc.HasValue && plugin.Player.IsStopPending)
@@ -1345,26 +1027,6 @@ public sealed partial class MainWindow : Window, IDisposable
                 status = "The instrument change is already preparing this MIDI; playback will begin when ready.";
                 return;
             }
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-            if (plugin.Player.IsPlaying) throw new InvalidOperationException("Stop current playback before playing again.");
-            if (pendingInstrumentSong is not null)
-                throw new InvalidOperationException("An instrument change is preparing your MIDI. Use STOP to cancel.");
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 
             int wanted = GetInstrumentChoice();
             if (outputArmed && cfg.AutoSwitchInstrumentBeforePlay && wanted != 0 &&
@@ -1378,25 +1040,7 @@ public sealed partial class MainWindow : Window, IDisposable
                         throw new InvalidOperationException("Another instrument is being equipped. Finish that change before starting this MIDI.");
                 }
                 else plugin.Instruments.Request(wanted);
-<<<<<<< HEAD
                 pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted, Stopwatch.GetTimestamp());
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-                pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted, Stopwatch.GetTimestamp());
-=======
-                pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-                pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-                pendingInstrumentSong = new PendingInstrumentSong(loaded, wanted);
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
                 status = $"Preparing {InstrumentCatalog.Display(wanted)}; MIDI will start automatically when Performance is ready.";
                 return;
             }
@@ -1414,25 +1058,7 @@ public sealed partial class MainWindow : Window, IDisposable
             cfg.PerformanceKeys, cfg.PlaybackSpeed, cfg.KeyHoldMs,
             cfg.GuitarToneOverridesEnabled, GetActiveToneOverrides()), plugin.IsGameOutputSafe,
             ensembleStartQpc);
-<<<<<<< HEAD
         songFlow.MarkStarted();
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        songFlow.MarkStarted();
-=======
-        wasPlaying = true;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-        wasPlaying = true;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-        wasPlaying = true;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         status = ensembleStartQpc.HasValue ? "Ensemble queued using shared Windows clock; no focus requirement." :
             outputArmed ? "Playing with direct FFXIV Performance callbacks (no keyboard output)." :
             "Preview playback: no notes sent to FFXIV.";
@@ -1454,40 +1080,10 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Solo)
         {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-            // Followers should not race off into the next song independently.
-            // Users may still LOAD the next song by selecting it in the playlist.
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-            // Followers should not race off into the next song independently.
-            // Users may still LOAD the next song by selecting it in the playlist.
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-            // Followers should not race off into the next song independently.
-            // Users may still LOAD the next song by selecting it in the playlist.
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
             ensembleStatus = "Ensemble: select the next song on every client, then conductor sends a new cue.";
             if (plugin.Player.IsPlaying) plugin.Player.Stop();
             return;
         }
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         if (cfg.Playlist.Count == 0) { status = "The active Solo playlist is empty."; return; }
         if (plugin.Player.IsPlaying)
         {
@@ -1529,34 +1125,6 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
         status = $"No playable MIDI in this playlist. Skipped {skipped} entries; select or add a valid song.";
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-        if (cfg.Playlist.Count == 0) return;
-        if (plugin.Player.IsPlaying)
-        {
-            pendingNext = true;
-            plugin.Player.Stop();
-            return; // wait for game-thread release of previous notes before starting next
-        }
-        int index = activePlaylist < 0 ? 0 : (activePlaylist + 1) % cfg.Playlist.Count;
-        activePlaylist = index;
-        Load(cfg.Playlist[index]);
-        if (arranged != null) StartSong();
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
     }
 
     private void ExportOptimized()
@@ -1893,25 +1461,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         cfg.EnsembleMode = (int)role;
         waitingForEnsembleCue = false;
-<<<<<<< HEAD
         songFlow.Cancel();
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        songFlow.Cancel();
-=======
-        pendingNext = false;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-        pendingNext = false;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-        pendingNext = false;
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         ensembleStatus = role switch
         {
             EnsembleRole.Conductor => "Conductor: load a MIDI and cue other local bards.",
@@ -2037,22 +1587,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public void StopPlayback()
     {
-<<<<<<< HEAD
         songFlow.Cancel();
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        songFlow.Cancel();
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
         CancelPendingInstrumentStart();
         plugin.Player.Stop();
         if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor)

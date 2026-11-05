@@ -16,16 +16,6 @@ behaviour and two-PC synchronization still require user tests on Windows.
 Security: The transport is not encrypted. Use only trusted LAN or encrypted
 private network (Tailscale). NEVER expose/port-forward its listener on the
 public Internet. Stage code is held in RAM only and not saved.
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 
 
 Windbound Bard v0.10 -- Reliable Auto Next / Song Transitions
@@ -36,9 +26,6 @@ Windbound Bard v0.10 -- Reliable Auto Next / Song Transitions
 - Version bumped to 0.10.0.0; configuration migrates additively to 10.
 - Tests/SongFlowCoordinatorTests.csproj and Run-v0.10-Tests.ps1 included.
 - C# / Windows / Dalamud compile and live FFXIV tests still required.
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 
 Windbound Bard v0.11 -- Soulweaver Studio
@@ -51,15 +38,3 @@ Windbound Bard v0.11 -- Soulweaver Studio
 - Songs & Playback, native Performance output, ensemble, networking, instruments, guitar tones, and transition files are unchanged apart from new UI integration.
 - Tests/SoulweaverSmokeTest.csproj and Samples/Soulweaver-Quartet-Demo.mid included.
 - The C# project and new core test need compilation/testing on Windows with .NET 10 and Dalamud API 15. This archive contains no prebuilt DLL.
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-=======
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910

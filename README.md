@@ -1,4 +1,3 @@
-https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
 # Nunu's Windbound Bard v0.11 — Soulweaver Studio 🖤🎼
 
 **Dalamud API 15 · .NET 10 · Complete Visual Studio source project**
@@ -49,13 +48,6 @@ Open `NunuWindboundBard.sln` in Visual Studio with .NET 10 and Dalamud API 15, o
 
 ---
 
-=======
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 # Nunu's Windbound Bard v0.10 — Reliable Auto Next & Song Switching
 
 **Dalamud API 15 · .NET 10 · full Visual Studio source**
@@ -88,26 +80,6 @@ Run `Tests\Run-v0.10-Tests.ps1` in PowerShell on Windows with .NET 10 for source
 ---
 
 ## Previous v0.9 features — Multi-Device Ensemble / Duo Edition
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
-repo URL : https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
-
-# Nunu's Windbound Bard v0.9 — Multi-Device Ensemble / Duo Edition
->>>>>>> b4ffdf454a9a1a49ec60fee941f72fc7e23bc8e0
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 1ec159be2b9e89e0c09e2c5b16ba45869ea174c8
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
-=======
->>>>>>> fd9dbb68533b1ac48aa8f22fb5cc7c4a3ad49910
 
 **Dalamud API 15 · .NET 10 · FFXIV Performance MIDI Player**
 
