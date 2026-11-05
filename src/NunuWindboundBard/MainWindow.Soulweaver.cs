@@ -157,16 +157,22 @@ public sealed partial class MainWindow
         ImGui.TextDisabled("Ensemble instruments are recommendations; each player equips their chosen instrument locally before cue.");
 
         ImGui.Separator();
+        ImGui.TextColored(new Vector4(.83f, .65f, 1f, 1f), "SAVE / ADD TO LIBRARY");
         if (ImGui.Button("Export arrangement MIDI...")) SaveSoulweaverAs();
         ImGui.SameLine();
         if (ImGui.Button(preset.Performers == 1 ? "Export & add to Solo playlist" : "Export & add to Ensemble playlist"))
             SaveSoulweaverToPlaylist();
         ImGui.TextWrapped("Exports preserve original tempo changes and create one track per musician. " +
             "Your source MIDI is never overwritten. Existing Windbound multi-device ensembles can transfer the exported MIDI normally.");
-        if (!string.IsNullOrWhiteSpace(soulweaverLastExport))
+        if (!string.IsNullOrWhiteSpace(soulweaverMessage))
+            ImGui.TextWrapped("Export / studio status: " + soulweaverMessage);
+        if (!string.IsNullOrWhiteSpace(soulweaverLastExport) && File.Exists(soulweaverLastExport))
         {
-            ImGui.TextUnformatted("Last exported: " + soulweaverLastExport);
+            ImGui.TextWrapped("Saved MIDI: " + soulweaverLastExport);
             if (ImGui.Button("Load exported arrangement in Windbound")) LoadFromUser(soulweaverLastExport);
+            ImGui.SameLine();
+            if (ImGui.Button("Add last export to playlist"))
+                AddPreviousSoulweaverExportToPlaylist();
         }
     }
 
@@ -238,8 +244,8 @@ public sealed partial class MainWindow
         if (soulweaver is null) throw new InvalidOperationException("Generate a Soulweaver arrangement first.");
         var preview = soulweaver;
         var preset = GetSoulweaverPreset();
-        // Write the performer's chosen instrument into each MIDI track name so
-        // the recommendation travels with the file, even to a remote duet partner.
+        // Record the user's instrument choices in track names; players still choose
+        // their own Performance instrument locally before a duet.
         var exportParts = preview.Parts.Select(p =>
         {
             int instrumentId = preset.InstrumentByPart.TryGetValue(p.Index, out var selected) &&
@@ -249,40 +255,76 @@ public sealed partial class MainWindow
         }).ToArray();
         var exported = preview with { Parts = exportParts };
         string path = SoulweaverMidiExport.Save(loaded, target, exported);
+        // Save() has reopened and verified the MIDI. Expose the path now, even if
+        // playlist registration or config saving subsequently fails.
         soulweaverLastExport = path;
         if (!addToLibrary)
         {
-            soulweaverMessage = "Export verified: " + Path.GetFileName(path);
+            soulweaverMessage = "Export verified: " + path;
             return;
         }
+        try
+        {
+            var profile = RegisterSoulweaverPlaylistExport(path, preview, preset);
+            soulweaverMessage = $"Export verified: {Path.GetFileName(path)}. Added to {profile.Name} " +
+                (preview.Performers == 1 ? "(Solo library)." : "(Ensemble library).") +
+                " Switch libraries to see it if another library is open.";
+        }
+        catch (Exception ex)
+        {
+            // The MIDI itself is intact on disk; never report the whole export as
+            // missing when only its saved playlist registration failed.
+            soulweaverMessage = $"MIDI saved successfully to {path}, but adding it to the playlist failed: {ex.Message}. " +
+                "Use 'Add last export to playlist' to retry.";
+        }
+    }
+
+    private SavedPlaylist RegisterSoulweaverPlaylistExport(string path, SoulweaverResult preview, SoulweaverPreset preset)
+    {
         int purpose = preview.Performers == 1 ? 0 : 1;
-        var profile = cfg.SavedPlaylists.FirstOrDefault(p => p.Id == (purpose == 0
-            ? cfg.ActiveSoloPlaylistId : cfg.ActiveEnsemblePlaylistId) && p.Purpose == purpose)
-            ?? cfg.SavedPlaylists.First(p => p.Purpose == purpose);
-        if (!profile.Files.Contains(path, StringComparer.OrdinalIgnoreCase)) profile.Files.Add(path);
-        if (cfg.ActivePlaylistId == profile.Id && !cfg.Playlist.Contains(path, StringComparer.OrdinalIgnoreCase))
-            cfg.Playlist.Add(path);
+        var profile = SavedPlaylistLibrary.AddMidiToPurpose(cfg, path, purpose);
         if (preview.Performers == 1)
         {
-            var soloId = GetSoulweaverPreset().InstrumentByPart.GetValueOrDefault(0,
+            var soloId = preset.InstrumentByPart.GetValueOrDefault(0,
                 preview.Parts[0].SuggestedInstrumentId);
             if (InstrumentCatalog.Valid(soloId) && soloId != 0) cfg.InstrumentsByFile[path] = soloId;
         }
         else
         {
-            // MIDI track 0 holds tempo; performer tracks start at 1. Channel is 0 for each.
-            // These choices are read by the existing conductor assignment page / network transport.
+            // MIDI track 0 is the tempo map; musician tracks start at 1.
+            // The output channel assignment for overlapping notes can vary, so
+            // assign every melodic channel of a performer track to that player.
             var assignments = new Dictionary<string, ulong>();
+            // Channel distribution may have changed to preserve overlapping
+            // same-pitch notes. Read the actual exported channels so the
+            // conductor owns precisely the lanes that will play.
+            var savedMidi = MidiFileReader.Load(path);
             foreach (var part in preview.Parts.Where(p => p.Notes.Count > 0))
             {
                 ulong contentId = preset.PartyMemberByPart.GetValueOrDefault(part.Index);
-                if (contentId != 0) assignments[$"{part.Index + 1}:0"] = contentId;
+                if (contentId == 0) continue;
+                foreach (var channel in savedMidi.Notes.Where(n => n.Track == part.Index + 1)
+                             .Select(n => n.Channel).Distinct())
+                    assignments[$"{part.Index + 1}:{channel}"] = contentId;
             }
             if (assignments.Count > 0) cfg.PartyAssignmentsByFile[path] = assignments;
         }
         cfg.Save();
-        soulweaverMessage = $"Saved {Path.GetFileName(path)} to {profile.Name}. " +
-            (preview.Performers == 1 ? "Ready in Solo library." : "Switch to Ensemble library, load it and cue your players.");
+        return profile;
+    }
+
+    private void AddPreviousSoulweaverExportToPlaylist()
+    {
+        try
+        {
+            if (soulweaver is null || string.IsNullOrWhiteSpace(soulweaverLastExport) ||
+                !File.Exists(soulweaverLastExport))
+                throw new InvalidOperationException("Generate an arrangement and export it first.");
+            var profile = RegisterSoulweaverPlaylistExport(soulweaverLastExport, soulweaver, GetSoulweaverPreset());
+            soulweaverMessage = $"Added {Path.GetFileName(soulweaverLastExport)} to {profile.Name}. " +
+                "Switch to its Solo/Ensemble library to find it.";
+        }
+        catch (Exception ex) { soulweaverMessage = "Add to playlist failed: " + ex.Message; }
     }
 
     private void DrawSoulweaverTimeline(SoulweaverResult preview)

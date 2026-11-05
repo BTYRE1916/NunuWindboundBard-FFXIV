@@ -1,3 +1,4 @@
+Windbound Bard v0.11.1 Soulweaver Export Fix
 Windbound Bard v0.9 — Multi-Device Ensemble (source build)
 
 Scope:

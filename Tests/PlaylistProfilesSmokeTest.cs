@@ -48,6 +48,28 @@ static class Smoke
         SavedPlaylistLibrary.SnapshotActive(cfg);
         SavedPlaylistLibrary.Select(cfg, ensemble.Id);
         Require(cfg.Playlist.SequenceEqual(new[] { b }), "named lists are not independent");
+        // Soulweaver can export to an Ensemble library even while a Solo library
+        // is selected (and vice versa). Active playlist must stay consistent.
+        var oneMore = Path.Combine(Path.GetTempPath(), "soulweaver-playlist-" + Guid.NewGuid().ToString("N") + ".mid");
+        File.WriteAllBytes(oneMore, [0x4D, 0x54, 0x68, 0x64]); // this test checks registration, not MIDI parsing
+        try
+        {
+            SavedPlaylistLibrary.ChangeMode(cfg, 0);
+            var activeSolo = cfg.Playlist.ToArray();
+            var ensembleTarget = SavedPlaylistLibrary.AddMidiToPurpose(cfg, oneMore, 1);
+            Require(cfg.Playlist.SequenceEqual(activeSolo), "ensemble export changed active Solo working list");
+            Require(ensembleTarget.Files.Contains(oneMore), "ensemble export missing from saved profile");
+            SavedPlaylistLibrary.ChangeMode(cfg, 1);
+            Require(cfg.Playlist.Contains(oneMore), "ensemble export not visible after switching libraries");
+            SavedPlaylistLibrary.AddMidiToPurpose(cfg, oneMore, 1);
+            Require(cfg.Playlist.Count(x => x == oneMore) == 1, "export was added twice");
+            var soloTarget = SavedPlaylistLibrary.AddMidiToPurpose(cfg, oneMore, 0);
+            Require(soloTarget.Files.Contains(oneMore), "solo export missing from saved profile");
+            SavedPlaylistLibrary.ChangeMode(cfg, 0);
+            Require(cfg.Playlist.Contains(oneMore), "solo export not visible after switching libraries");
+            Console.WriteLine("PASS: Soulweaver library registration, inactive library, duplicate protection.");
+        }
+        finally { File.Delete(oneMore); }
         var path = Path.Combine(Path.GetTempPath(), "windbound-playlist-test-" + Guid.NewGuid().ToString("N") + ".json");
         try
         {

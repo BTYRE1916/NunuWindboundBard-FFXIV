@@ -1,8 +1,20 @@
-# Nunu's Windbound Bard v0.11 — Soulweaver Studio 🖤🎼
+# Nunu's Windbound Bard v0.11.1 — Soulweaver Export Fix 🖤🎼
 
 **Dalamud API 15 · .NET 10 · Complete Visual Studio source project**
 
-## New: Soulweaver — adaptive ensemble arranging
+## v0.11.1: Soulweaver export / playlist hotfix
+
+This patch fixes an exporter bug found when trying real-world arrangements: repeated notes of the **same pitch** can overlap after melody/harmony parts from multiple MIDI tracks are combined. The old writer placed every note on MIDI channel 0, causing note-off events to end the wrong note and making strict verification reject the new MIDI before it was saved. v0.11.1 assigns only those overlapping repetitions to additional melodic MIDI channels, preserving the original notes and timing. Every part still occupies its own named MIDI track.
+
+- Export now reports a detailed pitch/timing mismatch if validation fails, rather than a generic message.
+- After successful export, the full output path is shown in the Soulweaver tab.
+- **Export & add to playlist** saves the MIDI and registers it in the selected **Solo** or **Ensemble** library, even when the other library is open.
+- **Add last export to playlist** retries registration without re-exporting the MIDI if the file saved but the configuration failed.
+- Tests now cover multiple overlapping same-pitch notes and library changes. Existing music, networking and instrument-switch logic remain unchanged.
+
+**Test:** Open `/windbound` → Soulweaver Studio → Generate Parts → **Export & add to Solo/Ensemble playlist**. Confirm that "Saved MIDI:" shows a path and the studio reports the selected library. Switch to that library under Songs & Playback; the exported arrangement should appear. If it doesn't, use **Add last export to playlist** and share the displayed error message. The exported MIDI files are placed in `PluginConfigDirectory/SoulweaverArrangements` and never overwrite their source.
+
+## Soulweaver — adaptive ensemble arranging
 
 Open `/windbound` → **Soulweaver Studio** after loading a MIDI in **Songs & Playback**.
 

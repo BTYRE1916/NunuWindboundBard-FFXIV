@@ -82,6 +82,29 @@ public static class SavedPlaylistLibrary
     public static SavedPlaylist GetActive(Configuration cfg) =>
         cfg.SavedPlaylists.First(x => x.Id == cfg.ActivePlaylistId);
 
+    /// <summary>
+    /// Add a verified exported MIDI to the chosen Solo/Ensemble library even if that
+    /// library is not currently open. Updates the active working copy only when
+    /// it represents the same saved playlist, so mode switching never hides edits.
+    /// Does not save the configuration: the caller must persist after attaching
+    /// any per-file instrument or party assignments.
+    /// </summary>
+    public static SavedPlaylist AddMidiToPurpose(Configuration cfg, string filePath, int purpose)
+    {
+        if (purpose is not (0 or 1)) throw new ArgumentOutOfRangeException(nameof(purpose));
+        filePath = Path.GetFullPath(filePath);
+        if (!File.Exists(filePath)) throw new FileNotFoundException("The Soulweaver MIDI was not saved to disk.", filePath);
+        EnsureMigrated(cfg);
+        var preferredId = purpose == 0 ? cfg.ActiveSoloPlaylistId : cfg.ActiveEnsemblePlaylistId;
+        var profile = cfg.SavedPlaylists.FirstOrDefault(p => p.Id == preferredId && p.Purpose == purpose)
+            ?? cfg.SavedPlaylists.FirstOrDefault(p => p.Purpose == purpose)
+            ?? throw new InvalidOperationException("No saved playlist exists for that purpose.");
+        if (!profile.Files.Contains(filePath, StringComparer.OrdinalIgnoreCase)) profile.Files.Add(filePath);
+        if (cfg.ActivePlaylistId == profile.Id && !cfg.Playlist.Contains(filePath, StringComparer.OrdinalIgnoreCase))
+            cfg.Playlist.Add(filePath);
+        return profile;
+    }
+
     public static void SnapshotActive(Configuration cfg)
     {
         var profile = cfg.SavedPlaylists.FirstOrDefault(x => x.Id == cfg.ActivePlaylistId);

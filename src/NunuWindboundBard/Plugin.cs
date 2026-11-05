@@ -119,7 +119,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.11 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
+        Log.Information("Windbound Bard v0.11.1 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
     }
 
     private void OnFrameworkUpdate(IFramework _)

@@ -63,7 +63,7 @@ public static class SoulweaverMidiExport
                     if (actual[i].Pitch != expected[i].Pitch ||
                         Math.Abs(actual[i].TimeMs - expected[i].TimeMs) > 5.0 ||
                         Math.Abs(actual[i].DurationMs - Math.Max(35, expected[i].DurationMs)) > 8.0)
-                        throw new InvalidDataException("Export timing/pitch verification failed for a performer note.");
+                        throw new InvalidDataException($"Export validation mismatch in performer {part.Index + 1}, note {i + 1}: expected pitch {expected[i].Pitch} at {expected[i].TimeMs:0.0}ms for {expected[i].DurationMs:0.0}ms; reopened pitch {actual[i].Pitch} at {actual[i].TimeMs:0.0}ms for {actual[i].DurationMs:0.0}ms.");
             }
             File.Move(temp, destinationPath);
             return destinationPath;
@@ -81,15 +81,46 @@ public static class SoulweaverMidiExport
     private static byte[] BuildPartTrack(SoulweaverPart part, List<Segment> segments, int ppq)
     {
         List<Event> events = [new(0, 0, MetaMessage(0x03, Encoding.UTF8.GetBytes("Soulweaver " + (part.Index + 1) + ": " + part.Name)))];
-        foreach (BardNote note in part.Notes)
+        // MIDI note-offs identify only pitch and channel, not a particular note-on.
+        // Soulweaver merges source tracks into one musician track, so repeated notes
+        // of the SAME pitch can overlap. Writing every one on channel 0 causes the
+        // playback parser (and many synthesizers) to release the wrong note.
+        // Allocate overlapping instances to different channels instead. This
+        // retains exact start/duration and keeps all other simultaneous chords.
+        // Channel 9 (the GM percussion channel) is excluded deliberately.
+        int[] melodicChannels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15];
+        Dictionary<int, Dictionary<int, long>> activeUntilByPitch = new();
+        foreach (BardNote note in part.Notes.OrderBy(n => n.TimeMs).ThenBy(n => n.Pitch).ThenBy(n => n.Track))
         {
-            if (note.Pitch < 48 || note.Pitch > 84 || note.Velocity is < 0 or > 127 || note.TimeMs < 0)
+            if (note.Pitch < 48 || note.Pitch > 84 || note.Velocity is < 0 or > 127 ||
+                double.IsNaN(note.TimeMs) || double.IsInfinity(note.TimeMs) || note.TimeMs < 0 ||
+                double.IsNaN(note.DurationMs) || double.IsInfinity(note.DurationMs) || note.DurationMs < 0)
                 throw new InvalidDataException("A Soulweaver note is outside the Bard range or has invalid timing/velocity.");
             long on = ToTicks(note.TimeMs, segments, ppq);
             long off = Math.Max(on + 1, ToTicks(note.TimeMs + Math.Max(35, note.DurationMs), segments, ppq));
-            // The note's own timing is preserved; no artificial delays between chord tones.
-            events.Add(new Event(on, 2, [(byte)0x90, (byte)note.Pitch, (byte)Math.Max(1, note.Velocity)]));
-            events.Add(new Event(off, 1, [(byte)0x80, (byte)note.Pitch, (byte)0]));
+            if (!activeUntilByPitch.TryGetValue(note.Pitch, out var active))
+            {
+                active = new Dictionary<int, long>();
+                activeUntilByPitch[note.Pitch] = active;
+            }
+            // Prefer the source channel when available, but don't let a second
+            // same-pitch note steal the first note's release event.
+            int preferred = note.Channel is >= 0 and <= 15 and not 9 ? note.Channel : 0;
+            int channel = -1;
+            if (!active.TryGetValue(preferred, out long end) || end <= on)
+                channel = preferred;
+            else
+                foreach (int candidate in melodicChannels)
+                    if (!active.TryGetValue(candidate, out end) || end <= on)
+                    {
+                        channel = candidate;
+                        break;
+                    }
+            if (channel < 0)
+                throw new InvalidDataException($"Part {part.Index + 1} has more than 15 overlapping notes of pitch {note.Pitch}. Reduce chord density or simplify duplicate notes.");
+            active[channel] = off;
+            events.Add(new Event(on, 2, [(byte)(0x90 | channel), (byte)note.Pitch, (byte)Math.Max(1, note.Velocity)]));
+            events.Add(new Event(off, 1, [(byte)(0x80 | channel), (byte)note.Pitch, (byte)0]));
         }
         return EncodeTrack(events);
     }

@@ -43,6 +43,34 @@ try
         Console.WriteLine($"{performers} performer(s): {arrangement.Analysis.ExportNotes} notes, " +
             $"{arrangement.Analysis.ChordOnsets} chord onsets, {reopened.Tracks.Count} tracks — OK");
     }
+    // Regression: when a musician's part combines multiple source tracks, notes
+    // of the same pitch can overlap. They must remain separate and retain their
+    // individual release times after export, never be lost by FIFO note-off pairing.
+    {
+        var baseArr = SoulweaverArranger.Generate(prepared, new SoulweaverOptions(2));
+        var extras = new[]
+        {
+            new BardNote(510, 60, 20, 96, 480, 0),
+            new BardNote(620, 60, 21, 92, 410, 0),
+            new BardNote(740, 60, 22, 88, 290, 0),
+        };
+        var firstPart = baseArr.Parts[0] with { Notes = baseArr.Parts[0].Notes.Concat(extras).ToArray() };
+        var partsWithOverlap = baseArr.Parts.Select((part, i) => i == 0 ? firstPart : part).ToArray();
+        var overlapArrangement = baseArr with { Parts = partsWithOverlap };
+        var overlapFile = Path.Combine(folder, "soulweaver-overlapping-same-pitch.mid");
+        SoulweaverMidiExport.Save(input, overlapFile, overlapArrangement);
+        var readback = MidiFileReader.Load(overlapFile);
+        if (readback.Notes.Count != overlapArrangement.Parts.Sum(part => part.Notes.Count))
+            throw new Exception("Overlapping notes were lost during MIDI export.");
+        foreach (var extra in extras)
+        {
+            if (!readback.Notes.Any(note => note.Track == 1 && note.Pitch == extra.Pitch &&
+                Math.Abs(note.TimeMs - extra.TimeMs) < 5 &&
+                Math.Abs(note.DurationMs - extra.DurationMs) < 8))
+                throw new Exception("Overlapping same-pitch note had incorrect start/release timing.");
+        }
+        Console.WriteLine("Same-pitch overlapping notes from separate tracks: exact durations retained — OK");
+    }
     var limited = SoulweaverArranger.Generate(prepared, new SoulweaverOptions(4, 1));
     if (limited.Analysis.ExportNotes > prepared.Notes.Count)
         throw new Exception("Density-limited arrangement generated extra notes.");
