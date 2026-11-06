@@ -66,6 +66,7 @@ public sealed partial class MainWindow : Window, IDisposable
         this.plugin = plugin;
         cfg = plugin.Config;
         fileInput = cfg.LastFile;
+        soundFontInput = cfg.PreviewSoundFontPath ?? "";
         networkHost = cfg.MultiDeviceHostAddress;
         playlistRenameInput = SavedPlaylistLibrary.GetActive(cfg).Name;
         SizeConstraints = new WindowSizeConstraints
@@ -74,7 +75,11 @@ public sealed partial class MainWindow : Window, IDisposable
         };
     }
 
-    public void Dispose() => fileDialogs.Reset();
+    public void Dispose()
+    {
+        plugin.AudioPreview.Stop();
+        fileDialogs.Reset();
+    }
     public void DrawFileDialogs() => fileDialogs.Draw();
 
     public override void Draw()
@@ -109,6 +114,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (ImGui.BeginTabBar("WindboundTabs"))
         {
             if (ImGui.BeginTabItem(Loc.T("Songs & Playback"))) { DrawPlayer(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Ensemble"))) { DrawEnsemble(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("FFXIV Optimiser"))) { DrawOptimizer(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("MIDI Inspector"))) { DrawArrangementInspector(); ImGui.EndTabItem(); }
@@ -646,6 +652,8 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void Rebuild()
     {
+        if (plugin.AudioPreview.IsPlaying || plugin.AudioPreview.IsLoading)
+            plugin.AudioPreview.Stop("Arrangement changed; start a fresh audio preview.");
         concertInspection = null; // report is valid only for a specific arrangement configuration
         InvalidateSoulweaver();
         if (song is null) return;
@@ -671,6 +679,8 @@ public sealed partial class MainWindow : Window, IDisposable
             if (plugin.Player.IsPlaying) plugin.Player.Stop();
             networkArrangement = null;
             string full = Path.GetFullPath(path.Trim().Trim('"'));
+            if (plugin.AudioPreview.IsPlaying || plugin.AudioPreview.IsLoading)
+                plugin.AudioPreview.Stop("MIDI selection changed; start a new audio preview.");
             if (!File.Exists(full)) throw new FileNotFoundException("No MIDI file at the chosen location.", full);
             if (!new[] { ".mid", ".midi" }.Contains(Path.GetExtension(full).ToLowerInvariant()))
                 throw new InvalidDataException("Choose a .mid or .midi file.");

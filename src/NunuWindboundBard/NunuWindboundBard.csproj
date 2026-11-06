@@ -2,10 +2,11 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>0.26.0.0</Version>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Version>0.27.1.0</Version>
     <Author>Real Nunu</Author>
     <Name>Nunu's Windbound Bard</Name>
-    <Punchline>Live USB MIDI Piano, native ensembles, Smart Playlists, HUD and Soulweaver.</Punchline>
+    <Punchline>Local SoundFont MIDI audio preview, Concert Director, native ensembles and Soulweaver.</Punchline>
     <Description>Native FFXIV Ensemble Ready Check with automatic client confirmation and game-synchronised START inspired by MidiBard 2. Includes Soulweaver Studio, chat-safe chords, optional party instrument and playlist setup, compact Performance HUD, native instrument switching, C3-C6 optimiser, smart Solo/Ensemble playlists and full-featured concert tools.</Description>
     <Tags>bard;midi;performance;music</Tags>
     <PlatformTarget>x64</PlatformTarget>
@@ -13,6 +14,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Local rehearsal only: MeltySynth renders SF2; NAudio WinMM plays 16-bit PCM.
+         NuGet dependencies are distributed beside the plugin DLL by the SDK build. -->
+    <PackageReference Include="MeltySynth" Version="2.4.1" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\Samples\Bard-37-Note-Calibration.mid" Link="Bard-37-Note-Calibration.mid" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\Samples\Bard-Chord-Callback-Test.mid" Link="Bard-Chord-Callback-Test.mid" CopyToOutputDirectory="PreserveNewest" />

@@ -24,6 +24,7 @@ public sealed class Plugin : IDalamudPlugin
 
     internal readonly Configuration Config;
     internal readonly PlaybackEngine Player = new();
+    internal readonly AudioPreviewPlayer AudioPreview = new();
     internal readonly EnsembleCoordinator Ensemble = new();
     internal readonly EnsembleAssignmentBus Assignments = new();
     internal readonly MultiDeviceEnsemble Network = new();
@@ -264,8 +265,19 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 28;
             Config.Save();
         }
+        if (Config.Version < 29)
+        {
+            // Local-only SoundFont audio preview; all concert and user options remain intact.
+            Config.PreviewSoundFontPath ??= "";
+            Config.PreviewVolume = .65f;
+            Config.PreviewSpeed = 1f;
+            Config.Version = 29;
+            Config.Save();
+        }
         Config.EnsembleLineupsByPlaylistId ??= new();
         Config.ManualOctaveLaneOverridesByFile ??= new(StringComparer.OrdinalIgnoreCase);
+        AudioPreview.SetVolume(Config.PreviewVolume);
+        AudioPreview.SetSpeed(Config.PreviewSpeed);
         Loc.SetLanguage(Config.Language);
         // Remote-playback consent lasts for the current plugin session only.
         // Never auto-enable it just because the user opted in yesterday.
@@ -311,7 +323,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.26 loaded: English / French UI, MIDI and ensemble engine unchanged.");
+        Log.Information("Windbound Bard v0.27 loaded: English / French UI, MIDI and ensemble engine unchanged.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -349,6 +361,10 @@ public sealed class Plugin : IDalamudPlugin
             Instruments.InProgress, Config.LiveMidiTranspose,
             Config.LiveMidiFoldToRange, Config.LiveMidiSustain, Config.LiveMidiChannel);
         Player.Update(performing && expandedKeyboard);
+        // Rehearsal preview never plays concurrently with live game MIDI output.
+        if (Player.IsPlaying && (AudioPreview.IsPlaying || AudioPreview.IsLoading))
+            AudioPreview.Stop("Preview stopped: FFXIV Performance MIDI started.");
+        AudioPreview.Poll();
         main.PollConcertSetlist();
         main.PollSongTransitions();
     }
@@ -419,6 +435,7 @@ public sealed class Plugin : IDalamudPlugin
         main.CancelPendingInstrumentStart();
         Instruments.Cancel();
         LiveMidi.Dispose();
+        AudioPreview.Dispose();
         Player.Dispose();
         Ensemble.Dispose();
         Assignments.Dispose();

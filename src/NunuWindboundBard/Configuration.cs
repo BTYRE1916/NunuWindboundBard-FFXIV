@@ -8,7 +8,11 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 28;
+    public int Version { get; set; } = 29;
+    // v0.27 local-only SoundFont audio preview; no party/FFXIV MIDI output.
+    public string PreviewSoundFontPath { get; set; } = "";
+    public float PreviewVolume { get; set; } = .65f;
+    public float PreviewSpeed { get; set; } = 1f;
     // UI language: en (default) or fr. This does not change file names, notes or protocol.
     public string Language { get; set; } = "en";
     // v0.20 live hardware MIDI keyboard input in Solo mode. Device opt-in is saved,

@@ -1,3 +1,39 @@
+# Windbound Bard v0.27.1 — Audio Preview compiler hotfix
+
+Fixes `CS1061: MidiFileSequencer does not contain a definition for MidiFile` in `Core/AudioPreviewPlayer.cs`. Preview length is now taken from the existing `MeltySynth.MidiFile.Length`, which is supported by the package used in this project. All v0.27 audio-preview features, Concert Director, French localisation and ensemble behaviour are preserved. See `CHANGELOG-v0.27.1.md` and run `Tests/Check-v0.27.1-API.ps1` for the static compatibility check.
+
+---
+
+# Nunu's Windbound Bard v0.27 — Local MIDI Audio Preview 🎹
+
+**Dalamud 15 · .NET 10 · complete source from v0.26 Concert Director**
+
+## Quick start
+
+1. Build `NunuWindboundBard.sln` with .NET 10 and Dalamud SDK 15. The
+   `MeltySynth` and `NAudio` NuGet dependencies are restored during build;
+   include their dependency DLLs when installing the compiled plugin.
+2. Open `/windbound`, load a `.mid`/`.midi` in **Songs & Playback**.
+3. Select **Audio Preview** (French: **Aperçu audio**), browse for your own
+   licensed `.sf2` SoundFont, then click **Play Audio Preview**.
+4. Select **Original MIDI** for the full GM instrument/tempo arrangement,
+   **Windbound arrangement** for the presently enabled C3–C6 parts, or
+   **Selected track** to hear one track, optionally with its octave shift.
+5. Adjust volume and tempo. Preview audio goes to local PC speakers only.
+   It never sends MIDI into FFXIV, changes instruments, queues notes for the
+   live performance, or sends commands to other accounts.
+
+**You must provide your own `.sf2` SoundFont.** No third-party copyrighted
+samples are packaged. Output uses WinMM on Windows; Wine/Proton audio output is
+not yet confirmed. The original MIDI mode preserves program changes and tempo;
+the reconstructed arrangement modes use notes and approximated GM instruments.
+
+The complete MIDI file player, Concert Director, ensemble sync, octet lineups,
+French translations, Smart Playlists, Live MIDI Piano, HUD and Soulweaver remain
+in this project. See `CHANGELOG-v0.27.md` for details.
+
+---
+
 # Windbound Bard v0.26 — Concert Suite + MIDI Inspector
 
 Concert Director Stage Manager, automatic next-song preparation, single-Bard retry, and MIDI Arrangement Inspector are included in this cumulative full-source build. The **MIDI Inspector** tab reports song/track diagnostics and offers manual auto-fitting of untagged octaves without changing MIDI files. See `CHANGELOG-v0.24.md`, `CHANGELOG-v0.25.md`, `CHANGELOG-v0.26.md` and `Tests/Run-v0.26-Tests.ps1`. Existing solo instruments, native ensemble, Live MIDI Piano, Smart Playlists, HUD and French translations remain.
