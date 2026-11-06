@@ -1,7 +1,6 @@
                    <img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/ce695b91-69a6-4a60-8b56-13251d1a98ec" />
                  
                    
-                   https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
 
 # Windbound Bard v0.26 — Concert Suite + MIDI Inspector
 
@@ -214,3 +213,6 @@ Open `NunuWindboundBard.sln` in Visual Studio on Windows, with .NET 10 and a con
 The new `Tests/Run-v0.17-Tests.ps1` performs structural checks and runs the existing native ensemble start-gate smoke tests where .NET is available. `Tests/Check-v0.17-Native-Ensemble.py` performs structural checks on Windows or Linux with Python 3. These **do not replace an actual FFXIV in-game ensemble test**.
 
 This archive is a **Visual Studio source release**, not a compiled plug-and-play Dalamud plugin. It has been source-checked but not compiled or exercised in a live FFXIV client here.
+
+
+https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
