@@ -1,3 +1,5 @@
+<img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/ce695b91-69a6-4a60-8b56-13251d1a98ec" />
+
 # Windbound Bard v0.26 — Concert Suite + MIDI Inspector
 
 Concert Director Stage Manager, automatic next-song preparation, single-Bard retry, and MIDI Arrangement Inspector are included in this cumulative full-source build. The **MIDI Inspector** tab reports song/track diagnostics and offers manual auto-fitting of untagged octaves without changing MIDI files. See `CHANGELOG-v0.24.md`, `CHANGELOG-v0.25.md`, `CHANGELOG-v0.26.md` and `Tests/Run-v0.26-Tests.ps1`. Existing solo instruments, native ensemble, Live MIDI Piano, Smart Playlists, HUD and French translations remain.
