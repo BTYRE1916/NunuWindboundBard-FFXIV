@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -8,21 +10,39 @@ using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 namespace NunuWindboundBard.Core;
 
 /// <summary>
-/// Instrument selection through the game's native hotbar PerformanceInstrument action.
-/// Unlike the v0.5 signature-scanned DoPerformAction pathway, this calls the
-/// hotbar dispatcher exposed by FFXIVClientStructs. It never synthesises keystrokes.
-/// This native game interface is version-sensitive and requires in-game testing.
-/// All methods MUST run on the FFXIV framework/Draw thread.
+/// Instrument selection uses FFXIV's native PerformanceInstrument hotbar action.
+/// STOP unequip uses the game's separate native Performance action with instrument 0,
+/// the distinction that matters when closing the 37-keyboard window leaves a
+/// character holding an instrument. No simulated keyboard input is sent.
+/// Both native actions must run on FFXIV's framework update thread, and are
+/// game-version-sensitive: missing signatures fail closed with diagnostics.
 /// </summary>
 public sealed unsafe class InstrumentSwitcher
 {
     private enum Phase
     {
         Idle, RequestExit, WaitForExit, WaitAfterExit, SendSelection,
-        WaitForSelection, WaitForManualExit, ApplyGuitarTone, Settle, Ready, Failed
+        WaitForSelection, WaitForManualExit, ApplyGuitarTone, Settle, Ready, Failed,
+        RequestUnequip, WaitForUnequip
     }
 
+    // This is the PerformAction(0) exit pathway used by MidiBard2's stable
+    // ensemble implementation, not the UI's Close() method. Signatures may
+    // become invalid after FFXIV updates; never guess addresses or offset values.
+    // Protocol/signature reference: MidiBard2, originally by akira0245.
+    private const string NativePerformActionSignature =
+        "48 89 6C 24 10 48 89 74 24 18 57 48 83 EC ?? 48 83 3D ?? ?? ?? ?? ?? 41 8B E8";
+    private const string NativePerformanceStateSignature =
+        "48 8B C2 0F B6 15 ?? ?? ?? ?? F6 C2 01";
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    private delegate void NativePerformAction(nint performanceInfo, uint instrumentId, int unused);
+
     private readonly IObjectTable objects;
+    private readonly ICondition conditions;
+    private readonly NativePerformAction? performAction;
+    private readonly nint nativePerformanceInfo;
+    private readonly string nativeUnequipAvailability;
     private readonly Stopwatch elapsed = new();
     private Phase phase;
     private int selected;
@@ -36,7 +56,33 @@ public sealed unsafe class InstrumentSwitcher
     private int exitAttemptCount;
     private string exitRoute = "Not attempted";
 
-    public InstrumentSwitcher(IObjectTable objects) => this.objects = objects;
+    public InstrumentSwitcher(IObjectTable objects, ICondition conditions, ISigScanner scanner)
+    {
+        this.objects = objects;
+        this.conditions = conditions;
+        try
+        {
+            if (!scanner.TryScanText(NativePerformActionSignature, out nint fn) || fn == 0 ||
+                !scanner.TryGetStaticAddressFromSig(NativePerformanceStateSignature,
+                    out nint state) || state == 0)
+            {
+                nativeUnequipAvailability = "Native Performance action signatures unavailable; " +
+                    "FFXIV may have updated. Manually put away the instrument.";
+                return;
+            }
+            performAction = Marshal.GetDelegateForFunctionPointer<NativePerformAction>(fn);
+            nativePerformanceInfo = state;
+            nativeUnequipAvailability = "Native FFXIV Performance action available.";
+        }
+        catch (Exception ex)
+        {
+            nativeUnequipAvailability = "Could not resolve native Performance action: " + ex.Message;
+        }
+    }
+
+    private bool IsActuallyUnequipped => CurrentId == 0 && !conditions[ConditionFlag.Performing];
+    public bool CanNativeUnequip => performAction is not null && nativePerformanceInfo != 0;
+    public string NativeUnequipDiagnostics => nativeUnequipAvailability;
 
     public int CurrentId
     {
@@ -56,7 +102,8 @@ public sealed unsafe class InstrumentSwitcher
     public int LastNativeReturn { get; private set; } = -1;
     public bool InProgress => phase is Phase.RequestExit or Phase.WaitForExit or
         Phase.WaitAfterExit or Phase.SendSelection or Phase.WaitForSelection or
-        Phase.WaitForManualExit or Phase.ApplyGuitarTone or Phase.Settle;
+        Phase.WaitForManualExit or Phase.ApplyGuitarTone or Phase.Settle or
+        Phase.RequestUnequip or Phase.WaitForUnequip;
     public bool HasFailed => phase == Phase.Failed;
     public int TargetId => selected;
 
@@ -113,6 +160,30 @@ public sealed unsafe class InstrumentSwitcher
             : $"Preparing {InstrumentCatalog.Display(id)} using FFXIV's Performance action...";
     }
 
+    /// <summary>Leave FFXIV Performance mode without selecting a replacement.
+    /// Called ONLY from Framework.Update after MIDI note-offs have been released.
+    /// The native instrument=0 game action actually stows the instrument; closing
+    /// PerformanceModeWide is insufficient because it only dismisses the UI.</summary>
+    public void RequestUnequip()
+    {
+        // STOP should override an in-flight switch to an instrument.
+        if (InProgress) Cancel();
+        selected = 0;
+        if (IsActuallyUnequipped)
+        {
+            phase = Phase.Idle;
+            Status = "Instrument already stowed; FFXIV Performance state inactive.";
+            return;
+        }
+        exitAttemptCount = 0;
+        exitCallbackAccepted = false;
+        exitRoute = "Not attempted";
+        exitRequestedAt = 0;
+        elapsed.Restart();
+        phase = Phase.RequestUnequip;
+        Status = "Leader STOP: requesting FFXIV's native unequip action (instrument 0)...";
+    }
+
     public void Cancel()
     {
         if (!InProgress) return;
@@ -157,6 +228,51 @@ public sealed unsafe class InstrumentSwitcher
 
             switch (phase)
             {
+                case Phase.RequestUnequip:
+                    if (IsActuallyUnequipped)
+                    {
+                        phase = Phase.Idle;
+                        elapsed.Stop();
+                        Status = "Instrument stowed: FFXIV confirms Performance mode ended.";
+                        break;
+                    }
+                    if (!CanNativeUnequip)
+                    {
+                        Fail(nativeUnequipAvailability);
+                        break;
+                    }
+                    if (exitAttemptCount >= 2)
+                    {
+                        Fail("FFXIV still has the instrument equipped after two native " +
+                            "Performance action (0) requests. Manually stow it. " + Diagnostics);
+                        break;
+                    }
+                    // Unlike addon.Close(true), the game's native PerformAction(0)
+                    // requests an instrument change to NONE. Called once per attempt,
+                    // only here on the framework update thread after MIDI note release.
+                    performAction!(nativePerformanceInfo, 0u, 0);
+                    exitAttemptCount++;
+                    exitRoute = "Native Performance action (instrument=0)";
+                    exitCallbackAccepted = true; // dispatched, NOT proof of success
+                    exitRequestedAt = elapsed.ElapsedMilliseconds;
+                    phase = Phase.WaitForUnequip;
+                    Status = $"Native unequip requested (attempt {exitAttemptCount}/2); " +
+                        "waiting for FFXIV to confirm the instrument is put away...";
+                    break;
+                case Phase.WaitForUnequip:
+                    if (IsActuallyUnequipped)
+                    {
+                        phase = Phase.Idle;
+                        elapsed.Stop();
+                        Status = "Instrument stowed: FFXIV confirms Performance mode ended.";
+                    }
+                    else if (elapsed.ElapsedMilliseconds - exitRequestedAt > 2800)
+                    {
+                        phase = Phase.RequestUnequip;
+                        Status = "FFXIV still reports Performance active. " +
+                            "Retrying native instrument=0 once more...";
+                    }
+                    break;
                 case Phase.RequestExit:
                     if (current == 0)
                     {
@@ -279,7 +395,9 @@ public sealed unsafe class InstrumentSwitcher
         }
     }
 
-    public string Diagnostics => $"Phase={phase}; exit attempts={exitAttemptCount}; exit route={exitRoute}; exit callback accepted={exitCallbackAccepted} " +
+    public string Diagnostics => $"Phase={phase}; unequip native available={CanNativeUnequip}; " +
+                                 $"FFXIV Performing flag={conditions[ConditionFlag.Performing]}; " +
+                                 $"exit attempts={exitAttemptCount}; exit route={exitRoute}; exit callback accepted={exitCallbackAccepted} " +
                                  $"(not proof of exit); game action={LastRoute}; raw native return={LastNativeReturn} " +
                                  $"(not a success indicator); requested={InstrumentCatalog.Display(selected)}; current={CurrentName}.";
 

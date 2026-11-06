@@ -19,15 +19,21 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static IObjectTable Objects { get; private set; } = null!;
     [PluginService] internal static IPartyList Party { get; private set; } = null!;
+    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
+    [PluginService] internal static IChatGui Chat { get; private set; } = null!;
 
     internal readonly Configuration Config;
     internal readonly PlaybackEngine Player = new();
     internal readonly EnsembleCoordinator Ensemble = new();
     internal readonly EnsembleAssignmentBus Assignments = new();
     internal readonly MultiDeviceEnsemble Network = new();
+    internal readonly GameEnsembleSync GameEnsemble;
+    internal readonly GamePartyChatSync PartyChat;
     internal readonly InstrumentSwitcher Instruments;
+    internal readonly LiveMidiInputService LiveMidi = new();
     private readonly WindowSystem windows = new("NunuWindboundBard");
     private readonly MainWindow main;
+    private readonly PerformanceHudWindow hud;
     private volatile bool performing;
     private volatile bool expandedKeyboard;
     internal bool IsPerforming => performing;
@@ -35,7 +41,9 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin()
     {
-        Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        var previousConfig = PluginInterface.GetPluginConfig();
+        bool isFirstInstall = previousConfig is not Configuration;
+        Config = previousConfig as Configuration ?? new Configuration();
         if (Config.Version < 2)
         {
             Config.ChordStrategy = (int)ChordStrategy.PreserveAll;
@@ -103,23 +111,207 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 11;
             Config.Save();
         }
+        if (Config.Version < 12)
+        {
+            // New game-native remote ensemble is always opt-in; nothing else resets.
+            Config.GameEnsembleEnabled = false;
+            Config.GamePartyChatEnabled = false;
+            Config.Version = 12;
+            Config.Save();
+        }
+        if (Config.Version < 13)
+        {
+            // FFXIV native Ensemble is now its own cue; no follower wait checkbox.
+            // Preserve the user's existing MIDI, instrument and playlist settings.
+            Config.Version = 13;
+            Config.Save();
+        }
+        if (Config.Version < 14)
+        {
+            // Keep the already-working FFXIV Ready Check path by default.
+            // Automatic remote start must be consciously enabled by the follower.
+            Config.GameEnsembleOneClick = false;
+            Config.OneClickAllowLeaderStart = false;
+            Config.Version = 14;
+            Config.Save();
+        }
+        if (Config.Version < 15)
+        {
+            // Preserve all existing song/instrument/ensemble preferences.
+            Config.PartyInstrumentsByFile ??= new(StringComparer.OrdinalIgnoreCase);
+            Config.Version = 15;
+            Config.Save();
+        }
+        if (Config.Version < 16)
+        {
+            // Add HUD preferences without changing playback, instruments, or playlists.
+            // The HUD is opt-in and was not shown on earlier releases.
+            Config.HudVisible = false;
+            Config.HudCompact = true;
+            Config.HudLockPosition = false;
+            Config.HudShowNextSong = true;
+            Config.HudOpacity = 0.92f;
+            Config.Version = 16;
+            Config.Save();
+        }
+        if (Config.Version < 17)
+        {
+            // Non-destructive migration: the existing library is untouched.
+            Config.SmartPlaylistsById ??= new();
+            Config.Version = 17;
+            Config.Save();
+        }
+        Config.SmartPlaylistsById ??= new();
+        if (Config.Version < 18)
+        {
+            // v0.17 retires the chat/UTC start path and adopts native game
+            // Ensemble Ready Check + automatic follower confirmation.
+            Config.NativeEnsembleAutoAccept = true;
+            Config.GameEnsembleOneClick = false;
+            Config.Version = 18;
+            Config.Save();
+        }
+        if (Config.Version < 19)
+        {
+            // v0.18: enable conductor MIDI/instrument sync by default; no automatic
+            // music START is issued by chat. Honour an existing user's auto-accept choice.
+            Config.NativeLeaderSyncEnabled = true;
+            Config.Version = 19;
+            Config.Save();
+        }
+        if (isFirstInstall)
+        {
+            // A new installation is ready for native ensemble once the user selects
+            // Follower or Conductor. It still never ARM's game output automatically.
+            Config.GameEnsembleEnabled = true;
+            Config.NativeEnsembleAutoAccept = true;
+            Config.NativeLeaderSyncEnabled = true;
+            Config.GameEnsembleOneClick = false;
+            Config.Save();
+        }
+        if (Config.GameEnsembleOneClick)
+        {
+            // Legacy JSON setting must not silently reactivate the old unreliable
+            // party chat START in this release. Solo/ensemble libraries stay intact.
+            Config.GameEnsembleOneClick = false;
+            Config.Save();
+        }
+        if (Config.Version < 20)
+        {
+            // No existing options are reset. The new conductor track transfer
+            // and group STOP+unequip use the native ensemble/follower settings.
+            Config.Version = 20;
+            Config.Save();
+        }
+        if (Config.Version < 21)
+        {
+            // New live MIDI feature is opt-in, doesn't change existing music
+            // libraries, ensemble settings, or the user's instrument choices.
+            Config.LiveMidiInputEnabled = false;
+            Config.Version = 21;
+            Config.Save();
+        }
+        if (Config.Version < 22)
+        {
+            // UI-only localisation migration; preserve all MIDI/ensemble settings.
+            Config.Language ??= "en";
+            Config.Version = 22;
+            Config.Save();
+        }
+        if (Config.Version < 23)
+        {
+            // MIDI tags and General MIDI mapping are optional defaults. No
+            // existing ensemble, manual instrument or octave settings are reset.
+            Config.AutoDetectMidiTrackInstruments = true;
+            Config.AutoReadMidiTrackOctaves = true;
+            Config.ManualOctaveLaneOverridesByFile ??= new(StringComparer.OrdinalIgnoreCase);
+            Config.Version = 23;
+            Config.Save();
+        }
+        if (Config.Version < 24)
+        {
+            // Expanded MIDI metadata detection. Preserve existing instruments,
+            // octaves, overrides and all ensemble settings on upgrade.
+            Config.Version = 24;
+            Config.Save();
+        }
+        if (Config.Version < 25)
+        {
+            // Reusable octet lineups are enabled for new/updated installs.
+            // Do not overwrite existing per-MIDI assignments, party rosters or profiles.
+            Config.KeepPartyAssignmentsAcrossSongs = true;
+            Config.EnsembleLineupsByPlaylistId ??= new();
+            Config.Version = 25;
+            Config.Save();
+        }
+        if (Config.Version < 26)
+        {
+            // Stage Manager uses party metadata only; all player settings are preserved.
+            Config.Version = 26;
+            Config.Save();
+        }
+        if (Config.Version < 27)
+        {
+            Config.ConcertAutoPrepareNext = false; // opt-in, no automatic native START
+            Config.ConcertSongCuesByKey ??= new();
+            Config.Version = 27;
+            Config.Save();
+        }
+        Config.ConcertSongCuesByKey ??= new();
+        if (Config.Version < 28)
+        {
+            // The inspection button is read-only until the user approves a fix.
+            Config.Version = 28;
+            Config.Save();
+        }
+        Config.EnsembleLineupsByPlaylistId ??= new();
+        Config.ManualOctaveLaneOverridesByFile ??= new(StringComparer.OrdinalIgnoreCase);
+        Loc.SetLanguage(Config.Language);
+        // Remote-playback consent lasts for the current plugin session only.
+        // Never auto-enable it just because the user opted in yesterday.
+        if (Config.OneClickAllowLeaderStart)
+        {
+            Config.OneClickAllowLeaderStart = false;
+            Config.Save();
+        }
+        // Never enable both cross-PC transports simultaneously.
+        if (Config.GameEnsembleEnabled && Config.MultiDeviceEnabled)
+        {
+            Config.MultiDeviceEnabled = false;
+            Config.Save();
+        }
+        Config.PartyInstrumentsByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.SoulweaverPresetsByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.PartyAssignmentsByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.GuitarTonesByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.InstrumentsByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.OctaveShiftsByFile ??= new(StringComparer.OrdinalIgnoreCase);
-        Instruments = new InstrumentSwitcher(Objects);
+        Instruments = new InstrumentSwitcher(Objects, Conditions, SigScanner);
+        if (Config.LiveMidiInputEnabled && !string.IsNullOrWhiteSpace(Config.LiveMidiInputDeviceName))
+        {
+            // Re-open only a previously chosen controller. Output ARM stays OFF
+            // until the user explicitly enables it in this FFXIV session.
+            _ = LiveMidi.Connect(Config.LiveMidiInputDeviceName, out _);
+        }
+        GameEnsemble = new GameEnsembleSync(SigScanner, GameInterop)
+        {
+            Enabled = Config.GameEnsembleEnabled && Config.EnsembleMode != (int)EnsembleRole.Solo
+        };
+        PartyChat = new GamePartyChatSync(Chat, Party, Objects);
         main = new MainWindow(this);
         windows.AddWindow(main);
+        hud = new PerformanceHudWindow(this, main);
+        hud.IsOpen = Config.HudVisible;
+        windows.AddWindow(hud);
         Commands.AddHandler("/windbound", new CommandInfo(OnCommand)
         {
-            HelpMessage = "Open Windbound Bard, or /windbound stop to stop playback."
+            HelpMessage = Loc.T("Open Windbound Bard; /windbound hud toggles the HUD; /windbound stop stops playback; /windbound midipanic releases live keys.")
         });
         Framework.Update += OnFrameworkUpdate;
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.11.1 loaded: opt-in cross-PC duet sessions, party part assignments, synced cues, saved playlists.");
+        Log.Information("Windbound Bard v0.26 loaded: English / French UI, MIDI and ensemble engine unchanged.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -134,7 +326,30 @@ public sealed class Plugin : IDalamudPlugin
         main.PollNetwork();
         main.PollPartyAssignments();
         main.PollEnsemble();
+        GameEnsemble.Enabled = Config.GameEnsembleEnabled && Config.EnsembleMode != (int)EnsembleRole.Solo;
+        // Party preparation commands are not musical START cues. Process them
+        // first, then auto-accept only if the MIDI and instrument are prepared.
+        PartyChat.Enabled = Config.GameEnsembleEnabled &&
+            (Config.GamePartyChatEnabled || Config.NativeLeaderSyncEnabled);
+        PartyChat.ReceiveEnabled = Config.GameEnsembleEnabled &&
+            (Config.EnsembleMode == (int)EnsembleRole.Follower ||
+             Config.EnsembleMode == (int)EnsembleRole.Conductor);
+        main.PollGamePartyChat();
+        main.PollNativeConductorSync();
+        main.PollConcertDirector();
+        main.PollNativeReadyChecks();
+        main.PollGameEnsemble();
+        main.PollOneClickInstrumentPreparation();
+        // Flush live controller note-offs before the MIDI-file scheduler so
+        // switching into file playback never releases the file's fresh notes.
+        LiveMidi.ProcessFrameworkUpdate(Config.LiveMidiInputEnabled,
+            Config.EnsembleMode == (int)EnsembleRole.Solo, main.LiveMidiArmed,
+            performing && expandedKeyboard,
+            Player.IsPlaying || Player.IsStopPending || Player.IsRewindPending,
+            Instruments.InProgress, Config.LiveMidiTranspose,
+            Config.LiveMidiFoldToRange, Config.LiveMidiSustain, Config.LiveMidiChannel);
         Player.Update(performing && expandedKeyboard);
+        main.PollConcertSetlist();
         main.PollSongTransitions();
     }
 
@@ -147,8 +362,48 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
-        if (args.Trim().Equals("stop", StringComparison.OrdinalIgnoreCase)) main.StopPlayback();
-        else main.Toggle();
+        string input = (args ?? string.Empty).Trim();
+        if (input.Equals("stop", StringComparison.OrdinalIgnoreCase))
+        {
+            main.StopPlayback();
+            return;
+        }
+        if (input.Equals("midipanic", StringComparison.OrdinalIgnoreCase))
+        {
+            LiveMidi.Panic();
+            return;
+        }
+        if (input.Equals("hud", StringComparison.OrdinalIgnoreCase))
+        {
+            SetHudVisible(!hud.IsOpen);
+            return;
+        }
+        if (input.Equals("hud show", StringComparison.OrdinalIgnoreCase))
+        {
+            SetHudVisible(true);
+            return;
+        }
+        if (input.Equals("hud hide", StringComparison.OrdinalIgnoreCase))
+        {
+            SetHudVisible(false);
+            return;
+        }
+        main.Toggle();
+    }
+
+    internal void RefreshHudLanguage() =>
+        hud.WindowName = Loc.T("Windbound Bard | Performance HUD") + "###NunuWindboundHud";
+
+    internal bool IsHudVisible => hud.IsOpen;
+
+    internal void SetHudVisible(bool visible)
+    {
+        if (hud.IsOpen != visible) hud.IsOpen = visible;
+        if (Config.HudVisible != visible)
+        {
+            Config.HudVisible = visible;
+            Config.Save();
+        }
     }
 
     internal bool IsGameOutputSafe() => performing && expandedKeyboard;
@@ -163,10 +418,13 @@ public sealed class Plugin : IDalamudPlugin
         Commands.RemoveHandler("/windbound");
         main.CancelPendingInstrumentStart();
         Instruments.Cancel();
+        LiveMidi.Dispose();
         Player.Dispose();
         Ensemble.Dispose();
         Assignments.Dispose();
         Network.Dispose();
+        PartyChat.Dispose();
+        GameEnsemble.Dispose();
         windows.RemoveAllWindows();
         main.Dispose();
     }

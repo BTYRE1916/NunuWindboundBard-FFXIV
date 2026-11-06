@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="MidiArrangementInspectorSmokeTest.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/MidiArrangementInspector.cs" Link="MidiArrangementInspector.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/MidiFileReader.cs" Link="MidiFileReader.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/MidiOptimization.cs" Link="MidiOptimization.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/NoteMapper.cs" Link="NoteMapper.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/InstrumentCatalog.cs" Link="InstrumentCatalog.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/MidiInstrumentInference.cs" Link="MidiInstrumentInference.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/MidiTrackTags.cs" Link="MidiTrackTags.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/BardArrangement.cs" Link="BardArrangement.cs"/>
+  </ItemGroup>
+</Project>

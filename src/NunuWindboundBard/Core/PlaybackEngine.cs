@@ -35,6 +35,7 @@ public sealed class PlaybackEngine : IDisposable
     private bool running;
     private bool paused;
     private bool stopRequested;
+    private bool rewindRequested; // right-click reset / new MIDI: handled on framework update if notes are active
     private double positionMs;
     private string status = "Ready";
     private bool completedSuccessfully;
@@ -48,6 +49,7 @@ public sealed class PlaybackEngine : IDisposable
 
     public bool IsPlaying { get { lock (sync) return running; } }
     public bool IsStopPending { get { lock (sync) return stopRequested; } }
+    public bool IsRewindPending { get { lock (sync) return rewindRequested; } }
     public bool IsEnsemblePlayback { get { lock (sync) return running && scheduledStartQpc.HasValue; } }
     public double EnsembleCountInSeconds { get { lock (sync) return scheduledStartQpc.HasValue && !ensembleStarted
         ? EnsembleCoordinator.RemainingSeconds(scheduledStartQpc.Value) : 0; } }
@@ -68,6 +70,7 @@ public sealed class PlaybackEngine : IDisposable
             throw new InvalidOperationException("Open the full 37-note FFXIV Performance keyboard first.");
         lock (sync)
         {
+            if (rewindRequested || stopRequested) throw new InvalidOperationException("Wait for the previous stop/reset to finish before starting the MIDI.");
             if (running || testPitch.HasValue) throw new InvalidOperationException("Stop the current performance/test first.");
             // Freeze tone choices for this performance: editing the UI won't change an active song.
             settings = options with { GuitarTones = options.GuitarTones is null
@@ -113,12 +116,15 @@ public sealed class PlaybackEngine : IDisposable
     {
         lock (sync)
         {
-            if (stopRequested)
+            if (rewindRequested || stopRequested)
             {
+                // UI requests never invoke FFXIV native callbacks directly.
+                // Release notes here on Dalamud's framework update thread.
+                bool wasRewind = rewindRequested;
                 ReleaseTest();
                 ReleaseAll();
-                Finish(false, "Playback stopped.");
-                stopRequested = false;
+                ResetPlaybackState(wasRewind ? "MIDI reset to start (00:00). Ready to play." :
+                    "Playback stopped and rewound to 00:00.");
                 return;
             }
             if (testPitch.HasValue)
@@ -269,6 +275,60 @@ public sealed class PlaybackEngine : IDisposable
         eventIndex = 0;
         scheduledStartQpc = null;
         ensembleStarted = false;
+    }
+
+    /// <summary>
+    /// Stops and rewinds the current MIDI to 00:00, including chord/sustain state,
+    /// any queued ensemble start and note counters. It never auto-plays again.
+    /// When notes are active, native note-off callbacks are deferred to Update()
+    /// on the FFXIV framework thread. When idle, the stale progress can be cleared
+    /// immediately, e.g. on loading a different MIDI.
+    /// </summary>
+    public void RewindToStart()
+    {
+        lock (sync)
+        {
+            completedSuccessfully = false; // Never Auto Next after a manual rewind.
+            positionMs = 0;
+            notesPlayed = 0;
+            if (running || testPitch.HasValue || heldPitches.Count > 0)
+            {
+                rewindRequested = true;
+                stopRequested = false;
+                status = "Rewind requested; releasing any held notes on the next game update.";
+            }
+            else
+            {
+                // No native UI calls necessary when no keys are held.
+                ResetPlaybackState("MIDI at start (00:00). Ready to play.");
+            }
+        }
+    }
+
+    // Caller must hold sync. In particular, do not call ReleaseAll here: the
+    // caller first releases keys on the framework thread when required.
+    private void ResetPlaybackState(string message)
+    {
+        clock.Reset();
+        running = false;
+        paused = false;
+        stopRequested = false;
+        rewindRequested = false;
+        completedSuccessfully = false;
+        positionMs = 0;
+        notesPlayed = 0;
+        toneSwitches = 0;
+        currentGuitarTone = null;
+        guitarWarning = "";
+        heldPitches.Clear();
+        events.Clear();
+        eventIndex = 0;
+        scheduledStartQpc = null;
+        ensembleStarted = false;
+        testPitch = null;
+        testPressed = false;
+        testOffAtMs = -1;
+        status = message;
     }
 
     public void QueueTestNote(int pitch, int holdMs, Func<bool> canSend)

@@ -41,65 +41,65 @@ public sealed partial class MainWindow
 
     private void DrawSoulweaver()
     {
-        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), "SOULWEAVER — ADAPTIVE ORCHESTRA STUDIO");
-        ImGui.TextWrapped("Transform a source MIDI into separate Solo, Duet, Quartet or Octet parts. " +
+        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), Loc.T("SOULWEAVER — ADAPTIVE ORCHESTRA STUDIO"));
+        ImGui.TextWrapped(Loc.T("Transform a source MIDI into separate Solo, Duet, Quartet or Octet parts. " +
             "This first release uses deterministic melody, bass and harmony heuristics; preview the resulting parts before exporting. " +
-            "Your source MIDI, game note output and existing playlists are not changed by analysis.");
+            "Your source MIDI, game note output and existing playlists are not changed by analysis."));
         if (song is null || string.IsNullOrWhiteSpace(loaded))
         {
-            ImGui.TextDisabled("Load a MIDI in Songs & Playback first, then return here.");
+            ImGui.TextDisabled(Loc.T("Load a MIDI in Songs & Playback first, then return here."));
             return;
         }
         var preset = GetSoulweaverPreset();
-        ImGui.TextUnformatted("Source: " + Path.GetFileName(loaded));
-        ImGui.TextDisabled($"{song.Notes.Count:N0} MIDI notes; {song.Tracks.Count} source tracks; " +
-            $"C3–C6 target; {song.InitialBpm:0.#} initial BPM");
+        ImGui.TextUnformatted(Loc.T("Source: " + Path.GetFileName(loaded)));
+        ImGui.TextDisabled(Loc.T($"{song.Notes.Count:N0} MIDI notes; {song.Tracks.Count} source tracks; " +
+            $"C3–C6 target; {song.InitialBpm:0.#} initial BPM"));
         ImGui.Separator();
-        ImGui.TextUnformatted("Choose the number of musicians:");
+        ImGui.TextUnformatted(Loc.T("Choose the number of musicians:"));
         foreach (var n in new[] { 1, 2, 4, 8 })
         {
             string label = n switch { 1 => "Solo", 2 => "Duet", 4 => "Quartet", _ => "Octet" };
-            if (ImGui.RadioButton($"{label}##Soulweaver{n}", preset.Performers == n))
+            if (ImGui.RadioButton(Loc.T($"{label}##Soulweaver{n}"), preset.Performers == n))
             {
                 preset.Performers = n; InvalidateSoulweaver(); cfg.Save();
             }
             if (n != 8) ImGui.SameLine();
         }
         bool all = preset.IncludeAllTracks;
-        if (ImGui.Checkbox("Analyse all non-percussion tracks (ignore local ensemble mutes)", ref all))
+        if (ImGui.Checkbox(Loc.T("Analyse all non-percussion tracks (ignore local ensemble mutes)"), ref all))
         {
             preset.IncludeAllTracks = all; InvalidateSoulweaver(); cfg.Save();
         }
-        ImGui.TextDisabled("Uncheck to respect the track mute choices currently shown in Songs & Playback.");
+        ImGui.TextDisabled(Loc.T("Uncheck to respect the track mute choices currently shown in Songs & Playback."));
         int cap = Math.Clamp(preset.MaxNotesPerOnset, 0, 8);
-        if (ImGui.SliderInt("Per-performer chord limit (0 = unlimited)", ref cap, 0, 8))
+        if (ImGui.SliderInt(Loc.T("Per-performer chord limit (0 = unlimited)"), ref cap, 0, 8))
         {
             preset.MaxNotesPerOnset = cap; InvalidateSoulweaver(); cfg.Save();
         }
-        ImGui.TextDisabled("Unlimited preserves every prepared note. A smaller cap may be useful for dense arrangements.");
-        if (ImGui.Button("Analyse & Generate Parts")) GenerateSoulweaver();
+        ImGui.TextDisabled(Loc.T("Unlimited preserves every prepared note. A smaller cap may be useful for dense arrangements."));
+        if (ImGui.Button(Loc.T("Analyse & Generate Parts"))) GenerateSoulweaver();
         ImGui.SameLine();
-        if (ImGui.Button("Octave adjustment help"))
+        if (ImGui.Button(Loc.T("Octave adjustment help")))
             soulweaverMessage = "Use the FFXIV Optimiser tab to edit octave shifts, then come back and regenerate.";
-        ImGui.TextWrapped(soulweaverMessage);
+        ImGui.TextWrapped(Loc.T(soulweaverMessage));
         if (soulweaver is null) return;
 
         ImGui.Separator();
-        ImGui.TextColored(new Vector4(.75f, 1f, .83f, 1f), "ANALYSIS & PART GENERATION");
+        ImGui.TextColored(new Vector4(.75f, 1f, .83f, 1f), Loc.T("ANALYSIS & PART GENERATION"));
         var a = soulweaver.Analysis;
-        ImGui.TextWrapped($"Estimated key: {a.EstimatedKey} (heuristic; confidence margin {a.KeyConfidence:0.0})  |  " +
-            $"Chord onsets: {a.ChordOnsets:N0}  |  Musical phrases: {a.PhraseCount:N0}");
-        ImGui.TextUnformatted($"Prepared notes: {a.SourceNotes:N0}  |  Exported notes: {a.ExportNotes:N0}  |  " +
-            $"Range: {NoteMapper.GetNoteName(a.LowestPitch)}–{NoteMapper.GetNoteName(a.HighestPitch)}");
+        ImGui.TextWrapped(Loc.T($"Estimated key: {a.EstimatedKey} (heuristic; confidence margin {a.KeyConfidence:0.0})  |  " +
+            $"Chord onsets: {a.ChordOnsets:N0}  |  Musical phrases: {a.PhraseCount:N0}"));
+        ImGui.TextUnformatted(Loc.T($"Prepared notes: {a.SourceNotes:N0}  |  Exported notes: {a.ExportNotes:N0}  |  " +
+            $"Range: {NoteMapper.GetNoteName(a.LowestPitch)}–{NoteMapper.GetNoteName(a.HighestPitch)}"));
         foreach (string warning in a.Warnings)
-            ImGui.TextColored(new Vector4(1f, .77f, .39f, 1f), warning);
+            ImGui.TextColored(new Vector4(1f, .77f, .39f, 1f), Loc.T(warning));
         DrawSoulweaverTimeline(soulweaver);
 
         ImGui.Separator();
-        ImGui.TextColored(new Vector4(.83f, .65f, 1f, 1f), "MUSICIAN PARTS & INSTRUMENT RECOMMENDATIONS");
-        ImGui.TextDisabled("Each named track becomes a separate MIDI lane. You may change instrument choices and party assignments before export.");
+        ImGui.TextColored(new Vector4(.83f, .65f, 1f, 1f), Loc.T("MUSICIAN PARTS & INSTRUMENT RECOMMENDATIONS"));
+        ImGui.TextDisabled(Loc.T("Each named track becomes a separate MIDI lane. You may change instrument choices and party assignments before export."));
         var partyChoices = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
-        if (preset.Performers > 1 && ImGui.Button("Auto-assign parts to FFXIV party order"))
+        if (preset.Performers > 1 && ImGui.Button(Loc.T("Auto-assign parts to FFXIV party order")))
         {
             for (int i = 0; i < soulweaver.Parts.Count; ++i)
             {
@@ -113,17 +113,17 @@ public sealed partial class MainWindow
         foreach (var part in soulweaver.Parts)
         {
             int i = part.Index;
-            ImGui.TextColored(soulweaverColors[i], $"{i + 1}. {part.Name} — {part.Notes.Count:N0} notes");
-            ImGui.TextDisabled(part.RoleDescription + (part.Notes.Count > 0
-                ? $"  |  {NoteMapper.GetNoteName(part.LowestPitch)}–{NoteMapper.GetNoteName(part.HighestPitch)}" : "  |  No notes for this part"));
+            ImGui.TextColored(soulweaverColors[i], Loc.T($"{i + 1}. {part.Name} — {part.Notes.Count:N0} notes"));
+            ImGui.TextDisabled(Loc.T(part.RoleDescription + (part.Notes.Count > 0
+                ? $"  |  {NoteMapper.GetNoteName(part.LowestPitch)}–{NoteMapper.GetNoteName(part.HighestPitch)}" : "  |  No notes for this part")));
             int id = preset.InstrumentByPart.TryGetValue(i, out int selectedId) && InstrumentCatalog.Valid(selectedId) && selectedId > 0
                 ? selectedId : part.SuggestedInstrumentId;
             ImGui.SetNextItemWidth(Math.Min(320, Math.Max(190, ImGui.GetContentRegionAvail().X * .7f)));
-            if (ImGui.BeginCombo($"Instrument##SoulInstrument{i}", InstrumentCatalog.Display(id)))
+            if (ImGui.BeginCombo(Loc.T($"Instrument##SoulInstrument{i}"), Loc.T(InstrumentCatalog.Display(id))))
             {
                 foreach (var instrument in InstrumentCatalog.All)
                 {
-                    if (ImGui.Selectable($"{instrument.DisplayName}##SoulInstrumentChoice{i}_{instrument.Id}", id == instrument.Id))
+                    if (ImGui.Selectable(Loc.T($"{instrument.DisplayName}##SoulInstrumentChoice{i}_{instrument.Id}"), id == instrument.Id))
                     {
                         preset.InstrumentByPart[i] = instrument.Id; cfg.Save();
                     }
@@ -136,14 +136,14 @@ public sealed partial class MainWindow
                 string label = selected == 0 ? "Assign in Ensemble later" :
                     partyChoices.FirstOrDefault(p => p.ContentId == selected)?.Name ?? "Player no longer in party";
                 ImGui.SetNextItemWidth(Math.Min(320, Math.Max(190, ImGui.GetContentRegionAvail().X * .7f)));
-                if (ImGui.BeginCombo($"Player##SoulPlayer{i}", label))
+                if (ImGui.BeginCombo(Loc.T($"Player##SoulPlayer{i}"), Loc.T(label)))
                 {
-                    if (ImGui.Selectable($"Assign in Ensemble later##SoulNoPlayer{i}", selected == 0))
+                    if (ImGui.Selectable(Loc.T($"Assign in Ensemble later##SoulNoPlayer{i}"), selected == 0))
                     {
                         preset.PartyMemberByPart.Remove(i); cfg.Save();
                     }
                     foreach (var member in partyChoices)
-                        if (ImGui.Selectable($"{(member.IsLocal ? "[Me] " : "")}{member.Name}##SoulPlayer{i}_{member.ContentId}",
+                        if (ImGui.Selectable(Loc.T($"{(member.IsLocal ? "[Me] " : "")}{member.Name}##SoulPlayer{i}_{member.ContentId}"),
                                 selected == member.ContentId))
                         {
                             preset.PartyMemberByPart[i] = member.ContentId; cfg.Save();
@@ -154,24 +154,24 @@ public sealed partial class MainWindow
             ImGui.Separator();
         }
         ImGui.EndChild();
-        ImGui.TextDisabled("Ensemble instruments are recommendations; each player equips their chosen instrument locally before cue.");
+        ImGui.TextDisabled(Loc.T("Ensemble instruments are recommendations; each player equips their chosen instrument locally before cue."));
 
         ImGui.Separator();
-        ImGui.TextColored(new Vector4(.83f, .65f, 1f, 1f), "SAVE / ADD TO LIBRARY");
-        if (ImGui.Button("Export arrangement MIDI...")) SaveSoulweaverAs();
+        ImGui.TextColored(new Vector4(.83f, .65f, 1f, 1f), Loc.T("SAVE / ADD TO LIBRARY"));
+        if (ImGui.Button(Loc.T("Export arrangement MIDI..."))) SaveSoulweaverAs();
         ImGui.SameLine();
-        if (ImGui.Button(preset.Performers == 1 ? "Export & add to Solo playlist" : "Export & add to Ensemble playlist"))
+        if (ImGui.Button(Loc.T(preset.Performers == 1 ? "Export & add to Solo playlist" : "Export & add to Ensemble playlist")))
             SaveSoulweaverToPlaylist();
-        ImGui.TextWrapped("Exports preserve original tempo changes and create one track per musician. " +
-            "Your source MIDI is never overwritten. Existing Windbound multi-device ensembles can transfer the exported MIDI normally.");
+        ImGui.TextWrapped(Loc.T("Exports preserve original tempo changes and create one track per musician. " +
+            "Your source MIDI is never overwritten. Existing Windbound multi-device ensembles can transfer the exported MIDI normally."));
         if (!string.IsNullOrWhiteSpace(soulweaverMessage))
-            ImGui.TextWrapped("Export / studio status: " + soulweaverMessage);
+            ImGui.TextWrapped(Loc.T("Export / studio status: " + soulweaverMessage));
         if (!string.IsNullOrWhiteSpace(soulweaverLastExport) && File.Exists(soulweaverLastExport))
         {
-            ImGui.TextWrapped("Saved MIDI: " + soulweaverLastExport);
-            if (ImGui.Button("Load exported arrangement in Windbound")) LoadFromUser(soulweaverLastExport);
+            ImGui.TextWrapped(Loc.T("Saved MIDI: " + soulweaverLastExport));
+            if (ImGui.Button(Loc.T("Load exported arrangement in Windbound"))) LoadFromUser(soulweaverLastExport);
             ImGui.SameLine();
-            if (ImGui.Button("Add last export to playlist"))
+            if (ImGui.Button(Loc.T("Add last export to playlist")))
                 AddPreviousSoulweaverExportToPlaylist();
         }
     }
@@ -201,7 +201,7 @@ public sealed partial class MainWindow
         if (soulweaver is null || string.IsNullOrWhiteSpace(loaded)) return;
         string stem = SoulweaverFilenameStem();
         // Save dialog callback is user-initiated; it writes only the generated MIDI.
-        fileDialogs.SaveFileDialog("Export Soulweaver arrangement", MidiFilter, stem + ".mid", ".mid",
+        fileDialogs.SaveFileDialog(Loc.T("Export Soulweaver arrangement"), MidiFilter, stem + ".mid", ".mid",
             (bool ok, string path) =>
             {
                 if (!ok || string.IsNullOrWhiteSpace(path)) return;
@@ -355,6 +355,6 @@ public sealed partial class MainWindow
             }
         }
         ImGui.Dummy(new Vector2(width, height));
-        ImGui.TextDisabled("Visual part preview: up to the first 30 seconds, colour-coded by musician (not an audio renderer).");
+        ImGui.TextDisabled(Loc.T("Visual part preview: up to the first 30 seconds, colour-coded by musician (not an audio renderer)."));
     }
 }

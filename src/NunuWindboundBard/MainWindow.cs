@@ -18,7 +18,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly Plugin plugin;
     private readonly Configuration cfg;
     private readonly FileDialogManager fileDialogs = new();
-    private const string MidiFilter = "MIDI files{.mid,.midi}";
+    private static string MidiFilter => Loc.IsFrench ? "Fichiers MIDI{.mid,.midi}" : "MIDI files{.mid,.midi}";
     private MidiSong? song;
     private BardArrangement? arranged;
     private List<MidiLanePlan> lanes = new();
@@ -26,16 +26,25 @@ public sealed partial class MainWindow : Window, IDisposable
     private string loaded = "";
     private string fileInput;
     private string status = "Welcome to Windbound Bard. Load a MIDI or the bundled calibration file.";
+    // Diagnostic information for support. No files are sent automatically.
+    private string lastMidiLoadDiagnostics = "No MIDI load errors recorded this session.";
     private bool outputArmed; // intentionally never persisted
     private readonly SongFlowCoordinator songFlow = new();
     private int activePlaylist = -1;
     private bool showPianoRoll = true;
     private string playlistFilter = "";
+    private string playlistTagFilter = "";
+    private bool playlistFavoritesOnly;
+    private string playlistTagsInput = "";
+    private string playlistTagsTarget = "";
+    private List<string> missingFileCandidates = new();
+    private string pendingQueuedSongPath = "";
     private string playlistNameInput = "";
     private string playlistRenameInput = "";
     private bool copyPlaylistOnCreate;
     private string playlistMessage = "";
     private readonly Dictionary<MidiLaneKey, ulong> partyAssignments = new();
+    private string partyLineupStatus = "Assign performers once; subsequent Ensemble MIDI files will reuse the lineup.";
     private long lastPartyPollTicks;
     private string assignmentStatus = "Conductor has not published party assignments.";
     private bool partyAssignmentsReceivedForCurrentMidi;
@@ -52,7 +61,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private sealed record PendingInstrumentSong(string Path, int InstrumentId, long StartedQpc);
     private PendingInstrumentSong? pendingInstrumentSong;
 
-    public MainWindow(Plugin plugin) : base("Windbound Bard | Nunu's MIDI Studio###NunuWindboundBard")
+    public MainWindow(Plugin plugin) : base(Loc.T("Windbound Bard | Nunu's MIDI Studio") + "###NunuWindboundBard")
     {
         this.plugin = plugin;
         cfg = plugin.Config;
@@ -70,65 +79,95 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
-        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), "NUNU'S WINDBOUND BARD   /windbound");
+        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), Loc.T("NUNU'S WINDBOUND BARD   /windbound"));
         ImGui.SameLine();
-        ImGui.TextDisabled("FFXIV • C3–C6 • Dalamud 15 • Chords + Multi-Device + Soulweaver");
+        ImGui.TextDisabled(Loc.T("FFXIV • C3–C6 • Dalamud 15 • Native Ensemble + Soulweaver"));
+        if (ImGui.SmallButton(Loc.T(plugin.IsHudVisible ? "Hide Performance HUD##windbound" : "Show Performance HUD##windbound")))
+            plugin.SetHudVisible(!plugin.IsHudVisible);
+        ImGui.SameLine();
+        ImGui.TextDisabled(Loc.T("/windbound hud  |  independent per-client HUD"));
+        // Language changes immediately; place the selector on its own row so it
+        // remains accessible even with Dalamud UI scaling and narrow windows.
+        ImGui.TextUnformatted(Loc.T("Interface language:"));
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(145);
+        if (ImGui.BeginCombo("##windboundLocale", cfg.Language == "fr" ? "Français" : "English"))
+        {
+            if (ImGui.Selectable("English##lang-en", cfg.Language != "fr")) SetLanguage("en");
+            if (ImGui.Selectable("Français##lang-fr", cfg.Language == "fr")) SetLanguage("fr");
+            ImGui.EndCombo();
+        }
         ImGui.Separator();
-        ImGui.TextWrapped(status);
-        ImGui.TextWrapped(plugin.Player.Status);
+        ImGui.TextWrapped(Loc.T(status));
+        ImGui.TextWrapped(Loc.T(plugin.Player.Status));
         if (!string.IsNullOrWhiteSpace(plugin.Player.GuitarWarning))
-            ImGui.TextColored(new Vector4(1f, .75f, .38f, 1f), plugin.Player.GuitarWarning);
+            ImGui.TextColored(new Vector4(1f, .75f, .38f, 1f), Loc.T(plugin.Player.GuitarWarning));
         ImGui.TextColored(plugin.IsGameOutputSafe() ? new Vector4(.49f, .95f, .55f, 1f) : new Vector4(1f, .75f, .38f, 1f),
-            plugin.IsGameOutputSafe() ? "Performance: FULL 37-KEY READY" :
-            plugin.IsPerforming ? "Open expanded 37-note Performance keyboard for direct output" : "Performance mode not detected (preview still works)");
+            Loc.T(plugin.IsGameOutputSafe() ? "Performance: FULL 37-KEY READY" :
+            plugin.IsPerforming ? "Open expanded 37-note Performance keyboard for direct output" : "Performance mode not detected (preview still works)"));
 
         if (ImGui.BeginTabBar("WindboundTabs"))
         {
-            if (ImGui.BeginTabItem("Songs & Playback")) { DrawPlayer(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("Ensemble")) { DrawEnsemble(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("FFXIV Optimiser")) { DrawOptimizer(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("Soulweaver Studio")) { DrawSoulweaver(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("Instruments")) { DrawInstruments(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("Guitar Tones")) { DrawGuitarTones(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("Direct Output & Test")) { DrawKeyMapping(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem("About / Setup")) { DrawHelp(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Songs & Playback"))) { DrawPlayer(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Ensemble"))) { DrawEnsemble(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("FFXIV Optimiser"))) { DrawOptimizer(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("MIDI Inspector"))) { DrawArrangementInspector(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Soulweaver Studio"))) { DrawSoulweaver(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Instruments"))) { DrawInstruments(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Live MIDI Piano"))) { DrawLiveMidiInput(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Guitar Tones"))) { DrawGuitarTones(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Direct Output & Test"))) { DrawKeyMapping(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("About / Setup"))) { DrawHelp(); ImGui.EndTabItem(); }
             ImGui.EndTabBar();
         }
     }
 
+    private void SetLanguage(string language)
+    {
+        cfg.Language = language == "fr" ? "fr" : "en";
+        Loc.SetLanguage(cfg.Language);
+        WindowName = Loc.T("Windbound Bard | Nunu's MIDI Studio") + "###NunuWindboundBard";
+        plugin.RefreshHudLanguage();
+        cfg.Save();
+    }
+
     private void DrawPlayer()
     {
-        ImGui.TextUnformatted("Load a Standard MIDI File (.mid / .midi), format 0 or 1:");
+        if (ImGui.SmallButton(Loc.T(plugin.IsHudVisible ? "Hide Performance HUD" : "Show Performance HUD")))
+            plugin.SetHudVisible(!plugin.IsHudVisible);
+        ImGui.SameLine();
+        ImGui.TextDisabled(Loc.T("/windbound hud | per-character compact control, movable for multiple accounts"));
+        ImGui.TextUnformatted(Loc.T("Load a Standard MIDI File (.mid / .midi), format 0 or 1:"));
         ImGui.SetNextItemWidth(-235);
         ImGui.InputText("##MidiPath", ref fileInput, 1024);
         ImGui.SameLine();
-        if (ImGui.Button("Load typed path")) LoadFromUser(fileInput);
+        if (ImGui.Button(Loc.T("Load typed path"))) LoadFromUser(fileInput);
         ImGui.SameLine();
-        if (ImGui.Button("Browse MIDI...")) BrowseMidiToLoad();
-        if (ImGui.Button("Load sample"))
+        if (ImGui.Button(Loc.T("Browse MIDI..."))) BrowseMidiToLoad();
+        if (ImGui.Button(Loc.T("Load sample")))
         {
             string sample = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName ?? "", "Bard-37-Note-Calibration.mid");
             if (File.Exists(sample)) LoadFromUser(sample);
             else status = "Sample is included in the source ZIP under Samples. Enter its full path to load it.";
         }
         ImGui.SameLine();
-        if (ImGui.Button("Load chord test"))
+        if (ImGui.Button(Loc.T("Load chord test")))
         {
             string sample = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName ?? "", "Bard-Chord-Callback-Test.mid");
             if (File.Exists(sample)) LoadFromUser(sample);
             else status = "Chord test is included in Samples. Enter its full path to load it.";
         }
         ImGui.SameLine();
-        if (ImGui.Button("Add MIDI files...")) BrowseMidiToAdd();
+        if (ImGui.Button(Loc.T("Add MIDI files..."))) BrowseMidiToAdd();
         ImGui.SameLine();
-        if (ImGui.Button("Add MIDI folder...")) BrowseMidiFolder();
-        ImGui.TextDisabled("Or use the typed path above:");
+        if (ImGui.Button(Loc.T("Add MIDI folder..."))) BrowseMidiFolder();
+        ImGui.TextDisabled(Loc.T("Or use the typed path above:"));
         ImGui.SameLine();
-        if (ImGui.SmallButton("Add typed file")) AddToPlaylist(fileInput);
+        if (ImGui.SmallButton(Loc.T("Add typed file"))) AddToPlaylist(fileInput);
         ImGui.SameLine();
-        if (ImGui.SmallButton("Add typed folder")) AddFolder(fileInput);
+        if (ImGui.SmallButton(Loc.T("Add typed folder"))) AddFolder(fileInput);
         bool subfolders = cfg.IncludeMidiSubfolders;
-        if (ImGui.Checkbox("Include subfolders when importing MIDI folders", ref subfolders))
+        if (ImGui.Checkbox(Loc.T("Include subfolders when importing MIDI folders"), ref subfolders))
         {
             cfg.IncludeMidiSubfolders = subfolders;
             cfg.Save();
@@ -137,75 +176,50 @@ public sealed partial class MainWindow : Window, IDisposable
         ImGui.Separator();
         DrawSavedPlaylistControls();
         ImGui.Separator();
-        ImGui.TextUnformatted($"Playlist ({cfg.Playlist.Count} songs — scroll to see them all):");
-        ImGui.SetNextItemWidth(-1);
-        ImGui.InputText("Search playlist##PlaylistFilter", ref playlistFilter, 256);
-        int matches = 0;
-        ImGui.BeginChild("##FullPlaylistScroll", new Vector2(0, 225), true);
-        for (int i = 0; i < cfg.Playlist.Count; i++)
-        {
-            string path = cfg.Playlist[i];
-            string name = Path.GetFileName(path);
-            if (!string.IsNullOrWhiteSpace(playlistFilter) &&
-                !name.Contains(playlistFilter, StringComparison.OrdinalIgnoreCase) &&
-                !path.Contains(playlistFilter, StringComparison.OrdinalIgnoreCase)) continue;
-            matches++;
-            if (ImGui.Selectable($"{i + 1:0000}. {name}##song{i}", activePlaylist == i))
-            {
-                SelectPlaylistSong(path);
-            }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(path);
-        }
-        ImGui.EndChild();
-        if (!string.IsNullOrEmpty(playlistFilter)) ImGui.TextDisabled($"{matches} matching entries (out of {cfg.Playlist.Count})");
-        if (ImGui.Button("Remove selected") && activePlaylist >= 0 && activePlaylist < cfg.Playlist.Count)
-        {
-            cfg.Playlist.RemoveAt(activePlaylist);
-            activePlaylist = -1;
-            PersistActivePlaylist();
-        }
-        ImGui.SameLine();
+        DrawSmartPlaylistControls();
         bool autoNext = cfg.AutoNext;
-        if (ImGui.Checkbox("Auto next", ref autoNext)) { cfg.AutoNext = autoNext; cfg.Save(); }
+        if (ImGui.Checkbox(Loc.T("Auto next##SmartPlaylist"), ref autoNext)) { cfg.AutoNext = autoNext; cfg.Save(); }
         if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Solo)
-            ImGui.TextDisabled("Auto next is suspended in Ensemble mode; cue each song together.");
+            ImGui.TextDisabled(Loc.T("Auto next is suspended in Ensemble mode; cue each song together."));
 
         ImGui.Separator();
         if (song is not null && arranged is not null)
         {
-            ImGui.TextUnformatted($"Loaded: {Path.GetFileName(loaded)}  |  {song.Tracks.Count} tracks  |  {song.InitialBpm:0.#} BPM  |  {song.DurationMs / 1000:0.0}s");
-            ImGui.TextUnformatted($"Bard arrangement: {arranged.Report.FinalNotes:N0} notes  |  {arranged.Report.ChordGroups:N0} chord groups  |  {arranged.Report.TimingDrops:N0} dense-event drops");
+            ImGui.TextUnformatted(Loc.T($"Loaded: {Path.GetFileName(loaded)}  |  {song.Tracks.Count} tracks  |  {song.InitialBpm:0.#} BPM  |  {song.DurationMs / 1000:0.0}s"));
+            ImGui.TextUnformatted(Loc.T($"Bard arrangement: {arranged.Report.FinalNotes:N0} notes  |  {arranged.Report.ChordGroups:N0} chord groups  |  {arranged.Report.TimingDrops:N0} dense-event drops"));
         }
-        else ImGui.TextDisabled("No song loaded.");
+        else ImGui.TextDisabled(Loc.T("No song loaded."));
 
         if (song is not null)
         {
-            ImGui.TextUnformatted($"Instrument for this MIDI: {InstrumentCatalog.Display(GetInstrumentChoice())}  |  Equipped: {plugin.Instruments.CurrentName}");
-            ImGui.TextDisabled("Change the instrument in the Instruments tab. Track octave controls are below.");
+            ImGui.TextUnformatted(Loc.T($"Instrument for this MIDI: {InstrumentCatalog.Display(GetInstrumentChoice())}  |  Equipped: {plugin.Instruments.CurrentName}"));
+            ImGui.TextDisabled(Loc.T("Change the instrument in the Instruments tab. Track octave controls are below."));
             DrawTracksOnMainPage();
         }
 
         bool arm = outputArmed;
-        if (ImGui.Checkbox("ARM: Direct FFXIV Performance notes (no typing into chat)", ref arm))
+        if (ImGui.Checkbox(Loc.T("ARM: Direct FFXIV Performance notes (no typing into chat)"), ref arm))
         {
             outputArmed = arm;
             if (!arm)
             {
+                plugin.LiveMidi.Panic();
                 CancelPendingInstrumentStart();
                 if (plugin.Player.IsPlaying) plugin.Player.Stop();
             }
         }
-        ImGui.TextDisabled(outputArmed ? "Armed: direct game callbacks. Alt-tab and chat are NOT keyboard output targets." : "Safe preview mode: no keys sent to the game.");
+        ImGui.TextDisabled(Loc.T(outputArmed ? "Armed: direct game callbacks. Alt-tab and chat are NOT keyboard output targets." : "Safe preview mode: no keys sent to the game."));
 
-        if (ImGui.Button("Play")) StartSong();
+        if (ImGui.Button(Loc.T(cfg.GameEnsembleEnabled && cfg.EnsembleMode != (int)EnsembleRole.Solo
+                ? "START ENSEMBLE (native)" : "Play"))) StartSong();
         ImGui.SameLine();
-        if (ImGui.Button(plugin.Player.IsPaused ? "Resume" : "Pause")) plugin.Player.TogglePause();
+        if (ImGui.Button(Loc.T(plugin.Player.IsPaused ? "Resume" : "Pause"))) plugin.Player.TogglePause();
         ImGui.SameLine();
-        if (ImGui.Button("STOP")) StopPlayback();
+        if (ImGui.Button(Loc.T("STOP"))) StopPlayback();
         ImGui.SameLine();
-        if (ImGui.Button("Next")) NextSong();
+        if (ImGui.Button(Loc.T("Next"))) NextSong();
 
-        if (ImGui.TreeNode("Song switching diagnostics"))
+        if (ImGui.TreeNode(Loc.T("Song switching diagnostics")))
         {
             string details = "Loaded MIDI: " + (string.IsNullOrWhiteSpace(loaded) ? "(none)" : loaded) + "\n" +
                 $"Playlist entry: {activePlaylist + 1}/{cfg.Playlist.Count}; Solo: {cfg.EnsembleMode == (int)EnsembleRole.Solo}; Auto Next: {cfg.AutoNext}\n" +
@@ -216,24 +230,58 @@ public sealed partial class MainWindow : Window, IDisposable
                 $"Playback: {plugin.Player.Status}\n" +
                 $"Instrument switch: {plugin.Instruments.Status}\n" +
                 $"Windbound: {status}";
-            ImGui.TextWrapped(details);
-            if (ImGui.Button("Copy song switching diagnostics")) ImGui.SetClipboardText(details);
+            ImGui.TextWrapped(Loc.T(details));
+            if (ImGui.Button(Loc.T("Copy song switching diagnostics"))) ImGui.SetClipboardText(details);
+            ImGui.TreePop();
+        }
+        if (ImGui.TreeNode(Loc.T("MIDI loading diagnostics (for sharing errors)")))
+        {
+            ImGui.TextWrapped(Loc.T(lastMidiLoadDiagnostics));
+            if (ImGui.Button(Loc.T("Copy MIDI loading diagnostics"))) ImGui.SetClipboardText(lastMidiLoadDiagnostics);
+            ImGui.TextDisabled(Loc.T("The copied text can contain a local file path. Review it before sharing."));
             ImGui.TreePop();
         }
 
         float speed = cfg.PlaybackSpeed;
-        if (ImGui.SliderFloat("Playback speed", ref speed, .5f, 2f, "%.2fx"))
+        if (ImGui.SliderFloat(Loc.T("Playback speed"), ref speed, .5f, 2f, "%.2fx"))
         {
             cfg.PlaybackSpeed = speed; cfg.Save();
         }
         if (song != null)
         {
             float fraction = (float)Math.Clamp(plugin.Player.PositionMs / Math.Max(1, song.DurationMs), 0, 1);
-            ImGui.ProgressBar(fraction, new Vector2(-1, 0));
-            ImGui.TextUnformatted($"{plugin.Player.NotesPlayed:N0} notes played / {arranged?.Notes.Count ?? 0:N0}");
-            if (ImGui.Checkbox("Show piano roll", ref showPianoRoll)) { }
+            ImGui.ProgressBar(fraction, new Vector2(-1, 0), Loc.T($"{fraction * 100:0}%"));
+            // Direct right-click, not a seek: STOP + note release + rewind to 00:00.
+            // Never seek only the drawing of the progress bar; reset the scheduler.
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(Loc.T("Right-click to STOP and reset this MIDI to 00:00 (local player only)."));
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ResetCurrentMidiToStart();
+            }
+            if (ImGui.SmallButton(Loc.T("Reset MIDI to start (00:00)"))) ResetCurrentMidiToStart();
+            ImGui.SameLine();
+            ImGui.TextDisabled(Loc.T("or right-click the progress bar"));
+            ImGui.TextUnformatted(Loc.T($"{plugin.Player.NotesPlayed:N0} notes played / {arranged?.Notes.Count ?? 0:N0}"));
+            if (ImGui.Checkbox(Loc.T("Show piano roll"), ref showPianoRoll)) { }
             if (showPianoRoll) DrawRoll();
         }
+    }
+
+    /// <summary>
+    /// Stop and rewind only this client. A conductor deliberately does not send a
+    /// remote STOP here: ensemble members should re-cue together after a reset.
+    /// </summary>
+    private void ResetCurrentMidiToStart()
+    {
+        if (song is null) return;
+        songFlow.Cancel();                 // no Auto Next / stale pending song selection
+        pendingQueuedSongPath = "";
+        CancelPendingInstrumentStart();    // no delayed automatic start after rewind
+        gameStartGate.Cancel("MIDI reset locally to 00:00; request a fresh Ensemble Ready Check.");
+        plugin.Player.RewindToStart();
+        status = cfg.EnsembleMode == (int)EnsembleRole.Solo
+            ? "MIDI reset to 00:00. Press Play when ready."
+            : "MIDI reset locally to 00:00. Other Bards were not changed; conductor must cue the ensemble again.";
     }
 
     private void PersistActivePlaylist()
@@ -252,7 +300,7 @@ public sealed partial class MainWindow : Window, IDisposable
         switch (action.Kind)
         {
             case SongFlowActionKind.Next:
-                AdvancePlaylist();
+                AdvancePlaylist(action.PlayAfterLoad);
                 break;
             case SongFlowActionKind.SelectSong:
                 if (Load(action.Path) && action.PlayAfterLoad)
@@ -267,6 +315,7 @@ public sealed partial class MainWindow : Window, IDisposable
     /// <summary>Manual file load: switch seamlessly if a solo is in progress.</summary>
     private void LoadFromUser(string path)
     {
+        pendingQueuedSongPath = "";
         if (plugin.Player.IsPlaying)
         {
             songFlow.QueueSelection(path, (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Solo);
@@ -281,7 +330,11 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void SelectPlaylistSong(string path) => LoadFromUser(path);
+    private void SelectPlaylistSong(string path)
+    {
+        pendingQueuedSongPath = "";
+        LoadFromUser(path);
+    }
 
     private void ClearLoadedMidiForPlaylistChange()
     {
@@ -297,11 +350,16 @@ public sealed partial class MainWindow : Window, IDisposable
         networkRevision = 0;
         networkSongHash = "";
         loaded = "";
+        nativeLoadedSha = "";
+        CancelNativeLeaderSync("Playlist switched. Select a MIDI to resynchronise the party.");
         currentSongHash = 0;
         fileInput = "";
         activePlaylist = -1;
+        pendingQueuedSongPath = "";
+        playlistTagsTarget = "";
         waitingForEnsembleCue = false;
         songFlow.Cancel();
+        plugin.Player.RewindToStart();
         status = "Select a MIDI from the current saved playlist.";
     }
 
@@ -328,38 +386,45 @@ public sealed partial class MainWindow : Window, IDisposable
         int purpose = SavedPlaylistLibrary.PurposeForRole(cfg.EnsembleMode);
         string kind = purpose == 0 ? "SOLO" : "ENSEMBLE";
         var current = SavedPlaylistLibrary.GetActive(cfg);
-        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), $"SAVED {kind} PLAYLISTS");
-        if (ImGui.SmallButton("Solo library") && cfg.EnsembleMode != (int)EnsembleRole.Solo)
+        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), Loc.T($"SAVED {kind} PLAYLISTS"));
+        if (ImGui.SmallButton(Loc.T("Solo library")) && cfg.EnsembleMode != (int)EnsembleRole.Solo)
             SetEnsembleRole(EnsembleRole.Solo);
         ImGui.SameLine();
-        if (ImGui.SmallButton("Ensemble library") && cfg.EnsembleMode == (int)EnsembleRole.Solo)
+        if (ImGui.SmallButton(Loc.T("Ensemble library")) && cfg.EnsembleMode == (int)EnsembleRole.Solo)
             SetEnsembleRole(EnsembleRole.Conductor);
         ImGui.SameLine();
-        ImGui.TextDisabled("Changing libraries saves the previous one automatically.");
+        ImGui.TextDisabled(Loc.T("Changing libraries saves the previous one automatically."));
         ImGui.SetNextItemWidth(Math.Min(420, Math.Max(220, ImGui.GetContentRegionAvail().X - 160)));
-        if (ImGui.BeginCombo("Playlist library##StoredList", current.Name))
+        if (ImGui.BeginCombo(Loc.T("Playlist library##StoredList"), Loc.T(current.Name)))
         {
             foreach (var profile in cfg.SavedPlaylists.Where(x => x.Purpose == purpose))
             {
-                if (ImGui.Selectable($"{profile.Name} ({profile.Files.Count} songs)##Saved{profile.Id}", profile.Id == current.Id))
+                if (ImGui.Selectable(Loc.T($"{profile.Name} ({profile.Files.Count} songs)##Saved{profile.Id}"), profile.Id == current.Id))
                     SwitchSavedPlaylist(profile.Id);
             }
             ImGui.EndCombo();
         }
         ImGui.SameLine();
-        if (ImGui.Button("Save playlist"))
+        if (ImGui.Button(Loc.T("Save playlist")))
         {
             PersistActivePlaylist();
             playlistMessage = $"Saved {current.Name} ({cfg.Playlist.Count} MIDIs).";
         }
         ImGui.SetNextItemWidth(210);
-        ImGui.InputText("New playlist name", ref playlistNameInput, 80);
+        ImGui.InputText(Loc.T("New playlist name"), ref playlistNameInput, 80);
         ImGui.SameLine();
-        if (ImGui.Button("Create playlist"))
+        if (ImGui.Button(Loc.T("Create playlist")))
         {
             try
             {
+                var sourceState = GetActiveSmartPlaylist();
                 var profile = SavedPlaylistLibrary.NewProfile(cfg, playlistNameInput, purpose, copyPlaylistOnCreate);
+                if (copyPlaylistOnCreate)
+                {
+                    var copyState = SmartPlaylistManager.Get(cfg.SmartPlaylistsById, profile.Id);
+                    copyState.Favorites = sourceState.Favorites.ToList();
+                    copyState.Tags = sourceState.Tags.ToDictionary(kv => kv.Key, kv => kv.Value.ToList(), StringComparer.OrdinalIgnoreCase);
+                }
                 PersistActivePlaylist();
                 SwitchSavedPlaylist(profile.Id);
                 playlistNameInput = "";
@@ -367,36 +432,36 @@ public sealed partial class MainWindow : Window, IDisposable
             catch (Exception ex) { playlistMessage = "Create failed: " + ex.Message; }
         }
         bool copy = copyPlaylistOnCreate;
-        if (ImGui.Checkbox("Copy songs from current playlist into new playlist", ref copy)) copyPlaylistOnCreate = copy;
+        if (ImGui.Checkbox(Loc.T("Copy songs from current playlist into new playlist"), ref copy)) copyPlaylistOnCreate = copy;
         ImGui.SetNextItemWidth(210);
-        ImGui.InputText("Rename current list", ref playlistRenameInput, 80);
+        ImGui.InputText(Loc.T("Rename current list"), ref playlistRenameInput, 80);
         ImGui.SameLine();
-        if (ImGui.Button("Rename"))
+        if (ImGui.Button(Loc.T("Rename")))
         {
             try { SavedPlaylistLibrary.Rename(cfg, current.Id, playlistRenameInput);
                 cfg.Save(); playlistRenameInput = current.Name;
                 playlistMessage = $"Renamed playlist to {current.Name}."; }
             catch (Exception ex) { playlistMessage = "Rename failed: " + ex.Message; }
         }
-        if (ImGui.Button("Export playlist JSON...")) ExportSavedPlaylist();
+        if (ImGui.Button(Loc.T("Export playlist JSON..."))) ExportSavedPlaylist();
         ImGui.SameLine();
-        if (ImGui.Button("Import playlist JSON...")) ImportSavedPlaylist();
-        ImGui.TextDisabled("Solo and Ensemble playlists are separate. Switching modes restores that mode's saved library.");
-        if (!string.IsNullOrWhiteSpace(playlistMessage)) ImGui.TextWrapped(playlistMessage);
+        if (ImGui.Button(Loc.T("Import playlist JSON..."))) ImportSavedPlaylist();
+        ImGui.TextDisabled(Loc.T("Solo and Ensemble playlists are separate. Switching modes restores that mode's saved library."));
+        if (!string.IsNullOrWhiteSpace(playlistMessage)) ImGui.TextWrapped(Loc.T(playlistMessage));
     }
 
     private void ExportSavedPlaylist()
     {
         var profile = SavedPlaylistLibrary.GetActive(cfg);
         string stem = string.Concat(profile.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
-        fileDialogs.SaveFileDialog("Export Windbound playlist", ".json", stem + ".json", ".json",
+        fileDialogs.SaveFileDialog(Loc.T("Export Windbound playlist"), ".json", stem + ".json", ".json",
             (bool ok, string path) =>
             {
                 if (!ok || string.IsNullOrWhiteSpace(path)) return;
                 try
                 {
                     if (!path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) path += ".json";
-                    SavedPlaylistLibrary.Export(path, profile, cfg.Playlist);
+                    SavedPlaylistLibrary.Export(path, profile, cfg.Playlist, GetActiveSmartPlaylist());
                     playlistMessage = "Exported playlist: " + path;
                 }
                 catch (Exception ex) { playlistMessage = "Export failed: " + ex.Message; }
@@ -405,7 +470,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void ImportSavedPlaylist()
     {
-        fileDialogs.OpenFileDialog("Import Windbound playlist", ".json",
+        fileDialogs.OpenFileDialog(Loc.T("Import Windbound playlist"), ".json",
             (bool ok, List<string> paths) =>
             {
                 if (!ok || paths.Count == 0) return;
@@ -417,6 +482,12 @@ public sealed partial class MainWindow : Window, IDisposable
                     // users can import a shared file into either Solo or Ensemble.
                     var profile = SavedPlaylistLibrary.NewProfile(cfg, imported.Name, purpose, false);
                     profile.Files = imported.Files;
+                    var importedState = SmartPlaylistManager.Get(cfg.SmartPlaylistsById, profile.Id);
+                    importedState.Favorites = imported.Favorites.Where(path => profile.Files.Contains(path, StringComparer.OrdinalIgnoreCase)).ToList();
+                    importedState.Tags = imported.Tags.Where(kv => profile.Files.Contains(kv.Key, StringComparer.OrdinalIgnoreCase))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value.ToList(), StringComparer.OrdinalIgnoreCase);
+                    importedState.Shuffle = imported.Shuffle;
+                    importedState.Repeat = imported.Repeat;
                     PersistActivePlaylist();
                     SwitchSavedPlaylist(profile.Id);
                     playlistMessage = $"Imported {profile.Name}: {profile.Files.Count} entries. Missing paths remain visible.";
@@ -427,10 +498,10 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void DrawOptimizer()
     {
-        ImGui.TextWrapped("Non-destructive octave adaptation for Bard Performance (C3–C6). Full-chord mode preserves MIDI note start times and durations; FFXIV may still limit the audible overlap.");
+        ImGui.TextWrapped(Loc.T("Non-destructive octave adaptation for Bard Performance (C3–C6). Full-chord mode preserves MIDI note start times and durations; FFXIV may still limit the audible overlap."));
         if (song is null)
         {
-            ImGui.TextDisabled("Load a MIDI in Songs & Playback first."); return;
+            ImGui.TextDisabled(Loc.T("Load a MIDI in Songs & Playback first.")); return;
         }
         foreach (MidiLanePlan lane in lanes.ToArray())
         {
@@ -439,41 +510,41 @@ public sealed partial class MainWindow : Window, IDisposable
             bool include = lane.Include;
             if (ImGui.Checkbox($"##lane{index}", ref include)) ChangeLane(index, lane with { Include = include });
             ImGui.SameLine();
-            ImGui.TextUnformatted($"{name} | Ch {lane.Key.Channel + 1:00}");
+            ImGui.TextUnformatted(Loc.T($"{name} | Ch {lane.Key.Channel + 1:00}"));
             ImGui.SameLine();
-            if (ImGui.SmallButton($"-12##lane{index}")) ChangeLane(index, lane with { OctaveShift = Math.Max(-48, lane.OctaveShift - 12) });
+            if (ImGui.SmallButton(Loc.T($"-12##lane{index}"))) ChangeLane(index, lane with { OctaveShift = Math.Max(-48, lane.OctaveShift - 12) });
             ImGui.SameLine();
-            ImGui.TextUnformatted($"{lane.OctaveShift:+0;-0;+0}");
+            ImGui.TextUnformatted(Loc.T($"{lane.OctaveShift:+0;-0;+0}"));
             ImGui.SameLine();
-            if (ImGui.SmallButton($"+12##lane{index}")) ChangeLane(index, lane with { OctaveShift = Math.Min(48, lane.OctaveShift + 12) });
+            if (ImGui.SmallButton(Loc.T($"+12##lane{index}"))) ChangeLane(index, lane with { OctaveShift = Math.Min(48, lane.OctaveShift + 12) });
         }
         bool repair = cfg.RepairOctaves;
-        if (ImGui.Checkbox("Repair remaining high/low notes by octaves", ref repair))
+        if (ImGui.Checkbox(Loc.T("Repair remaining high/low notes by octaves"), ref repair))
         {
             cfg.RepairOctaves = repair; cfg.Save(); Rebuild();
         }
         int transpose = cfg.GlobalTranspose;
-        if (ImGui.SliderInt("Playback-only transpose (semitones)", ref transpose, -24, 24))
+        if (ImGui.SliderInt(Loc.T("Playback-only transpose (semitones)"), ref transpose, -24, 24))
         {
             cfg.GlobalTranspose = transpose; cfg.Save(); Rebuild();
         }
         int strategy = cfg.ChordStrategy;
-        ImGui.TextUnformatted("Chord handling:");
-        if (ImGui.RadioButton("Full chords / original timing (experimental)", strategy == 4)) SetStrategy(4);
-        if (ImGui.RadioButton("Highest (melody)", strategy == 0)) SetStrategy(0);
+        ImGui.TextUnformatted(Loc.T("Chord handling:"));
+        if (ImGui.RadioButton(Loc.T("Full chords / original timing (experimental)"), strategy == 4)) SetStrategy(4);
+        if (ImGui.RadioButton(Loc.T("Highest (melody)"), strategy == 0)) SetStrategy(0);
         ImGui.SameLine();
-        if (ImGui.RadioButton("Lowest", strategy == 1)) SetStrategy(1);
+        if (ImGui.RadioButton(Loc.T("Lowest"), strategy == 1)) SetStrategy(1);
         ImGui.SameLine();
-        if (ImGui.RadioButton("Loudest", strategy == 2)) SetStrategy(2);
+        if (ImGui.RadioButton(Loc.T("Loudest"), strategy == 2)) SetStrategy(2);
         ImGui.SameLine();
-        if (ImGui.RadioButton("Gentle arpeggio", strategy == 3)) SetStrategy(3);
+        if (ImGui.RadioButton(Loc.T("Gentle arpeggio"), strategy == 3)) SetStrategy(3);
         int gap = cfg.MinimumGapMs;
-        if (ImGui.SliderInt("Minimum note gap (ms)", ref gap, 40, 160))
+        if (ImGui.SliderInt(Loc.T("Minimum note gap (ms)"), ref gap, 40, 160))
         {
             cfg.MinimumGapMs = gap; cfg.Save(); Rebuild();
         }
         int arp = cfg.ArpeggioSpacingMs;
-        if (ImGui.SliderInt("Arpeggio spacing (ms)", ref arp, 60, 180))
+        if (ImGui.SliderInt(Loc.T("Arpeggio spacing (ms)"), ref arp, 60, 180))
         {
             cfg.ArpeggioSpacingMs = arp; cfg.Save(); Rebuild();
         }
@@ -481,17 +552,17 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             var report = MidiOptimization.Analyze(song, GetOptimiseOptions());
             ImGui.Separator();
-            ImGui.TextUnformatted($"Source: {report.SourceNotes:N0} notes | {report.SourceInRange:N0} initially in range");
-            ImGui.TextUnformatted($"Octave-optimised: {report.PlayableNotes:N0} | Shifted: {report.ShiftedNotes:N0} | Excluded/skipped: {report.ExcludedNotes + report.OmittedNotes:N0}");
-            ImGui.TextUnformatted($"Prepared playback: {arranged.Report.FinalNotes:N0} notes ({arranged.Report.ChordGroups:N0} chord groups)");
-            if (ImGui.Button("Export new FFXIV C3-C6 MIDI")) ExportOptimized();
-            ImGui.TextDisabled("Exporter keeps original MIDI unchanged; arrangement modes affect playback only.");
+            ImGui.TextUnformatted(Loc.T($"Source: {report.SourceNotes:N0} notes | {report.SourceInRange:N0} initially in range"));
+            ImGui.TextUnformatted(Loc.T($"Octave-optimised: {report.PlayableNotes:N0} | Shifted: {report.ShiftedNotes:N0} | Excluded/skipped: {report.ExcludedNotes + report.OmittedNotes:N0}"));
+            ImGui.TextUnformatted(Loc.T($"Prepared playback: {arranged.Report.FinalNotes:N0} notes ({arranged.Report.ChordGroups:N0} chord groups)"));
+            if (ImGui.Button(Loc.T("Export new FFXIV C3-C6 MIDI"))) ExportOptimized();
+            ImGui.TextDisabled(Loc.T("Exporter keeps original MIDI unchanged; arrangement modes affect playback only."));
         }
     }
 
     private void DrawKeyMapping()
     {
-        ImGui.TextWrapped("Direct Performance output bypasses Windows keyboard events entirely. This 37-key map remains a MANUAL reference for playing notes yourself; the player sends pitch indices through the expanded Performance interface, even if you chat or alt-tab.");
+        ImGui.TextWrapped(Loc.T("Direct Performance output bypasses Windows keyboard events entirely. This 37-key map remains a MANUAL reference for playing notes yourself; the player sends pitch indices through the expanded Performance interface, even if you chat or alt-tab."));
         string keys = cfg.PerformanceKeys;
         ImGui.SetNextItemWidth(-1);
         if (ImGui.InputText("##Keys", ref keys, 64))
@@ -499,45 +570,45 @@ public sealed partial class MainWindow : Window, IDisposable
             cfg.PerformanceKeys = keys.ToUpperInvariant(); cfg.Save();
         }
         bool valid = PerformanceKeyMap.TryValidate(cfg.PerformanceKeys, out string message);
-        ImGui.TextColored(valid ? new Vector4(.48f, 1f, .60f, 1f) : new Vector4(1f, .4f, .4f, 1f), message);
-        if (ImGui.Button("Restore 37-key preset"))
+        ImGui.TextColored(valid ? new Vector4(.48f, 1f, .60f, 1f) : new Vector4(1f, .4f, .4f, 1f), Loc.T(message));
+        if (ImGui.Button(Loc.T("Restore 37-key preset")))
         {
             cfg.PerformanceKeys = PerformanceKeyMap.DefaultKeys; cfg.Save();
         }
         ImGui.SameLine();
-        if (ImGui.Button("Copy bindings to clipboard"))
+        if (ImGui.Button(Loc.T("Copy bindings to clipboard")))
             ImGui.SetClipboardText(GetKeyTable());
 
         if (valid)
         {
             for (int i = NoteMapper.LowestNote; i <= NoteMapper.HighestNote; i += 6)
-                ImGui.TextUnformatted(string.Join("    ", Enumerable.Range(i, Math.Min(6, NoteMapper.HighestNote + 1 - i))
-                    .Select(pitch => $"{NoteMapper.GetNoteName(pitch)}={cfg.PerformanceKeys[pitch - 48]}")));
+                ImGui.TextUnformatted(Loc.T(string.Join("    ", Enumerable.Range(i, Math.Min(6, NoteMapper.HighestNote + 1 - i))
+                    .Select(pitch => $"{NoteMapper.GetNoteName(pitch)}={cfg.PerformanceKeys[pitch - 48]}"))));
         }
         ImGui.Separator();
-        ImGui.TextWrapped("Backend: native FFXIV Performance addon callbacks, not SendInput, not Windows Messages or global virtual keys. Chat input remains separate; no focus requirement.");
+        ImGui.TextWrapped(Loc.T("Backend: native FFXIV Performance addon callbacks, not SendInput, not Windows Messages or global virtual keys. Chat input remains separate; no focus requirement."));
         ImGui.TextColored(plugin.IsExpandedKeyboard ? new Vector4(.48f, 1f, .6f, 1f) : new Vector4(1f, .42f, .42f, 1f),
-            plugin.IsExpandedKeyboard ? "Expanded Performance addon detected" : "Expanded Performance addon not open");
+            Loc.T(plugin.IsExpandedKeyboard ? "Expanded Performance addon detected" : "Expanded Performance addon not open"));
         int hold = cfg.KeyHoldMs;
-        if (ImGui.SliderInt("Minimum note duration (ms)", ref hold, 15, 180)) { cfg.KeyHoldMs = hold; cfg.Save(); }
-        if (ImGui.Button("Test C4 (only when armed)")) TestNote();
+        if (ImGui.SliderInt(Loc.T("Minimum note duration (ms)"), ref hold, 15, 180)) { cfg.KeyHoldMs = hold; cfg.Save(); }
+        if (ImGui.Button(Loc.T("Test C4 (only when armed)"))) TestNote();
         ImGui.SameLine();
-        ImGui.TextDisabled(outputArmed ? "Output armed" : "Arm output in Songs & Playback first");
-        ImGui.TextDisabled("A callback being sent does not prove the game sounded every overlapping note.");
+        ImGui.TextDisabled(Loc.T(outputArmed ? "Output armed" : "Arm output in Songs & Playback first"));
+        ImGui.TextDisabled(Loc.T("A callback being sent does not prove the game sounded every overlapping note."));
     }
 
     private void DrawHelp()
     {
-        ImGui.TextWrapped("1. In Instruments, choose the instrument for the MIDI. With auto-switch enabled, Play first closes any different Performance instrument through the game UI, equips the new one, and starts notes after the keyboard is confirmed ready. 'Keep current' retains your existing selection.");
-        ImGui.TextWrapped("2. Songs & Playback shows every MIDI track/channel, with -12 and +12 octave buttons. Changes update the FFXIV Optimiser and are saved per song.");
-        ImGui.TextWrapped("3. Open Bard Performance in EXPANDED (37-note) mode. Mini mode is not supported by this output adapter.");
-        ImGui.TextWrapped("2. Load your MIDI. Optimise into C3–C6, leave Full chords selected, or choose a legacy reduction for extremely dense passages.");
-        ImGui.TextWrapped("3. Tick ARM, test C4, then Play. The plugin calls the game Performance addon directly on each framework update. Normal chat keystrokes remain free and alt-tab is allowed.");
-        ImGui.TextWrapped("4. Click Browse MIDI to load a file, Add MIDI files to select several files, or Add MIDI folder to import a directory (optional subfolders). All pickers are drawn inside Dalamud.");
-        ImGui.TextWrapped("5. For electric guitar, open the Guitar Tones tab, enable Override by Track, and choose Overdriven/Clean/Muted/Power Chords/Special for each MIDI track/channel. The guitar Tone Change UI must be available in Performance.");
-        ImGui.TextWrapped("6. /windbound stop stops the scheduler. Exported MIDI keeps the original source unchanged.");
+        ImGui.TextWrapped(Loc.T("1. In Instruments, choose the instrument for the MIDI. With auto-switch enabled, Play first closes any different Performance instrument through the game UI, equips the new one, and starts notes after the keyboard is confirmed ready. 'Keep current' retains your existing selection."));
+        ImGui.TextWrapped(Loc.T("2. Songs & Playback shows every MIDI track/channel, with -12 and +12 octave buttons. Changes update the FFXIV Optimiser and are saved per song."));
+        ImGui.TextWrapped(Loc.T("3. Open Bard Performance in EXPANDED (37-note) mode. Mini mode is not supported by this output adapter."));
+        ImGui.TextWrapped(Loc.T("2. Load your MIDI. Optimise into C3–C6, leave Full chords selected, or choose a legacy reduction for extremely dense passages."));
+        ImGui.TextWrapped(Loc.T("3. Tick ARM, test C4, then Play. The plugin calls the game Performance addon directly on each framework update. Normal chat keystrokes remain free and alt-tab is allowed."));
+        ImGui.TextWrapped(Loc.T("4. Click Browse MIDI to load a file, Add MIDI files to select several files, or Add MIDI folder to import a directory (optional subfolders). All pickers are drawn inside Dalamud."));
+        ImGui.TextWrapped(Loc.T("5. For electric guitar, open the Guitar Tones tab, enable Override by Track, and choose Overdriven/Clean/Muted/Power Chords/Special for each MIDI track/channel. The guitar Tone Change UI must be available in Performance."));
+        ImGui.TextWrapped(Loc.T("6. /windbound stop stops the scheduler. Exported MIDI keeps the original source unchanged."));
         ImGui.Separator();
-        ImGui.TextWrapped("IMPORTANT: Experimental native game interface; callback behaviour can change with FFXIV patches. Some instruments may not sustain every simultaneous chord tone. Verify by ear. Third-party plugins may violate the game's terms and Performance music rules.");
+        ImGui.TextWrapped(Loc.T("IMPORTANT: Experimental native game interface; callback behaviour can change with FFXIV patches. Some instruments may not sustain every simultaneous chord tone. Verify by ear. Third-party plugins may violate the game's terms and Performance music rules."));
     }
 
     private void SetStrategy(int value)
@@ -550,6 +621,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private void ChangeLane(int index, MidiLanePlan lane)
     {
         if (index < 0 || index >= lanes.Count) return;
+        if (lane.OctaveShift != lanes[index].OctaveShift) MarkOctaveManual(lane.Key);
         lanes[index] = lane;
         RememberParts();
         RememberOctaves();
@@ -574,6 +646,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void Rebuild()
     {
+        concertInspection = null; // report is valid only for a specific arrangement configuration
         InvalidateSoulweaver();
         if (song is null) return;
         try
@@ -604,6 +677,7 @@ public sealed partial class MainWindow : Window, IDisposable
             MidiSong candidate = MidiFileReader.Load(full);
             song = candidate;
             loaded = full;
+            nativeLoadedSha = GamePartyCueProtocol.GetHash(full);
             fileInput = full;
             cfg.LastFile = full;
             cfg.Save();
@@ -615,14 +689,11 @@ public sealed partial class MainWindow : Window, IDisposable
                 lanes = lanes.Select(l => l with {
                     Include = savedParts.Contains($"{l.Key.Track}:{l.Key.Channel}")
                 }).ToList();
-            if (cfg.OctaveShiftsByFile.TryGetValue(full, out var shifts))
-                lanes = lanes.Select(l => l with {
-                    OctaveShift = shifts.TryGetValue(GuitarToneOverrides.Key(l.Key), out int shift) &&
-                        shift is >= -48 and <= 48 && shift % 12 == 0 ? shift : l.OctaveShift
-                }).ToList();
+            ApplyInitialOctaveShifts(candidate, full);
             activePlaylist = cfg.Playlist.FindIndex(p => string.Equals(p, full, StringComparison.OrdinalIgnoreCase));
             LoadPartyAssignmentsForFile();
             partyAssignmentsReceivedForCurrentMidi = false;
+            nativeConductorTrackMapExplicit = false;
             if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor && partyAssignments.Count > 0)
             {
                 ApplyPartyAssignmentsToLocal();
@@ -631,8 +702,14 @@ public sealed partial class MainWindow : Window, IDisposable
             Rebuild();
             if (arranged is null)
                 throw new InvalidDataException("The MIDI arrangement could not be prepared.");
+            // Previous versions left the old song's last position visible here.
+            // Auto Next calls Load and then StartSong in one framework tick, so an
+            // idle rewind must complete immediately (no deferred reset).
+            plugin.Player.RewindToStart();
             if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting)
                 TryShareNetworkSession();
+            lastMidiLoadDiagnostics = $"Successfully loaded {Path.GetFileName(full)} ({candidate.Tracks.Count} MIDI tracks).";
+            OnNativeConductorSongLoaded(); // Never launches music; file selection metadata only.
             return true;
         }
         catch (Exception error)
@@ -642,10 +719,14 @@ public sealed partial class MainWindow : Window, IDisposable
             song = null;
             arranged = null;
             loaded = "";
+            nativeLoadedSha = "";
             lanes.Clear();
             laneNoteCounts.Clear();
             activePlaylist = -1;
             status = "Could not load MIDI: " + error.Message;
+            lastMidiLoadDiagnostics = $"Load failed for: {path}\n" +
+                $"Error type: {error.GetType().FullName}\n" + error;
+            Plugin.Log.Warning(error, "Windbound MIDI loading failed.");
             return false;
         }
     }
@@ -667,7 +748,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void BrowseMidiToLoad()
     {
-        fileDialogs.OpenFileDialog("Open MIDI for Windbound Bard", MidiFilter,
+        fileDialogs.OpenFileDialog(Loc.T("Open MIDI for Windbound Bard"), MidiFilter,
             (bool ok, List<string> files) =>
             {
                 if (ok && files.Count > 0) LoadFromUser(files[0]);
@@ -677,7 +758,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private void BrowseMidiToAdd()
     {
         // selectionCountMax=0 allows multi-select of any number of files.
-        fileDialogs.OpenFileDialog("Add MIDI files to the playlist", MidiFilter,
+        fileDialogs.OpenFileDialog(Loc.T("Add MIDI files to the playlist"), MidiFilter,
             (bool ok, List<string> files) =>
             {
                 if (ok && files.Count > 0) AddFilesToPlaylist(files);
@@ -686,7 +767,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void BrowseMidiFolder()
     {
-        fileDialogs.OpenFolderDialog("Choose MIDI folder to import",
+        fileDialogs.OpenFolderDialog(Loc.T("Choose MIDI folder to import"),
             (bool ok, string folder) =>
             {
                 if (ok && !string.IsNullOrWhiteSpace(folder)) AddFolder(folder);
@@ -789,39 +870,39 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void DrawGuitarTones()
     {
-        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), "GUITAR TONE OVERRIDE BY TRACK");
-        ImGui.TextWrapped("While performing with an electric guitar, select a different tone for each MIDI track/channel. The player changes the guitar tone just before each matching note-on, without sending keyboard input into chat.");
+        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), Loc.T("GUITAR TONE OVERRIDE BY TRACK"));
+        ImGui.TextWrapped(Loc.T("While performing with an electric guitar, select a different tone for each MIDI track/channel. The player changes the guitar tone just before each matching note-on, without sending keyboard input into chat."));
         bool enabled = cfg.GuitarToneOverridesEnabled;
-        if (ImGui.Checkbox("Enable per-track guitar-tone overrides", ref enabled))
+        if (ImGui.Checkbox(Loc.T("Enable per-track guitar-tone overrides"), ref enabled))
         {
             cfg.GuitarToneOverridesEnabled = enabled; cfg.Save();
         }
         bool detected = PerformanceOutput.HasGuitarToneAddon();
         ImGui.TextColored(detected ? new Vector4(.5f, 1f, .6f, 1f) : new Vector4(1f, .75f, .4f, 1f),
-            detected ? "Guitar tone selector detected in FFXIV." :
-            "No guitar tone selector detected; equip an electric guitar in Performance for tone switching.");
+            Loc.T(detected ? "Guitar tone selector detected in FFXIV." :
+            "No guitar tone selector detected; equip an electric guitar in Performance for tone switching."));
         if (song is null)
         {
-            ImGui.TextDisabled("Load a MIDI to configure guitar tones by track/channel.");
+            ImGui.TextDisabled(Loc.T("Load a MIDI to configure guitar tones by track/channel."));
             return;
         }
         ImGui.Separator();
-        ImGui.TextUnformatted($"MIDI parts ({lanes.Count}) — scroll to assign each guitar tone:");
+        ImGui.TextUnformatted(Loc.T($"MIDI parts ({lanes.Count}) — scroll to assign each guitar tone:"));
         ImGui.BeginChild("##GuitarPartScroll", new Vector2(0, 260), true);
         for (int i = 0; i < lanes.Count; ++i)
         {
             var lane = lanes[i];
             string title = song.Tracks.FirstOrDefault(t => t.Index == lane.Key.Track)?.Name ?? $"Track {lane.Key.Track + 1}";
-            ImGui.TextUnformatted($"{title}  /  Ch {lane.Key.Channel + 1:00}" + (lane.Include ? "" : "  (muted)"));
+            ImGui.TextUnformatted(Loc.T($"{title}  /  Ch {lane.Key.Channel + 1:00}" + (lane.Include ? "" : "  (muted)")));
             ImGui.SameLine();
             ImGui.SetNextItemWidth(205);
             int current = GetToneForLane(lane.Key);
-            if (ImGui.BeginCombo($"##GuitarTone{i}", GuitarToneOverrides.Display(current)))
+            if (ImGui.BeginCombo($"##GuitarTone{i}", Loc.T(GuitarToneOverrides.Display(current))))
             {
                 for (int tone = -1; tone <= 4; tone++)
                 {
                     bool selected = tone == current;
-                    if (ImGui.Selectable(GuitarToneOverrides.Display(tone) + $"##Tone{i}_{tone}", selected))
+                    if (ImGui.Selectable(Loc.T(GuitarToneOverrides.Display(tone) + $"##Tone{i}_{tone}"), selected))
                         SetToneForLane(lane.Key, tone);
                     if (selected) ImGui.SetItemDefaultFocus();
                 }
@@ -829,67 +910,82 @@ public sealed partial class MainWindow : Window, IDisposable
             }
         }
         ImGui.EndChild();
-        if (ImGui.Button("Clear tone choices for this MIDI"))
+        if (ImGui.Button(Loc.T("Clear tone choices for this MIDI")))
         {
             cfg.GuitarTonesByFile.Remove(loaded); cfg.Save();
         }
-        ImGui.TextDisabled("Tone choices are remembered per MIDI path and separately for each track/channel.");
-        ImGui.TextDisabled("Changes take effect at the next Play or Ensemble cue, not mid-song.");
-        ImGui.TextWrapped("A guitar has one active tone at a time: simultaneous notes from tracks assigned different tones may be limited by FFXIV. Select 'Use current in-game tone' for tracks that should not trigger a switch.");
-        ImGui.TextUnformatted($"Tone switches this playback: {plugin.Player.ToneSwitches}");
+        ImGui.TextDisabled(Loc.T("Tone choices are remembered per MIDI path and separately for each track/channel."));
+        ImGui.TextDisabled(Loc.T("Changes take effect at the next Play or Ensemble cue, not mid-song."));
+        ImGui.TextWrapped(Loc.T("A guitar has one active tone at a time: simultaneous notes from tracks assigned different tones may be limited by FFXIV. Select 'Use current in-game tone' for tracks that should not trigger a switch."));
+        ImGui.TextUnformatted(Loc.T($"Tone switches this playback: {plugin.Player.ToneSwitches}"));
         if (!string.IsNullOrWhiteSpace(plugin.Player.GuitarWarning))
-            ImGui.TextColored(new Vector4(1f, .72f, .35f, 1f), plugin.Player.GuitarWarning);
+            ImGui.TextColored(new Vector4(1f, .72f, .35f, 1f), Loc.T(plugin.Player.GuitarWarning));
     }
 
     private int GetInstrumentChoice()
     {
         if (string.IsNullOrWhiteSpace(loaded)) return 0;
-        return cfg.InstrumentsByFile.TryGetValue(loaded, out int id) && InstrumentCatalog.Valid(id) ? id : 0;
+        if (cfg.InstrumentsByFile.TryGetValue(loaded, out int id) && InstrumentCatalog.Valid(id))
+            return id; // Explicitly chosen by user: retain the manual preference.
+        return GetMidiSoloInstrumentSuggestion();
     }
 
     private void SetInstrumentChoice(int instrumentId)
     {
         if (string.IsNullOrWhiteSpace(loaded)) return;
         if (!InstrumentCatalog.Valid(instrumentId)) return;
-        if (instrumentId == 0) cfg.InstrumentsByFile.Remove(loaded);
-        else cfg.InstrumentsByFile[loaded] = instrumentId;
+        // 0 is an explicit manual "Keep current" choice. Removing the saved
+        // entry instead means "follow MIDI auto-detection"; those are different.
+        cfg.InstrumentsByFile[loaded] = instrumentId;
         cfg.Save();
     }
 
     private void DrawInstruments()
     {
-        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), "INSTRUMENT SELECTION — PER MIDI");
-        ImGui.TextWrapped("Choose which FFXIV Performance instrument should be equipped before this MIDI plays. Windbound switches in-game, waits for the 37-note Performance keyboard, then begins playback. No virtual-key typing or focus requirement.");
-        ImGui.TextUnformatted($"Currently equipped: {plugin.Instruments.CurrentName}");
+        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), Loc.T("INSTRUMENT SELECTION — PER MIDI"));
+        ImGui.TextWrapped(Loc.T("Choose which FFXIV Performance instrument should be equipped before this MIDI plays. Windbound switches in-game, waits for the 37-note Performance keyboard, then begins playback. No virtual-key typing or focus requirement."));
+        ImGui.TextUnformatted(Loc.T($"Currently equipped: {plugin.Instruments.CurrentName}"));
         if (song is null)
         {
-            ImGui.TextDisabled("Load a MIDI in Songs & Playback first to store an instrument for it.");
+            ImGui.TextDisabled(Loc.T("Load a MIDI in Songs & Playback first to store an instrument for it."));
             return;
         }
-        ImGui.TextUnformatted($"MIDI: {Path.GetFileName(loaded)}");
+        ImGui.TextUnformatted(Loc.T($"MIDI: {Path.GetFileName(loaded)}"));
         int choice = GetInstrumentChoice();
-        ImGui.SetNextItemWidth(Math.Max(230, ImGui.GetContentRegionAvail().X * .75f));
-        if (ImGui.BeginCombo("Instrument for this song", InstrumentCatalog.Display(choice)))
+        bool manualInstrument = !string.IsNullOrWhiteSpace(loaded) &&
+            cfg.InstrumentsByFile.ContainsKey(loaded);
+        ImGui.TextDisabled(Loc.T(manualInstrument
+            ? "Instrument preference: manual (saved for this MIDI)"
+            : "Instrument preference: automatic MIDI detection"));
+        if (manualInstrument && ImGui.SmallButton(Loc.T("Use detected instrument for this MIDI")))
         {
-            if (ImGui.Selectable("Keep current instrument##inst0", choice == 0)) SetInstrumentChoice(0);
+            cfg.InstrumentsByFile.Remove(loaded);
+            cfg.Save();
+            choice = GetInstrumentChoice();
+        }
+        ImGui.SetNextItemWidth(Math.Max(230, ImGui.GetContentRegionAvail().X * .75f));
+        if (ImGui.BeginCombo(Loc.T("Instrument for this song"), Loc.T(InstrumentCatalog.Display(choice))))
+        {
+            if (ImGui.Selectable(Loc.T("Keep current instrument##inst0"), choice == 0)) SetInstrumentChoice(0);
             ImGui.Separator();
             foreach (var instrument in InstrumentCatalog.All)
             {
                 bool selected = choice == instrument.Id;
-                if (ImGui.Selectable($"{instrument.DisplayName}##ins{instrument.Id}", selected))
+                if (ImGui.Selectable(Loc.T($"{instrument.DisplayName}##ins{instrument.Id}"), selected))
                     SetInstrumentChoice(instrument.Id);
                 if (selected) ImGui.SetItemDefaultFocus();
             }
             ImGui.EndCombo();
         }
         bool auto = cfg.AutoSwitchInstrumentBeforePlay;
-        if (ImGui.Checkbox("Automatically switch instrument before Play", ref auto))
+        if (ImGui.Checkbox(Loc.T("Automatically switch instrument before Play"), ref auto))
         {
             cfg.AutoSwitchInstrumentBeforePlay = auto;
             cfg.Save();
         }
-        ImGui.TextDisabled("Choices are saved separately for every MIDI path; 'Keep current' never changes the instrument.");
-        if (ImGui.Button("Switch to selected instrument NOW"))
+        DrawMidiMetadataControls();
+        ImGui.TextDisabled(Loc.T("Choices are saved separately for every MIDI path; 'Keep current' never changes the instrument."));
+        if (ImGui.Button(Loc.T("Switch to selected instrument NOW")))
         {
             try
             {
@@ -902,26 +998,26 @@ public sealed partial class MainWindow : Window, IDisposable
             catch (Exception error) { status = "Can't switch: " + error.Message; }
         }
         ImGui.SameLine();
-        ImGui.TextDisabled("Switch before ensemble cues so every performer is ready.");
-        ImGui.TextWrapped(plugin.Instruments.Status);
-        if (ImGui.TreeNode("Instrument switching diagnostics"))
+        ImGui.TextDisabled(Loc.T("Switch before ensemble cues so every performer is ready."));
+        ImGui.TextWrapped(Loc.T(plugin.Instruments.Status));
+        if (ImGui.TreeNode(Loc.T("Instrument switching diagnostics")))
         {
-            ImGui.TextWrapped(plugin.Instruments.Diagnostics);
-            if (ImGui.Button("Copy instrument diagnostics"))
+            ImGui.TextWrapped(Loc.T(plugin.Instruments.Diagnostics));
+            if (ImGui.Button(Loc.T("Copy instrument diagnostics")))
                 ImGui.SetClipboardText(plugin.Instruments.Status + "\n" + plugin.Instruments.Diagnostics);
             ImGui.TreePop();
         }
         ImGui.Separator();
-        ImGui.TextWrapped("Electric guitars: choose Overdriven, Clean, Muted, Power Chords or Special above. Guitar Tones can still override tone per MIDI part while the song plays.");
-        ImGui.TextWrapped("Automatic switching: when a different instrument is already active, Windbound requests a native Performance-window close, waits for FFXIV to exit Performance, then equips your chosen instrument through the game-owned hotbar dispatcher. No keyboard injection. If FFXIV rejects the native close on your game build, Windbound reports the reason and can continue after manual exit. Test after FFXIV updates.");
+        ImGui.TextWrapped(Loc.T("Electric guitars: choose Overdriven, Clean, Muted, Power Chords or Special above. Guitar Tones can still override tone per MIDI part while the song plays."));
+        ImGui.TextWrapped(Loc.T("Automatic switching: when a different instrument is already active, Windbound requests a native Performance-window close, waits for FFXIV to exit Performance, then equips your chosen instrument through the game-owned hotbar dispatcher. No keyboard injection. If FFXIV rejects the native close on your game build, Windbound reports the reason and can continue after manual exit. Test after FFXIV updates."));
     }
 
     private void DrawTracksOnMainPage()
     {
         if (song is null) return;
         ImGui.Separator();
-        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), $"MIDI TRACKS & OCTAVES ({lanes.Count} parts)");
-        ImGui.TextDisabled("Mute/unmute each track/channel; change octave in 12-semitone steps. Same settings as the Optimiser.");
+        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), Loc.T($"MIDI TRACKS & OCTAVES ({lanes.Count} parts)"));
+        ImGui.TextDisabled(Loc.T("Mute/unmute each track/channel; change octave in 12-semitone steps. Same settings as the Optimiser."));
         ImGui.BeginChild("##MainMidiTracks", new Vector2(0, Math.Min(205f, 45f + lanes.Count * 32f)), true);
         for (int i = 0; i < lanes.Count; i++)
         {
@@ -932,32 +1028,32 @@ public sealed partial class MainWindow : Window, IDisposable
             if (ImGui.Checkbox($"##MainLaneEnabled{i}", ref include))
                 ChangeLane(i, lane with { Include = include });
             ImGui.SameLine();
-            ImGui.TextUnformatted($"T{lane.Key.Track + 1} Ch{lane.Key.Channel + 1}: {name} ({count:N0} notes)");
+            ImGui.TextUnformatted(Loc.T($"T{lane.Key.Track + 1} Ch{lane.Key.Channel + 1}: {name} ({count:N0} notes)"));
             ImGui.Indent(24);
-            if (ImGui.SmallButton($"-12##MainLaneMinus{i}"))
+            if (ImGui.SmallButton(Loc.T($"-12##MainLaneMinus{i}")))
                 ChangeLane(i, lane with { OctaveShift = Math.Max(-48, lane.OctaveShift - 12) });
             ImGui.SameLine();
-            ImGui.TextUnformatted($"Octave shift: {lane.OctaveShift:+0;-0;+0}");
+            ImGui.TextUnformatted(Loc.T($"Octave shift: {lane.OctaveShift:+0;-0;+0}"));
             ImGui.SameLine();
-            if (ImGui.SmallButton($"+12##MainLanePlus{i}"))
+            if (ImGui.SmallButton(Loc.T($"+12##MainLanePlus{i}")))
                 ChangeLane(i, lane with { OctaveShift = Math.Min(48, lane.OctaveShift + 12) });
             ImGui.Unindent(24);
             ImGui.Separator();
         }
         ImGui.EndChild();
-        if (ImGui.SmallButton("Recalculate suggested octaves"))
+        if (ImGui.SmallButton(Loc.T("Recalculate suggested octaves")))
         {
             var suggestion = MidiOptimization.Suggest(song).ToDictionary(x => x.Key, x => x.OctaveShift);
             lanes = lanes.Select(l => l with { OctaveShift = suggestion.GetValueOrDefault(l.Key, 0) }).ToList();
-            RememberOctaves(); Rebuild();
+            MarkAllOctavesManual(); RememberOctaves(); Rebuild();
         }
         ImGui.SameLine();
-        if (ImGui.SmallButton("Reset all octaves to 0"))
+        if (ImGui.SmallButton(Loc.T("Reset all octaves to 0")))
         {
             lanes = lanes.Select(l => l with { OctaveShift = 0 }).ToList();
-            RememberOctaves(); Rebuild();
+            MarkAllOctavesManual(); RememberOctaves(); Rebuild();
         }
-        ImGui.TextDisabled("Playable octave shifts: -48 to +48 semitones, by 12. Edits affect the next playback.");
+        ImGui.TextDisabled(Loc.T("Playable octave shifts: -48 to +48 semitones, by 12. Edits affect the next playback."));
     }
 
     public void CancelPendingInstrumentStart()
@@ -1011,7 +1107,24 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         try
         {
+            if (cfg.GameEnsembleEnabled && cfg.EnsembleMode != (int)EnsembleRole.Solo)
+            {
+                if (cfg.EnsembleMode == (int)EnsembleRole.Conductor)
+                    CueEnsemble();
+                else status = "Native Ensemble follower: ARM, equip the instrument, and wait for the conductor's game Ready Check; it is accepted automatically.";
+                return;
+            }
             if (arranged is null) throw new InvalidOperationException("Load and prepare a MIDI first.");
+            if (plugin.Player.IsRewindPending)
+            {
+                if (!ensembleStartQpc.HasValue && (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Solo)
+                {
+                    songFlow.QueueStartLoaded();
+                    status = "Rewind finishing; the MIDI will start at 00:00 on the next game update.";
+                    return;
+                }
+                throw new InvalidOperationException("Reset is still releasing notes; use a fresh ensemble cue afterward.");
+            }
             if (plugin.Player.IsPlaying)
             {
                 if (!ensembleStartQpc.HasValue && plugin.Player.IsStopPending)
@@ -1059,7 +1172,17 @@ public sealed partial class MainWindow : Window, IDisposable
             cfg.GuitarToneOverridesEnabled, GetActiveToneOverrides()), plugin.IsGameOutputSafe,
             ensembleStartQpc);
         songFlow.MarkStarted();
-        status = ensembleStartQpc.HasValue ? "Ensemble queued using shared Windows clock; no focus requirement." :
+        if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Solo && activePlaylist >= 0 &&
+            activePlaylist < cfg.Playlist.Count)
+        {
+            var state = GetActiveSmartPlaylist();
+            SmartPlaylistManager.RecordStarted(state, loaded);
+            if (string.Equals(pendingQueuedSongPath, loaded, StringComparison.OrdinalIgnoreCase))
+                SmartPlaylistManager.ConsumeQueueItem(state, loaded);
+            pendingQueuedSongPath = "";
+            cfg.Save();
+        }
+        status = ensembleStartQpc.HasValue ? "Ensemble queued for a scheduled local clock start; no focus requirement." :
             outputArmed ? "Playing with direct FFXIV Performance callbacks (no keyboard output)." :
             "Preview playback: no notes sent to FFXIV.";
     }
@@ -1087,44 +1210,50 @@ public sealed partial class MainWindow : Window, IDisposable
         if (cfg.Playlist.Count == 0) { status = "The active Solo playlist is empty."; return; }
         if (plugin.Player.IsPlaying)
         {
-            songFlow.QueueNext();
+            songFlow.QueueNext(manual: true);
             CancelPendingInstrumentStart();
             plugin.Player.Stop();
             status = "Releasing notes before the next song...";
             return;
         }
         songFlow.Cancel();
-        AdvancePlaylist();
+        AdvancePlaylist(manual: true);
     }
 
-    private void AdvancePlaylist()
+    private void AdvancePlaylist(bool manual = false)
     {
+        // Advance only a Solo playlist; ensemble cues and remote performers are untouched.
         if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Solo || cfg.Playlist.Count == 0) return;
-        int start = activePlaylist;
+        var state = GetActiveSmartPlaylist();
+        var candidates = SmartPlaylistManager.Candidates(state, cfg.Playlist, activePlaylist, manual);
         int skipped = 0;
-        // Try each entry at most once. Missing/broken files are skipped rather
-        // than accidentally replaying the old MIDI or looping forever.
-        for (int attempt = 1; attempt <= cfg.Playlist.Count; attempt++)
+        foreach (var candidate in candidates)
         {
-            int index = ((start + attempt) % cfg.Playlist.Count + cfg.Playlist.Count) % cfg.Playlist.Count;
-            string path = cfg.Playlist[index];
+            string path = candidate.Path;
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
                 skipped++;
+                if (candidate.Origin == PlaylistCandidateOrigin.PlayNext)
+                    SmartPlaylistManager.ConsumeQueueItem(state, path);
                 continue;
             }
             if (!Load(path) || arranged is null || arranged.Notes.Count == 0)
             {
-                // An all-muted song can still be loaded manually to edit its
-                // tracks; Auto Next simply skips it instead of falling silent.
                 skipped++;
+                if (candidate.Origin == PlaylistCandidateOrigin.PlayNext)
+                    SmartPlaylistManager.ConsumeQueueItem(state, path);
                 continue;
             }
-            StartSong(); // May queue a native instrument change first.
+            pendingQueuedSongPath = candidate.Origin == PlaylistCandidateOrigin.PlayNext ? path : "";
+            cfg.Save();
+            StartSong(); // Instrument preflight may delay the actual start; queue consumed on successful StartSongCore.
             if (skipped > 0) status += $" (Skipped {skipped} unavailable MIDI(s).)";
             return;
         }
-        status = $"No playable MIDI in this playlist. Skipped {skipped} entries; select or add a valid song.";
+        cfg.Save();
+        status = candidates.Count == 0
+            ? "End of playlist. Choose Repeat All, add songs to Play Next, or press Play again."
+            : $"No playable MIDI remained in this playlist. Skipped {skipped} entries.";
     }
 
     private void ExportOptimized()
@@ -1151,11 +1280,56 @@ public sealed partial class MainWindow : Window, IDisposable
     private void LoadPartyAssignmentsForFile()
     {
         partyAssignments.Clear();
-        if (string.IsNullOrWhiteSpace(loaded) ||
-            !cfg.PartyAssignmentsByFile.TryGetValue(loaded, out var saved)) return;
-        foreach (var lane in lanes)
-            if (saved.TryGetValue(PartKey(lane.Key), out ulong id) && id != 0)
-                partyAssignments[lane.Key] = id;
+        partyLineupStatus = "No track lineup assigned for this MIDI yet.";
+        if (string.IsNullOrWhiteSpace(loaded)) return;
+        // Always honor the specific song's saved overrides before the shared lineup.
+        if (cfg.PartyAssignmentsByFile.TryGetValue(loaded, out var saved) && saved is not null)
+        {
+            foreach (var lane in lanes)
+                if (saved.TryGetValue(PartKey(lane.Key), out ulong id) && id != 0)
+                    partyAssignments[lane.Key] = id;
+            partyLineupStatus = Loc.IsFrench
+                ? $"{partyAssignments.Count} affectations de pistes propres à ce morceau restaurées."
+                : $"Restored {partyAssignments.Count} song-specific track assignments.";
+            // On upgrade, promote the first existing conductor song map to the
+            // new playlist lineup automatically. Users who already configured
+            // an octet don't have to reassign or press a setup button.
+            if (cfg.KeepPartyAssignmentsAcrossSongs &&
+                (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor &&
+                partyAssignments.Count > 0 && lanes.Count > 0)
+            {
+                string id = SavedPlaylistLibrary.GetActive(cfg).Id;
+                if (!cfg.EnsembleLineupsByPlaylistId.ContainsKey(id))
+                {
+                    cfg.EnsembleLineupsByPlaylistId[id] = PartyTrackLineup.Capture(
+                        lanes.Select(l => l.Key).ToList(), partyAssignments);
+                    cfg.Save();
+                    partyLineupStatus += Loc.IsFrench
+                        ? " Formation mémorisée pour les prochains morceaux."
+                        : " Saved as the reusable lineup for future songs.";
+                }
+            }
+            return;
+        }
+        // Followers only accept the conductor's authenticated native track map.
+        // The shared lineup is a local CONDUCTOR convenience; it is not a new
+        // independent cross-PC synchronisation or an auto-start instruction.
+        if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Conductor ||
+            !cfg.KeepPartyAssignmentsAcrossSongs || lanes.Count == 0) return;
+        string profileId = SavedPlaylistLibrary.GetActive(cfg).Id;
+        if (!cfg.EnsembleLineupsByPlaylistId.TryGetValue(profileId, out var lineup) || lineup is null) return;
+        var match = lineup.Apply(lanes.Select(l => l.Key).ToList());
+        foreach (var item in match.Assignments) partyAssignments[item.Key] = item.Value;
+        partyLineupStatus = match.HasDifferentLaneCount
+            ? Loc.IsFrench
+                ? $"{match.MatchedSlots} emplacements réutilisés. Ce MIDI comporte {match.NewLaneCount} pistes " +
+                    $"(formation enregistrée : {match.SavedLaneCount}). Vérifiez les {match.UnassignedNewSlots} nouvelles pistes."
+                : $"Reused {match.MatchedSlots} performer slots from this Ensemble playlist. " +
+                    $"MIDI has {match.NewLaneCount} lanes (saved layout: {match.SavedLaneCount}); " +
+                    $"review the track list and assign {match.UnassignedNewSlots} new slot(s)."
+            : Loc.IsFrench
+                ? $"Les {match.MatchedSlots} emplacements de la formation Ensemble ont été réutilisés."
+                : $"Reused all {match.MatchedSlots} performer slots from the saved Ensemble lineup.";
     }
 
     private void StorePartyAssignments()
@@ -1178,9 +1352,21 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         cfg.EnsemblePartsByFile.TryGetValue(loaded, out var manual);
         bool changed = false;
-        bool assignmentsAuthoritative = partyAssignments.Count > 0 ||
+        bool oneClickMapping = cfg.GameEnsembleEnabled && cfg.GameEnsembleOneClick &&
+            (((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor && partyAssignments.Count > 0) ||
+             ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower && cfg.OneClickFollowTrackAssignments &&
+              partyAssignmentsReceivedForCurrentMidi));
+        bool nativeLeaderMap = cfg.GameEnsembleEnabled && cfg.NativeLeaderSyncEnabled &&
+            (partyAssignments.Count > 0 || nativeConductorTrackMapExplicit ||
+             partyAssignmentsReceivedForCurrentMidi) && (((EnsembleRole)cfg.EnsembleMode) switch
+            {
+                EnsembleRole.Conductor => true,
+                EnsembleRole.Follower => partyAssignmentsReceivedForCurrentMidi,
+                _ => false
+            });
+        bool assignmentsAuthoritative = nativeLeaderMap || oneClickMapping || (!cfg.GameEnsembleEnabled && (partyAssignments.Count > 0 ||
             ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower &&
-             cfg.FollowConductorAssignments && partyAssignmentsReceivedForCurrentMidi);
+             cfg.FollowConductorAssignments && partyAssignmentsReceivedForCurrentMidi)));
         lanes = lanes.Select(lane =>
         {
             bool include = assignmentsAuthoritative
@@ -1219,6 +1405,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (contentId == 0) partyAssignments.Remove(lane);
         else partyAssignments[lane] = contentId;
         StorePartyAssignments();
+        RememberCurrentPartyLineup();
         ApplyPartyAssignmentsToLocal();
         TryPublishPartyAssignments();
         if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting) TryShareNetworkSession();
@@ -1227,34 +1414,35 @@ public sealed partial class MainWindow : Window, IDisposable
     private void DrawPartyAssignmentControls(EnsembleRole role)
     {
         if (role == EnsembleRole.Solo) return;
-        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), "PARTY-ROSTER TRACK ASSIGNMENTS");
+        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), Loc.T("PARTY-ROSTER TRACK ASSIGNMENTS"));
         var choices = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
         if (role == EnsembleRole.Conductor)
         {
             if (song is null)
             {
-                ImGui.TextDisabled("Load an Ensemble MIDI to choose party members for each part.");
+                ImGui.TextDisabled(Loc.T("Load an Ensemble MIDI to choose party members for each part."));
                 return;
             }
             if (choices.Count == 0)
-                ImGui.TextDisabled("No party members detected. Enter a party or log in as a character.");
+                ImGui.TextDisabled(Loc.T("No party members detected. Enter a party or log in as a character."));
+            DrawReusablePartyLineupControls();
             ImGui.BeginChild("##ConductorPartyAssignments", new Vector2(0, Math.Min(265f, 44f + 46f * lanes.Count)), true);
             foreach (var lane in lanes)
             {
                 string name = song.Tracks.FirstOrDefault(t => t.Index == lane.Key.Track)?.Name ?? $"Track {lane.Key.Track + 1}";
                 int count = laneNoteCounts.GetValueOrDefault(lane.Key);
-                ImGui.TextUnformatted($"T{lane.Key.Track + 1} / Ch{lane.Key.Channel + 1}: {name} ({count:N0} notes)");
+                ImGui.TextUnformatted(Loc.T($"T{lane.Key.Track + 1} / Ch{lane.Key.Channel + 1}: {name} ({count:N0} notes)"));
                 ImGui.SetNextItemWidth(Math.Min(330, Math.Max(190, ImGui.GetContentRegionAvail().X)));
                 ulong selected = partyAssignments.GetValueOrDefault(lane.Key);
                 string label = selected == 0 ? "Unassigned / silent" :
                     choices.FirstOrDefault(x => x.ContentId == selected)?.Name ?? "Player no longer in party";
-                if (ImGui.BeginCombo($"##PartyForTrack{lane.Key.Track}_{lane.Key.Channel}", label))
+                if (ImGui.BeginCombo($"##PartyForTrack{lane.Key.Track}_{lane.Key.Channel}", Loc.T(label)))
                 {
-                    if (ImGui.Selectable("Unassigned / silent", selected == 0)) SetPartyAssignment(lane.Key, 0);
+                    if (ImGui.Selectable(Loc.T("Unassigned / silent"), selected == 0)) SetPartyAssignment(lane.Key, 0);
                     foreach (var member in choices)
                     {
-                        if (ImGui.Selectable((member.IsLocal ? "[Me] " : "") + member.Name +
-                            $"##Party{lane.Key.Track}_{lane.Key.Channel}_{member.ContentId}", selected == member.ContentId))
+                        if (ImGui.Selectable(Loc.T((member.IsLocal ? "[Me] " : "") + member.Name +
+                            $"##Party{lane.Key.Track}_{lane.Key.Channel}_{member.ContentId}"), selected == member.ContentId))
                             SetPartyAssignment(lane.Key, member.ContentId);
                     }
                     ImGui.EndCombo();
@@ -1262,7 +1450,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 ImGui.Separator();
             }
             ImGui.EndChild();
-            if (ImGui.SmallButton("Assign all parts to me"))
+            if (ImGui.SmallButton(Loc.T("Assign all parts to me")))
             {
                 ulong me = PartyRoster.GetLocalContentId(Plugin.Objects, Plugin.Party);
                 if (me == 0) assignmentStatus = "Could not identify local performer.";
@@ -1270,25 +1458,40 @@ public sealed partial class MainWindow : Window, IDisposable
                 {
                     partyAssignments.Clear();
                     foreach (var lane in lanes.Where(x => x.Key.Channel != 9)) partyAssignments[lane.Key] = me;
-                    StorePartyAssignments(); ApplyPartyAssignmentsToLocal(); TryPublishPartyAssignments();
+                    StorePartyAssignments(); RememberCurrentPartyLineup();
+                    ApplyPartyAssignmentsToLocal(); TryPublishPartyAssignments();
                 }
             }
             ImGui.SameLine();
-            if (ImGui.SmallButton("Clear party assignments") && !plugin.Player.IsPlaying)
+            if (ImGui.SmallButton(Loc.T("Clear party assignments")) && !plugin.Player.IsPlaying)
             {
                 partyAssignments.Clear();
                 StorePartyAssignments(); ApplyPartyAssignmentsToLocal(); TryPublishPartyAssignments();
             }
             ImGui.SameLine();
-            if (ImGui.SmallButton("Publish assignments")) TryPublishPartyAssignments();
-            ImGui.TextDisabled(cfg.MultiDeviceEnabled
+            if (ImGui.SmallButton(Loc.T("Publish assignments")))
+            {
+                TryPublishPartyAssignments();
+                if (NativeSyncEnabled) BroadcastNativeFile();
+            }
+            if (NativeSyncEnabled)
+            {
+                ImGui.SameLine();
+                if (ImGui.Button(Loc.T("SET PARTY TRACKS — send to every Bard"))) SetNativePartyTracks();
+                ImGui.TextDisabled(Loc.T("Once set, each client uses only its assigned parts. " +
+                    "A silent/unassigned part will not play on any Bard."));
+            }
+            ImGui.TextWrapped(Loc.T(partyLineupStatus));
+            ImGui.TextDisabled(Loc.T(cfg.GameEnsembleEnabled
+                ? "Native: track assignments are sent to followers when the leader selects a MIDI; music START still comes from FFXIV."
+                : cfg.MultiDeviceEnabled
                 ? "Assignments are sent to connected multi-device followers. Stop the song before editing."
-                : "Assignments are saved for this MIDI and shared with same-PC Windbound clients.");
+                : "Assignments are saved for this MIDI and shared with same-PC Windbound clients."));
         }
         else
         {
             bool follow = cfg.FollowConductorAssignments;
-            if (ImGui.Checkbox("Follow conductor's party-track assignments", ref follow))
+            if (!cfg.GameEnsembleEnabled && ImGui.Checkbox(Loc.T("Follow conductor's party-track assignments"), ref follow))
             {
                 cfg.FollowConductorAssignments = follow;
                 if (!follow)
@@ -1301,16 +1504,18 @@ public sealed partial class MainWindow : Window, IDisposable
                 lastPartyPollTicks = 0;
             }
             var me = choices.FirstOrDefault(x => x.IsLocal);
-            ImGui.TextUnformatted("My party character: " + (me?.Name ?? "Not resolved"));
-            ImGui.TextDisabled("The conductor's assigned parts override your manual track checkboxes before the cue.");
+            ImGui.TextUnformatted(Loc.T("My party character: " + (me?.Name ?? "Not resolved")));
+            ImGui.TextDisabled(Loc.T(cfg.GameEnsembleEnabled
+                ? "Native mode: the leader's MIDI selection can load your matching file and assigned tracks automatically."
+                : "The conductor's assigned parts override your manual track checkboxes before the cue."));
         }
-        ImGui.TextWrapped(assignmentStatus);
+        ImGui.TextWrapped(Loc.T(assignmentStatus));
     }
 
     // Poll on Dalamud's framework thread, throttled to five times per second.
     public void PollPartyAssignments()
     {
-        if (cfg.MultiDeviceEnabled || (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower ||
+        if (cfg.GameEnsembleEnabled || cfg.MultiDeviceEnabled || (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower ||
             !cfg.FollowConductorAssignments || song is null || plugin.Player.IsPlaying) return;
         long now = Stopwatch.GetTimestamp();
         if (now - lastPartyPollTicks < Stopwatch.Frequency / 5) return;
@@ -1335,18 +1540,18 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void DrawEnsemble()
     {
-        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), "NUNU'S ENSEMBLE STAGE");
-        ImGui.TextWrapped("CONDUCTOR: assign MIDI tracks to party members. Local Mode shares a Windows clock on one PC; Multi-Device joins another player's Windbound Bard over a private LAN / Tailscale connection.");
-        ImGui.TextDisabled("For Multi-Device, both players need v0.9, the same stage name and one-time private code. This does not use game chat or override FFXIV's own Ready Check.");
+        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), Loc.T("NUNU'S ENSEMBLE STAGE"));
+        ImGui.TextWrapped(Loc.T("Recommended: native FFXIV Ensemble synchronisation (the same Ready Check and game START mechanism used by MidiBard 2). " +
+            "Works across PCs and on the same PC without VPN. Legacy local/TCP controls remain available when native mode is disabled."));
         int mode = Math.Clamp(cfg.EnsembleMode, 0, 2);
-        if (ImGui.RadioButton("Solo", mode == 0)) SetEnsembleRole(EnsembleRole.Solo);
+        if (ImGui.RadioButton(Loc.T("Solo"), mode == 0)) SetEnsembleRole(EnsembleRole.Solo);
         ImGui.SameLine();
-        if (ImGui.RadioButton("Conductor", mode == 1)) SetEnsembleRole(EnsembleRole.Conductor);
+        if (ImGui.RadioButton(Loc.T("Conductor"), mode == 1)) SetEnsembleRole(EnsembleRole.Conductor);
         ImGui.SameLine();
-        if (ImGui.RadioButton("Follower", mode == 2)) SetEnsembleRole(EnsembleRole.Follower);
+        if (ImGui.RadioButton(Loc.T("Follower"), mode == 2)) SetEnsembleRole(EnsembleRole.Follower);
         string group = cfg.EnsembleGroup;
         ImGui.SetNextItemWidth(260);
-        if (ImGui.InputText("Ensemble stage / group", ref group, 50))
+        if (ImGui.InputText(Loc.T("Ensemble stage / group"), ref group, 50))
         {
             cfg.EnsembleGroup = group;
             waitingForEnsembleCue = false; // re-arm when changing groups
@@ -1356,20 +1561,22 @@ public sealed partial class MainWindow : Window, IDisposable
         if (mode == (int)EnsembleRole.Conductor)
         {
             int lead = cfg.EnsembleLeadMilliseconds;
-            if (ImGui.SliderInt("Count-in before start (ms)", ref lead, 2000, 15000))
+            if (ImGui.SliderInt(Loc.T("Count-in before start (ms)"), ref lead, 2000, 15000))
             {
                 cfg.EnsembleLeadMilliseconds = lead; cfg.Save();
             }
         }
         ImGui.Separator();
-        DrawMultiDeviceControls((EnsembleRole)mode);
+        DrawGameEnsembleControls((EnsembleRole)mode);
+        DrawConcertDirector();
+        if (!cfg.GameEnsembleEnabled) DrawMultiDeviceControls((EnsembleRole)mode);
         ImGui.Separator();
         DrawPartyAssignmentControls((EnsembleRole)mode);
         ImGui.Separator();
-        ImGui.TextUnformatted("Parts assigned to THIS Bard client:");
-        if (partyAssignments.Count > 0 && mode != 0)
-            ImGui.TextDisabled("Party assignments are active; conductor controls the note lanes. Manual checkboxes may be replaced.");
-        if (song is null) ImGui.TextDisabled("Load a song first; both clients must load the SAME MIDI file.");
+        ImGui.TextUnformatted(Loc.T("Parts assigned to THIS Bard client:"));
+        if (partyAssignments.Count > 0 && mode != 0 && !cfg.GameEnsembleEnabled)
+            ImGui.TextDisabled(Loc.T("Party assignments are active; conductor controls the note lanes. Manual checkboxes may be replaced."));
+        if (song is null) ImGui.TextDisabled(Loc.T("Load a song first; each PC must have the SAME MIDI for FFXIV Game Ensemble."));
         else
         {
             for (int i = 0; i < lanes.Count; i++)
@@ -1377,45 +1584,57 @@ public sealed partial class MainWindow : Window, IDisposable
                 var lane = lanes[i];
                 string title = song.Tracks.FirstOrDefault(t => t.Index == lane.Key.Track)?.Name ?? $"Track {lane.Key.Track+1}";
                 bool selected = lane.Include;
-                if (ImGui.Checkbox($"{title} / Channel {lane.Key.Channel+1}##ensLane{i}", ref selected))
+                if (ImGui.Checkbox(Loc.T($"{title} / Channel {lane.Key.Channel+1}##ensLane{i}"), ref selected))
                     ChangeLane(i, lane with { Include = selected });
                 ImGui.SameLine();
-                if (ImGui.SmallButton($"Only this##ensSolo{i}"))
+                if (ImGui.SmallButton(Loc.T($"Only this##ensSolo{i}")))
                 {
                     lanes = lanes.Select((x, j) => x with { Include = j == i }).ToList();
                     RememberParts(); Rebuild();
                 }
             }
-            if (ImGui.SmallButton("Enable all pitched parts"))
+            if (ImGui.SmallButton(Loc.T("Enable all pitched parts")))
             {
                 lanes = lanes.Select(x => x with { Include = x.Key.Channel != 9 }).ToList();
                 RememberParts(); Rebuild();
             }
-            ImGui.TextDisabled($"{lanes.Count(x => x.Include)} part(s) enabled; per-file selection saved separately for each client.");
+            ImGui.TextDisabled(Loc.T($"{lanes.Count(x => x.Include)} part(s) enabled; per-file selection saved separately for each client."));
         }
         ImGui.Separator();
         if (mode == (int)EnsembleRole.Conductor)
         {
-            if (ImGui.Button("Cue ensemble start")) CueEnsemble();
+            if (ImGui.Button(Loc.T(cfg.GameEnsembleEnabled
+                ? "START ENSEMBLE (FFXIV native)"
+                : "Cue ensemble start"))) CueEnsemble();
             ImGui.SameLine();
-            if (ImGui.Button(cfg.MultiDeviceEnabled ? "STOP connected bards" : "STOP all local bards")) StopPlayback();
-            ImGui.TextDisabled("Have followers click 'Wait for cue' and arm output; Multi-Device waits for remote READY before starting.");
+            if (ImGui.Button(Loc.T(cfg.GameEnsembleEnabled ? "STOP my playback" :
+                cfg.MultiDeviceEnabled ? "STOP connected bards" : "STOP all local bards"))) StopPlayback();
+            ImGui.TextDisabled(Loc.T(cfg.GameEnsembleEnabled
+                ? "FFXIV Ready Check auto-accepts on prepared participants; game sends the synchronised START. No party-chat timers."
+                : "All performers must arm output before the conductor cues the local or TCP ensemble."));
         }
         if (mode == (int)EnsembleRole.Follower)
         {
-            bool wait = waitingForEnsembleCue;
-            if (ImGui.Checkbox("Wait for conductor cue", ref wait))
+            if (cfg.GameEnsembleEnabled)
             {
-                waitingForEnsembleCue = wait;
-                ensembleStatus = wait ? (cfg.MultiDeviceEnabled
-                    ? "Waiting for a network cue from conductor..." : "Waiting for a NEW cue in this Windows session...")
-                    : "Follower not waiting.";
+                ImGui.TextDisabled(Loc.T("Native Ensemble: keep MIDI loaded, ARM and open the 37-key Performance UI. Incoming Ready Checks are auto-confirmed."));
             }
-            ImGui.TextDisabled("Output must be ARMed in Songs & Playback; expanded Performance keyboard must be open.");
+            else
+            {
+                bool wait = waitingForEnsembleCue;
+                if (ImGui.Checkbox(Loc.T("Wait for conductor cue"), ref wait))
+                {
+                    waitingForEnsembleCue = wait;
+                    ensembleStatus = wait ? (cfg.MultiDeviceEnabled
+                        ? "Waiting for a network cue from conductor..." : "Waiting for a NEW cue in this Windows session...")
+                        : "Follower not waiting.";
+                }
+            }
+            ImGui.TextDisabled(Loc.T("ARM in Songs & Playback; expanded Performance keyboard must be open."));
         }
-        if (mode == 0) ImGui.TextDisabled("Switch to Conductor or Follower to use synchronized starts.");
-        ImGui.TextWrapped(ensembleStatus);
-        if (ImGui.SmallButton("Copy ensemble diagnostics"))
+        if (mode == 0) ImGui.TextDisabled(Loc.T("Switch to Conductor or Follower to use synchronized starts."));
+        ImGui.TextWrapped(Loc.T(ensembleStatus));
+        if (ImGui.SmallButton(Loc.T("Copy ensemble diagnostics")))
         {
             ImGui.SetClipboardText($"Mode: {(EnsembleRole)cfg.EnsembleMode}\nStage: {cfg.EnsembleGroup}\n" +
                 $"MIDI: {Path.GetFileName(loaded)}\nParty members: {Plugin.Party.Length}\n" +
@@ -1423,16 +1642,25 @@ public sealed partial class MainWindow : Window, IDisposable
                 $"Tracks enabled locally: {lanes.Count(x => x.Include)}\n" +
                 $"Follow conductor map: {cfg.FollowConductorAssignments}\n" +
                 $"Assignment status: {assignmentStatus}\nCue status: {ensembleStatus}\n" +
-                $"Network enabled: {cfg.MultiDeviceEnabled}\nNetwork status: {plugin.Network.Status}\n" +
+                $"Game Ensemble: {cfg.GameEnsembleEnabled}; native auto-confirm: {cfg.NativeEnsembleAutoAccept}; legacy UTC start disabled\n" +
+                $"Listener: {plugin.GameEnsemble.Diagnostics}\nGate: {gameStartGate.LastOutcome}\nOutput ARMed: {outputArmed}; Expanded Performance: {plugin.IsGameOutputSafe()}\nLeader sync enabled: {cfg.NativeLeaderSyncEnabled}; Chat status: {plugin.PartyChat.Status}\n" +
+                plugin.PartyChat.Diagnostics + $"\nFile sync: {nativeFileSyncStatus}\nInstrument SET: {nativeInstrumentSyncStatus}\nGame status: {gameEnsembleStatus}\nNetwork enabled: {cfg.MultiDeviceEnabled}\nNetwork status: {plugin.Network.Status}\n" +
                 $"Network revision: {plugin.Network.SessionRevision}\nClock RTT: {plugin.Network.RoundTripMs:0}ms");
         }
         if (plugin.Player.IsEnsemblePlayback && plugin.Player.EnsembleCountInSeconds > 0)
             ImGui.TextColored(new Vector4(.56f, 1f, .87f, 1f),
-                $"Shared-clock count-in: {plugin.Player.EnsembleCountInSeconds:0.0}s");
+                Loc.T($"Shared-clock count-in: {plugin.Player.EnsembleCountInSeconds:0.0}s"));
     }
 
     private void SetEnsembleRole(EnsembleRole role)
     {
+        if (role != EnsembleRole.Solo) plugin.LiveMidi.Panic();
+        if (cfg.EnsembleMode != (int)role)
+        {
+            CancelOneClickInstrumentPreparation();
+            CancelNativeLeaderSync("Ensemble role changed. Choose a MIDI and resynchronise.");
+        }
+        gameStartGate.Cancel("Ensemble role changed; waiting for a fresh FFXIV start.");
         if (cfg.EnsembleMode != (int)role)
         {
             plugin.Network.Stop();
@@ -1464,8 +1692,12 @@ public sealed partial class MainWindow : Window, IDisposable
         songFlow.Cancel();
         ensembleStatus = role switch
         {
-            EnsembleRole.Conductor => "Conductor: load a MIDI and cue other local bards.",
-            EnsembleRole.Follower => "Follower: load the same MIDI, arm, then wait for cue.",
+            EnsembleRole.Conductor => cfg.GameEnsembleEnabled ?
+                "Conductor: prepare MIDI/instruments, then START ENSEMBLE (native)." :
+                "Conductor: load a MIDI and cue other local bards.",
+            EnsembleRole.Follower => cfg.GameEnsembleEnabled ?
+                "Follower: ARM and open Performance; incoming FFXIV Ensemble Ready Check auto-accepts." :
+                "Follower: load the same MIDI, arm, then wait for cue.",
             _ => "Solo playback."
         };
         cfg.Save();
@@ -1477,6 +1709,27 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Conductor)
                 throw new InvalidOperationException("Select Conductor first.");
+            if (cfg.GameEnsembleEnabled)
+            {
+                if (!plugin.GameEnsemble.Available)
+                    throw new InvalidOperationException(plugin.GameEnsemble.Status);
+                if (song is null || arranged is null)
+                    throw new InvalidOperationException("Load the matching ensemble MIDI before opening FFXIV Ready Check.");
+                if (!plugin.IsGameOutputSafe())
+                    throw new InvalidOperationException("Enter the expanded 37-note Performance keyboard before starting Ensemble.");
+                if (arranged.Notes.Count > 0 && !outputArmed)
+                    throw new InvalidOperationException("ARM output before starting Ensemble with assigned MIDI notes.");
+                var readiness = GetGameEnsembleReadiness(out string why);
+                if (readiness is not (GameEnsembleReadiness.Ready or GameEnsembleReadiness.Silent))
+                    throw new InvalidOperationException("This Bard isn't ready for Ensemble: " + why);
+                if (plugin.GameEnsemble.TryBeginReadyCheck(out string detail))
+                {
+                    ensembleStatus = detail;
+                    gameEnsembleStatus = detail;
+                }
+                else throw new InvalidOperationException(detail);
+                return;
+            }
             if (cfg.MultiDeviceEnabled)
             {
                 CueNetworkEnsemble();
@@ -1521,7 +1774,7 @@ public sealed partial class MainWindow : Window, IDisposable
     /// <summary>Polled from Dalamud's framework thread; no foreground focus is required.</summary>
     public void PollEnsemble()
     {
-        if (cfg.MultiDeviceEnabled || (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower || !waitingForEnsembleCue)
+        if (cfg.GameEnsembleEnabled || cfg.MultiDeviceEnabled || (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower || !waitingForEnsembleCue)
             return;
         try
         {
@@ -1587,14 +1840,32 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public void StopPlayback()
     {
+        ConcertCancelPreparation("Conductor STOP. Concert preparation cancelled.");
+        ConcertCancelSetlist("Concert STOP. Automatic next-song preparation cancelled.");
+        plugin.LiveMidi.Panic();
+        pendingQueuedSongPath = "";
         songFlow.Cancel();
+        CancelOneClickInstrumentPreparation();
         CancelPendingInstrumentStart();
         plugin.Player.Stop();
+        // Native ensemble STOP sends a leader-only party command even when the
+        // optional legacy chat controls are off. Both leader and followers exit
+        // Performance AFTER their note-off scheduler has finished.
+        if (NativeSyncEnabled && cfg.EnsembleMode == (int)EnsembleRole.Conductor)
+            NativeConductorStopAndUnequip();
         if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor)
         {
             try
             {
-                if (cfg.MultiDeviceEnabled)
+                if (cfg.GameEnsembleEnabled)
+                {
+                    if (NativeSyncEnabled)
+                        ensembleStatus = nativeStopStatus;
+                    else if (cfg.GameEnsembleOneClick && cfg.GamePartyChatEnabled)
+                        plugin.PartyChat.TryBroadcast(GamePartyCueProtocol.Stop, out ensembleStatus);
+                    else ensembleStatus = "Stopped locally; remote STOP isn't configured.";
+                }
+                else if (cfg.MultiDeviceEnabled)
                 {
                     plugin.Network.BroadcastStop();
                     ensembleStatus = "Network STOP sent to connected followers.";
@@ -1630,7 +1901,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private void DrawMultiDeviceControls(EnsembleRole role)
     {
         bool multi = cfg.MultiDeviceEnabled;
-        if (ImGui.Checkbox("Enable Multi-Device (two or more PCs)", ref multi))
+        if (ImGui.Checkbox(Loc.T("Enable Multi-Device (two or more PCs)"), ref multi))
         {
             plugin.Network.Stop();
             cfg.MultiDeviceEnabled = multi;
@@ -1643,27 +1914,27 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         if (!multi)
         {
-            ImGui.TextDisabled("LOCAL mode: all Windbound Bard clients share the same Windows PC. No network connection required.");
+            ImGui.TextDisabled(Loc.T("LOCAL mode: all Windbound Bard clients share the same Windows PC. No network connection required."));
             return;
         }
-        ImGui.TextColored(new Vector4(.58f, .94f, .98f, 1f), "PRIVATE MULTI-DEVICE ENSEMBLE");
-        ImGui.TextWrapped("Best for Edea on another PC: connect both PCs with Tailscale, use the conductor's Tailscale IP, and share the private code directly. Ordinary TCP data is not encrypted by this plugin.");
+        ImGui.TextColored(new Vector4(.58f, .94f, .98f, 1f), Loc.T("PRIVATE MULTI-DEVICE ENSEMBLE"));
+        ImGui.TextWrapped(Loc.T("Best for Edea on another PC: connect both PCs with Tailscale, use the conductor's Tailscale IP, and share the private code directly. Ordinary TCP data is not encrypted by this plugin."));
         int port = cfg.MultiDevicePort;
         ImGui.SetNextItemWidth(130);
-        if (ImGui.InputInt("TCP port", ref port))
+        if (ImGui.InputInt(Loc.T("TCP port"), ref port))
         {
             cfg.MultiDevicePort = Math.Clamp(port, 1024, 65535);
             cfg.Save();
         }
         ImGui.SetNextItemWidth(Math.Min(360, ImGui.GetContentRegionAvail().X));
-        ImGui.InputText("Private duet code (not saved)", ref networkCode, 128);
+        ImGui.InputText(Loc.T("Private duet code (not saved)"), ref networkCode, 128);
         ImGui.SameLine();
-        if (ImGui.SmallButton("Generate code")) networkCode = MultiDeviceEnsemble.NewSessionCode();
+        if (ImGui.SmallButton(Loc.T("Generate code"))) networkCode = MultiDeviceEnsemble.NewSessionCode();
         if (role == EnsembleRole.Conductor)
         {
             if (!plugin.Network.IsHosting)
             {
-                if (ImGui.Button("HOST private ensemble"))
+                if (ImGui.Button(Loc.T("HOST private ensemble")))
                 {
                     try
                     {
@@ -1676,36 +1947,36 @@ public sealed partial class MainWindow : Window, IDisposable
             }
             else
             {
-                if (ImGui.Button("Stop hosting / disconnect"))
+                if (ImGui.Button(Loc.T("Stop hosting / disconnect")))
                 {
                     StopPlayback();
                     plugin.Network.Stop();
                     networkStatus = "Hosting stopped.";
                 }
                 ImGui.SameLine();
-                if (ImGui.SmallButton("Send updated MIDI + assignments")) TryShareNetworkSession();
-                ImGui.TextUnformatted("Connected Windbound performers:");
+                if (ImGui.SmallButton(Loc.T("Send updated MIDI + assignments"))) TryShareNetworkSession();
+                ImGui.TextUnformatted(Loc.T("Connected Windbound performers:"));
                 var performers = plugin.Network.Performers;
-                if (performers.Count == 0) ImGui.TextDisabled("No followers connected yet.");
+                if (performers.Count == 0) ImGui.TextDisabled(Loc.T("No followers connected yet."));
                 foreach (var peer in performers)
                 {
                     var color = peer.Ready ? new Vector4(.45f, .96f, .58f, 1f) : new Vector4(1f, .77f, .38f, 1f);
-                    ImGui.TextColored(color, $"{peer.Character} — {(peer.Ready ? "READY" : "WAITING")} (rev {peer.Revision})");
-                    if (!peer.Ready) ImGui.TextWrapped("   " + peer.Detail);
+                    ImGui.TextColored(color, Loc.T($"{peer.Character} — {(peer.Ready ? "READY" : "WAITING")} (rev {peer.Revision})"));
+                    if (!peer.Ready) ImGui.TextWrapped(Loc.T("   " + peer.Detail));
                 }
             }
         }
         else if (role == EnsembleRole.Follower)
         {
             ImGui.SetNextItemWidth(Math.Min(370, ImGui.GetContentRegionAvail().X));
-            if (ImGui.InputText("Conductor LAN / Tailscale IP", ref networkHost, 255))
+            if (ImGui.InputText(Loc.T("Conductor LAN / Tailscale IP"), ref networkHost, 255))
             {
                 cfg.MultiDeviceHostAddress = networkHost;
                 cfg.Save();
             }
             if (!plugin.Network.IsConnected && !plugin.Network.IsJoining)
             {
-                if (ImGui.Button("JOIN conductor"))
+                if (ImGui.Button(Loc.T("JOIN conductor")))
                 {
                     try
                     {
@@ -1717,19 +1988,19 @@ public sealed partial class MainWindow : Window, IDisposable
                     catch (Exception ex) { networkStatus = "Join failed: " + ex.Message; }
                 }
             }
-            else if (ImGui.Button("Disconnect from conductor"))
+            else if (ImGui.Button(Loc.T("Disconnect from conductor")))
             {
                 if (plugin.Player.IsEnsemblePlayback) plugin.Player.Stop();
                 plugin.Network.Stop();
                 networkStatus = "Disconnected.";
             }
-            ImGui.TextDisabled($"Clock synchronisation: {(plugin.Network.HasClockSync ? "READY" : "waiting for samples")} / {plugin.Network.RoundTripMs:0}ms RTT");
-            ImGui.TextDisabled("MIDI is received into your plugin cache, never added to your saved Solo/Ensemble playlists.");
+            ImGui.TextDisabled(Loc.T($"Clock synchronisation: {(plugin.Network.HasClockSync ? "READY" : "waiting for samples")} / {plugin.Network.RoundTripMs:0}ms RTT"));
+            ImGui.TextDisabled(Loc.T("MIDI is received into your plugin cache, never added to your saved Solo/Ensemble playlists."));
         }
-        else ImGui.TextDisabled("Choose Conductor to HOST or Follower to JOIN.");
-        ImGui.TextWrapped(plugin.Network.Status);
-        if (!string.IsNullOrEmpty(networkStatus)) ImGui.TextWrapped(networkStatus);
-        ImGui.TextDisabled("Connection code is only kept in memory. Reconnect after restarting FFXIV. Never expose TCP port publicly.");
+        else ImGui.TextDisabled(Loc.T("Choose Conductor to HOST or Follower to JOIN."));
+        ImGui.TextWrapped(Loc.T(plugin.Network.Status));
+        if (!string.IsNullOrEmpty(networkStatus)) ImGui.TextWrapped(Loc.T(networkStatus));
+        ImGui.TextDisabled(Loc.T("Connection code is only kept in memory. Reconnect after restarting FFXIV. Never expose TCP port publicly."));
     }
 
     private void CueNetworkEnsemble()
@@ -1959,6 +2230,6 @@ public sealed partial class MainWindow : Window, IDisposable
         float cursor = top.X + (float)((now - from) / duration * width);
         draw.AddLine(new Vector2(cursor, top.Y), new Vector2(cursor, bottom.Y), currentColor, 2f);
         ImGui.Dummy(new Vector2(width, height));
-        ImGui.TextDisabled("Piano roll: C6 (top) to C3 (bottom) | 7.6s window");
+        ImGui.TextDisabled(Loc.T("Piano roll: C6 (top) to C3 (bottom) | 7.6s window"));
     }
 }

@@ -8,7 +8,45 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 11;
+    public int Version { get; set; } = 28;
+    // UI language: en (default) or fr. This does not change file names, notes or protocol.
+    public string Language { get; set; } = "en";
+    // v0.20 live hardware MIDI keyboard input in Solo mode. Device opt-in is saved,
+    // but FFXIV output ARM is never persisted across plugin restarts.
+    public bool LiveMidiInputEnabled { get; set; } = false;
+    public string LiveMidiInputDeviceName { get; set; } = "";
+    public int LiveMidiTranspose { get; set; } = 0;
+    public bool LiveMidiFoldToRange { get; set; } = true;
+    public bool LiveMidiSustain { get; set; } = true;
+    public int LiveMidiChannel { get; set; } = 0;
+    // Performance HUD preferences are deliberately per-client; ARM remains session-only.
+    public bool HudVisible { get; set; } = false;
+    public bool HudCompact { get; set; } = true;
+    public bool HudLockPosition { get; set; } = false;
+    public bool HudShowNextSong { get; set; } = true;
+    public float HudOpacity { get; set; } = 0.92f;
+    // FFXIV native Ensemble Ready Check across separate PCs (no direct network required).
+    // New installations use native ensemble by default; Solo remains Solo until configured.
+    public bool GameEnsembleEnabled { get; set; } = true;
+    // v0.17: automatic confirmation of native FFXIV Ensemble Ready Check.
+    // Enabled by default on all new installs, can be disabled without future upgrades resetting it.
+    public bool NativeEnsembleAutoAccept { get; set; } = true;
+    // Leader-only commands for file, track, and instrument selection. Native game START remains authoritative.
+    public bool NativeLeaderSyncEnabled { get; set; } = true;
+    // v0.25: never automatically launch the next piece: only PREPARE it.
+    public bool ConcertAutoPrepareNext { get; set; } = false;
+    public Dictionary<string, ConcertSongCue> ConcertSongCuesByKey { get; set; } = new();
+    // Legacy UTC party chat start saved only for config compatibility; disabled in v0.17.
+    public bool GameEnsembleOneClick { get; set; } = false;
+    // Followers must explicitly opt into receiving automatic playback cues.
+    public bool OneClickAllowLeaderStart { get; set; } = false;
+    public bool OneClickFollowTrackAssignments { get; set; } = true;
+    // Conductor's per-MIDI party instrument choices, keyed by ContentId in local config.
+    // Party chat transmits only a compact roster-relative map, never ContentIds.
+    public Dictionary<string, Dictionary<string, int>> PartyInstrumentsByFile { get; set; }
+        = new(StringComparer.OrdinalIgnoreCase);
+    // Visible party chat song/STOP commands are optional and leader-only.
+    public bool GamePartyChatEnabled { get; set; } = false;
     // Master switch is deliberately opt-in; tone override is meaningful only while playing guitar.
     public bool GuitarToneOverridesEnabled { get; set; } = false;
     // Saved per MIDI path and separate track:channel; the same song may have several guitar parts.
@@ -17,6 +55,12 @@ public sealed class Configuration : IPluginConfiguration
     // 0 means leave the currently equipped Performance instrument unchanged.
     public Dictionary<string, int> InstrumentsByFile { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public bool AutoSwitchInstrumentBeforePlay { get; set; } = true;
+    // v0.22: detect per-track #Instrument and #+12/-12 tags or General MIDI programs.
+    public bool AutoDetectMidiTrackInstruments { get; set; } = true;
+    public bool AutoReadMidiTrackOctaves { get; set; } = true;
+    // A manual button edit wins over imported tags on later song loads.
+    public Dictionary<string, List<string>> ManualOctaveLaneOverridesByFile { get; set; }
+        = new(StringComparer.OrdinalIgnoreCase);
     // MIDI lane (track:channel) octave shifts survive song reload; increments of 12 semitones.
     public Dictionary<string, Dictionary<string, int>> OctaveShiftsByFile { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public string PerformanceKeys { get; set; } = PerformanceKeyMap.DefaultKeys;
@@ -28,6 +72,8 @@ public sealed class Configuration : IPluginConfiguration
     public int KeyHoldMs { get; set; } = 48;
     public float PlaybackSpeed { get; set; } = 1.0f;
     public bool AutoNext { get; set; } = false;
+    // v0.16 playlist metadata, stored independently for every named Solo/Ensemble profile.
+    public Dictionary<string, SmartPlaylistState> SmartPlaylistsById { get; set; } = new();
     public string EnsembleGroup { get; set; } = "NunuStage";
     // Opt-in private TCP duet mode, never automatically connects on plugin startup.
     // Private session code is intentionally held only in memory, not saved in config.
@@ -47,6 +93,10 @@ public sealed class Configuration : IPluginConfiguration
     // Conductor presets: MIDI path -> track:channel -> FFXIV party content id.
     public Dictionary<string, Dictionary<string, ulong>> PartyAssignmentsByFile { get; set; }
         = new(StringComparer.OrdinalIgnoreCase);
+    // v0.23: reuse one conductor lineup for every song in the same saved Ensemble playlist.
+    // Existing per-MIDI assignments remain overrides when present.
+    public bool KeepPartyAssignmentsAcrossSongs { get; set; } = true;
+    public Dictionary<string, PartyTrackLineup> EnsembleLineupsByPlaylistId { get; set; } = new();
     public bool FollowConductorAssignments { get; set; } = true;
     // Offline Soulweaver presets persist independently for each original MIDI file.
     public Dictionary<string, SoulweaverPreset> SoulweaverPresetsByFile { get; set; }

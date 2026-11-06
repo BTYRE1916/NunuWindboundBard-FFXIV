@@ -1,41 +1,21 @@
-Windbound Bard v0.11.1 Soulweaver Export Fix
-Windbound Bard v0.9 — Multi-Device Ensemble (source build)
+Windbound Bard v0.22.0.0: MIDI track instrument + #+12 octave metadata detection; no native playback changes.
+Source and ZIP validation only, real C# build/FFXIV tests necessary.
 
-Scope:
-- New Core/MultiDeviceEnsemble.cs private TCP conductor/follower session
-- Opt-in setting, host/join controls, no auto-connect on plugin load
-- Authenticated code pairing, 4 MB MIDI transfer, SHA-256 verification
-- Song arrangement and party track assignment propagation
-- Clock samples, readiness acknowledgements, scheduled cross-PC START/STOP
-- Independent Solo/Ensemble saved playlists and original local same-PC mode kept
-- Tests/MultiDeviceTransportSmokeTest.csproj + Run-v0.9-Tests.ps1
+Windbound Bard v0.21 English/Français UI localization
+Resources: Assets/i18n/fr-FR.json, src/NunuWindboundBard/Localization.cs
+Version: 0.21.0.0, Configuration migration version 22.
+MIDI/ensemble engine source unchanged from v0.20.
+Validation: static source checks, translation catalogue audit and ZIP integrity; no Windows/Dalamud runtime here.
 
-Source inspection and archive checks run in Linux environment; Windows .NET SDK
-and FFXIV are not installed. Actual compiling, performance, firewall/network
-behaviour and two-PC synchronization still require user tests on Windows.
+Windbound Bard v0.19 — octet conductor track SET and STOP+UNEQUIP ALL
+Base v0.18.2. Commands use verified actual FFXIV party leader and ContentId-resolved replies.
+Added track/stop party protocol, explicit all-silent map, leader+follower stop state,
+and a native instrument close after the MIDI scheduler releases held keys.
+Core PlaybackEngine, GameEnsembleSync and Soulweaver files unchanged.
+Run Tests/Run-v0.19-Tests.ps1 on Windows .NET 10. No local .NET build available.
 
-Security: The transport is not encrypted. Use only trusted LAN or encrypted
-private network (Tailscale). NEVER expose/port-forward its listener on the
-public Internet. Stage code is held in RAM only and not saved.
-
-
-Windbound Bard v0.10 -- Reliable Auto Next / Song Transitions
-- Fixed Draw()-dependent song advancement by calling PollSongTransitions from Framework.Update after Player.Update.
-- Queued manual file changes, Next, and Play pressed during an outstanding Stop request.
-- Failed playlist entries no longer retain and replay an old MIDI.
-- Guarded instrument wait with explicit diagnostics; no changes to native callbacks.
-- Version bumped to 0.10.0.0; configuration migrates additively to 10.
-- Tests/SongFlowCoordinatorTests.csproj and Run-v0.10-Tests.ps1 included.
-- C# / Windows / Dalamud compile and live FFXIV tests still required.
-
-
-Windbound Bard v0.11 -- Soulweaver Studio
-- New rule-based arranger produces one musician part per performer (1/2/4/8), defaults to preserving every prepared note.
-- Musical register/voice role analysis, estimated key, phrase and chord-onset reports, and part timeline preview.
-- New MIDI writer preserves tempo changes, time signature, key signature and relative note timing.
-- One named format-1 MIDI track per performer with import-ready track/channel identifiers for existing conductor assignments.
-- User can override suggested instruments and party recipients, and export into separate Solo/Ensemble playlist profiles.
-- Per-original-MIDI preset preferences persist; previous v0.10 saved settings are migrated additively to version 11.
-- Songs & Playback, native Performance output, ensemble, networking, instruments, guitar tones, and transition files are unchanged apart from new UI integration.
-- Tests/SoulweaverSmokeTest.csproj and Samples/Soulweaver-Quartet-Demo.mid included.
-- The C# project and new core test need compilation/testing on Windows with .NET 10 and Dalamud API 15. This archive contains no prebuilt DLL.
+Windbound Bard v0.20 — Solo USB hardware MIDI-IN (Windows winmm) + v0.19.1 native group STOP stow
+Added isolated live MIDI device backend, per-channel note/sustain router and Live MIDI Piano UI.
+Unchanged: chord scheduler, MIDI file engine, Soulweaver, native ensemble start, party chat/assignment protocol.
+Regression test: Tests/LiveMidiNoteRouterTests.csproj and Tests/Run-v0.20-Tests.ps1
+No .NET SDK, USB MIDI controller, native Windows driver or FFXIV client in this container; compile and in-game validation required.
