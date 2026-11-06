@@ -1,4 +1,5 @@
-<img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/ce695b91-69a6-4a60-8b56-13251d1a98ec" />
+                   <img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/ce695b91-69a6-4a60-8b56-13251d1a98ec" />
+                   https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
 
 # Windbound Bard v0.26 — Concert Suite + MIDI Inspector
 
