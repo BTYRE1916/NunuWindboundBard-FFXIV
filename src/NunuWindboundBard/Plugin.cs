@@ -15,6 +15,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICommandManager Commands { get; private set; } = null!;
     [PluginService] internal static ICondition Conditions { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static IObjectTable Objects { get; private set; } = null!;
@@ -289,6 +290,16 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 31;
             Config.Save();
         }
+        if (Config.Version < 32)
+        {
+            // Add opt-in stage walking without modifying concert snapshots,
+            // saved octet lineups, ARMed state, music or party permissions.
+            Config.StageFormations ??= new();
+            Config.AllowLeaderStageMovement = false;
+            Config.Version = 32;
+            Config.Save();
+        }
+        Config.StageFormations ??= new();
         Config.ConcertSnapshots ??= new();
         Config.EnsembleLineupsByPlaylistId ??= new();
         Config.ManualOctaveLaneOverridesByFile ??= new(StringComparer.OrdinalIgnoreCase);
@@ -339,7 +350,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.29 loaded: conductor ARM ALL FOLLOWERS with verified readiness acknowledgements.");
+        Log.Information("Windbound Bard v0.30 loaded: optional saved stage formations through vnavmesh; party conductor and MIDI engine unchanged.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -363,6 +374,7 @@ public sealed class Plugin : IDalamudPlugin
             (Config.EnsembleMode == (int)EnsembleRole.Follower ||
              Config.EnsembleMode == (int)EnsembleRole.Conductor);
         main.PollGamePartyChat();
+        main.PollStageFormations(why); // optional stage navigation, never a musical START
         main.PollNativeConductorSync();
         main.PollNativePartyArming(); // ARM/ACK after file/track preparation; no notes generated
         main.PollConcertDirector();
@@ -450,6 +462,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleMain;
         Commands.RemoveHandler("/windbound");
         main.CancelPendingInstrumentStart();
+        main.StopStageMovementOnUnload();
         Instruments.Cancel();
         LiveMidi.Dispose();
         AudioPreview.Dispose();

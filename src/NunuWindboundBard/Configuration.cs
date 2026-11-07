@@ -8,7 +8,7 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 31;
+    public int Version { get; set; } = 32;
     // v0.27 local-only SoundFont audio preview; no party/FFXIV MIDI output.
     public string PreviewSoundFontPath { get; set; } = "";
     public float PreviewVolume { get; set; } = .65f;
@@ -37,6 +37,10 @@ public sealed class Configuration : IPluginConfiguration
     public bool NativeEnsembleAutoAccept { get; set; } = true;
     // Leader-only commands for file, track, and instrument selection. Native game START remains authoritative.
     public bool NativeLeaderSyncEnabled { get; set; } = true;
+    // v0.30 optional stage formation movement. Followers must explicitly opt in.
+    public bool AllowLeaderStageMovement { get; set; } = false;
+    public List<StageFormationPreset> StageFormations { get; set; } = new();
+    public string SelectedStageFormationId { get; set; } = "";
     // v0.29: accept ARM/DISARM requests from the verified party leader when
     // configured as a native Ensemble Follower. Can be disabled per character.
     // Output ARM itself is still volatile and never restored at plugin startup.

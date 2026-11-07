@@ -3,18 +3,22 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Linq;
+using System.Numerics;
 
 namespace NunuWindboundBard.Core;
 
 public enum GamePartyCueKind { Song, Stop, Start, Prepare, Ready, Failed,
     NativeFile, NativeFileReady, NativeFileFailed, NativeSetInstruments,
     NativeSetTracks, NativeTracksReady, NativeTracksFailed, NativeStopUnequip,
-    StageProbe, StageReport, NativeArmAll, NativeArmReady, NativeArmFailed }
+    StageProbe, StageReport, NativeArmAll, NativeArmReady, NativeArmFailed,
+    FormationCapture, FormationPosition, FormationMove, FormationArrived,
+    FormationFailed, FormationStop }
 public readonly record struct GamePartyCue(GamePartyCueKind Kind, int PlaylistIndex, string Hash,
     long StartUnixMs = 0, int SpeedThousand = 0, string Nonce = "",
     string RosterTag = "", string PackedAssignments = "", string PackedInstruments = "",
     int StageFlags = 0, int StageInstrument = 0, int StageLanes = 0,
-    int TargetSlot = 0, bool ArmRequested = false, int ArmReplyCode = 0);
+    int TargetSlot = 0, bool ArmRequested = false, int ArmReplyCode = 0,
+    uint FormationTerritory = 0, Vector3 FormationPosition = default, float FormationHeading = 0);
 
 /// <summary>
 /// A deliberately compact, strictly validated FFXIV party-chat protocol.
@@ -208,6 +212,73 @@ public static class GamePartyCueProtocol
         return $"{Prefix} armfail {nonce.ToUpperInvariant()} {reason.ToUpperInvariant()}";
     }
 
+    // v0.30: positioning is a SEPARATE, opt-in stage utility, never a music START.
+    // Coordinates are visible to members of the in-game party. A full performer
+    // formation is saved locally on the conductor only; no private data is sent.
+    public static string FormationCapture(string nonce, string rosterTag, uint territory)
+    {
+        RequireFormationHeader(nonce, rosterTag, territory);
+        return $"{Prefix} fcap {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {territory}";
+    }
+    public static string FormationPosition(string nonce, uint territory, Vector3 pos, float heading)
+    {
+        RequireFormationPose(nonce, territory, pos, heading);
+        return $"{Prefix} fpos {nonce.ToUpperInvariant()} {territory} {Num(pos.X)} {Num(pos.Y)} {Num(pos.Z)} {Num(heading)}";
+    }
+    public static string FormationMove(string nonce, string rosterTag, int slot, uint territory, Vector3 pos, float heading)
+    {
+        RequireFormationHeader(nonce, rosterTag, territory);
+        RequireFormationPose(nonce, territory, pos, heading);
+        if (slot is < 1 or > 15) throw new ArgumentOutOfRangeException(nameof(slot));
+        string cmd = $"{Prefix} fgo {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {slot} {territory} " +
+                     $"{Num(pos.X)} {Num(pos.Y)} {Num(pos.Z)} {Num(heading)}";
+        if (cmd.Length > MaxChatCharacters) throw new ArgumentException("Stage command too long.");
+        return cmd;
+    }
+    public static string FormationArrived(string nonce) =>
+        IsHex(nonce,16) ? $"{Prefix} fok {nonce.ToUpperInvariant()}" : throw new ArgumentException("Invalid formation nonce.");
+    public static string FormationFailed(string nonce, string reason) =>
+        IsHex(nonce,16) && ValidReason(reason) ?
+        $"{Prefix} fbad {nonce.ToUpperInvariant()} {reason.ToUpperInvariant()}" :
+        throw new ArgumentException("Invalid formation reply.");
+    public static string FormationStop(string nonce) =>
+        IsHex(nonce,16) ? $"{Prefix} fstop {nonce.ToUpperInvariant()}" : throw new ArgumentException("Invalid formation nonce.");
+    private static string Num(float v) => v.ToString("0.00", CultureInfo.InvariantCulture);
+    private static bool ValidTerritory(string s, out uint zone) =>
+        uint.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out zone) && zone is > 0 and <= 65535;
+    private static bool ValidPose(string nonce, string territory, string x, string y, string z, string heading,
+        out uint zone, out Vector3 location, out float angle)
+    {
+        location = default;
+        angle = 0;
+        if (!IsHex(nonce, 16) || !ValidTerritory(territory, out zone) ||
+            !float.TryParse(x, NumberStyles.Float, CultureInfo.InvariantCulture, out float px) ||
+            !float.TryParse(y, NumberStyles.Float, CultureInfo.InvariantCulture, out float py) ||
+            !float.TryParse(z, NumberStyles.Float, CultureInfo.InvariantCulture, out float pz) ||
+            !float.TryParse(heading, NumberStyles.Float, CultureInfo.InvariantCulture, out angle))
+        {
+            zone = 0;
+            return false;
+        }
+
+        location = new Vector3(px,py,pz);
+        return ValidCoords(location) && float.IsFinite(angle) && MathF.Abs(angle)<=6.4f;
+    }
+    private static bool ValidCoords(Vector3 pos) =>
+        float.IsFinite(pos.X) && float.IsFinite(pos.Y) && float.IsFinite(pos.Z) &&
+        MathF.Abs(pos.X) < 100000f && MathF.Abs(pos.Y) < 100000f && MathF.Abs(pos.Z) < 100000f;
+    private static void RequireFormationHeader(string nonce,string rosterTag,uint territory)
+    {
+        if (!IsHex(nonce,16) || !IsHex(rosterTag,8) || territory is < 1 or > 65535)
+            throw new ArgumentException("Invalid formation roster or territory.");
+    }
+    private static void RequireFormationPose(string nonce,uint territory,Vector3 pos,float heading)
+    {
+        if (!IsHex(nonce,16) || territory is < 1 or > 65535 ||
+            !ValidCoords(pos) || !float.IsFinite(heading) || MathF.Abs(heading)>6.4f)
+            throw new ArgumentException("Invalid formation position.");
+    }
+
     private static string TargetSuffix(int slot) => slot == 0 ? "" : " t" + slot;
 
     // An optional target suffix is scoped to a ContentId-sorted roster slot.
@@ -232,6 +303,39 @@ public static class GamePartyCueProtocol
         if (string.IsNullOrWhiteSpace(text) || text.Length > 150) return false;
         string[] p = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (p.Length < 2 || !p[0].Equals(Prefix, StringComparison.OrdinalIgnoreCase)) return false;
+        if (p.Length == 5 && p[1].Equals("fcap", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2],16) || !IsHex(p[3],8) || !ValidTerritory(p[4],out uint zone)) return false;
+            cue = new GamePartyCue(GamePartyCueKind.FormationCapture, -1, "",
+                Nonce:p[2].ToUpperInvariant(),RosterTag:p[3].ToUpperInvariant(),FormationTerritory:zone);
+            return true;
+        }
+        if (p.Length == 8 && p[1].Equals("fpos", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!ValidPose(p[2],p[3],p[4],p[5],p[6],p[7],out uint zone,out var pos,out float heading)) return false;
+            cue = new GamePartyCue(GamePartyCueKind.FormationPosition,-1,"",Nonce:p[2].ToUpperInvariant(),
+                FormationTerritory:zone,FormationPosition:pos,FormationHeading:heading);
+            return true;
+        }
+        if (p.Length == 10 && p[1].Equals("fgo", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[3],8) || !int.TryParse(p[4],NumberStyles.None,CultureInfo.InvariantCulture,out int slot) ||
+                slot is < 1 or > 15 ||
+                !ValidPose(p[2],p[5],p[6],p[7],p[8],p[9],out uint zone,out var pos,out float heading)) return false;
+            cue = new GamePartyCue(GamePartyCueKind.FormationMove,-1,"",Nonce:p[2].ToUpperInvariant(),
+                RosterTag:p[3].ToUpperInvariant(),TargetSlot:slot,
+                FormationTerritory:zone,FormationPosition:pos,FormationHeading:heading);
+            return true;
+        }
+        if (p.Length == 3 && p[1].Equals("fok",StringComparison.OrdinalIgnoreCase) && IsHex(p[2],16))
+        { cue = new GamePartyCue(GamePartyCueKind.FormationArrived,-1,"",Nonce:p[2].ToUpperInvariant()); return true; }
+        if (p.Length == 4 && p[1].Equals("fbad",StringComparison.OrdinalIgnoreCase) &&
+            IsHex(p[2],16) && ValidReason(p[3]))
+        { cue = new GamePartyCue(GamePartyCueKind.FormationFailed,-1,"",Nonce:p[2].ToUpperInvariant(),
+            PackedInstruments:p[3].ToUpperInvariant()); return true; }
+        if (p.Length == 3 && p[1].Equals("fstop",StringComparison.OrdinalIgnoreCase) && IsHex(p[2],16))
+        { cue = new GamePartyCue(GamePartyCueKind.FormationStop,-1,"",Nonce:p[2].ToUpperInvariant()); return true; }
+
         if (p.Length == 6 && p[1].Equals("arm", StringComparison.OrdinalIgnoreCase))
         {
             if (!IsHex(p[2], 16) || !IsHex(p[3], 16) || !IsHex(p[4], 8) ||

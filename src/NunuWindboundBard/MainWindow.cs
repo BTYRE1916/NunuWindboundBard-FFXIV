@@ -116,6 +116,7 @@ public sealed partial class MainWindow : Window, IDisposable
             if (ImGui.BeginTabItem(Loc.T("Songs & Playback"))) { DrawPlayer(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Ensemble"))) { DrawEnsemble(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Stage Formations"))) { DrawStageFormations(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("FFXIV Optimiser"))) { DrawOptimizer(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Concert Snapshots"))) { DrawConcertSnapshots(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("MIDI Inspector"))) { DrawArrangementInspector(); ImGui.EndTabItem(); }

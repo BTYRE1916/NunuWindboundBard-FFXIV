@@ -157,10 +157,16 @@ public sealed partial class MainWindow
             if (cue.Kind is GamePartyCueKind.Ready or GamePartyCueKind.Failed or
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
-                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed)
+                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed)
             {
                 if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor)
                 {
+                    if (cue.Kind is GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed)
+                    {
+                        HandleStageReply(cue, envelope.SenderContentId);
+                        continue;
+                    }
                     OnNativeLeaderReply(cue, envelope.SenderContentId);
                     OnNativeArmReply(cue, envelope.SenderContentId);
                     if (cue.Kind == GamePartyCueKind.StageReport)
@@ -170,6 +176,12 @@ public sealed partial class MainWindow
                 continue;
             }
             if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower) continue;
+            if (cue.Kind == GamePartyCueKind.FormationCapture)
+            { ReceiveStageCapture(cue); continue; }
+            if (cue.Kind == GamePartyCueKind.FormationMove)
+            { ReceiveStageMove(cue); continue; }
+            if (cue.Kind == GamePartyCueKind.FormationStop)
+            { ReceiveStageStop(cue); continue; }
             if (cue.Kind == GamePartyCueKind.NativeArmAll)
             {
                 ReceiveNativePartyArm(cue);

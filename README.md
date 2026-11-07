@@ -1,3 +1,27 @@
+# Nunu's Windbound Bard v0.30 — Saved Stage Formations 🖤🎻
+
+This update adds a new **Stage Formations** tab to v0.29, inspired by the formation features described in Bard Toolbox. It does not copy Bard Toolbox's source or affect Windbound's existing MIDI playback, Smart Playlists, Soulweaver, Concert Director, native Ensemble Ready Check, party-track allocation, ARM or SoundFont Preview.
+
+## Setup for your octet
+
+1. Install **Windbound v0.30** and **vnavmesh** on every participating game client. vnavmesh is a separate FFXIV Dalamud navigation plugin; Windbound only uses its published optional IPC endpoints. Wait until vnavmesh has built the navmesh for the stage area.
+2. Join the same party and bring every Bard to the **same actual stage, housing ward and instance**. On each follower open `Stage Formations` and enable **Allow my party leader to save my position and move me on stage**. This is a saved permission and can be disabled anytime.
+3. Manually arrange the performers once. On the party leader/conductor open `Stage Formations`, type a name such as `Tenacious Bar'ds Octet`, and click **SAVE CURRENT PARTY POSITIONS**. Windbound asks every opted-in follower to report its position; the saved formation appears once *all* have replied.
+4. On a later concert return everyone to that same stage area. Select the named formation and click **MOVE PARTY INTO SAVED FORMATION**. Each Bard automatically walks to the saved location, with arrival/failure reports shown by the conductor. This does not trigger Performance or arm output.
+5. If anything goes wrong, press **STOP STAGE MOVEMENT** in the conductor, or the local STOP button on an individual follower.
+
+**Important differences from Bard Toolbox:** Current v0.30 restores **positions**, not automatic facing. Saved facing angles are displayed as a reference. No direct actor-coordinate memory writes are used. All movement is ordinary walking through optional vnavmesh and requires the party leader to be visible nearby; this avoids treating another housing ward with identical coordinates as the same stage. Move requests require explicit conductor action, not automatic movement every time the plugin loads.
+
+## FFXIV party-message protocol
+
+Party commands `fcap`, `fpos`, `fgo`, `fok`, `fbad`, and `fstop` carry only in-game stage coordinates, member positions by verified sorted roster slot, and completion status. The actual party leader is verified by Windbound's existing sender-matching code. The message transport is deliberately visible in FFXIV party chat. Use this only with a trusted ensemble and don't assume party-chat delivery is instantaneous.
+
+## Build and testing
+
+Open `NunuWindboundBard.sln` using .NET 10 and Dalamud API 15. Run `Tests/Run-v0.30-Tests.ps1` to execute the new headless formation tests and the earlier party and MIDI regression suite. The source wasn't built or exercised in FFXIV by this environment; verify with two clients before moving an octet.
+
+---
+
 # Windbound Bard v0.29 — One-Click Conductor Party ARM
 
 **Dalamud API 15 · .NET 10 · Windows/Linux FFXIV clients**

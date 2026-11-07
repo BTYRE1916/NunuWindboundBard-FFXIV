@@ -100,7 +100,8 @@ public sealed unsafe class GamePartyChatSync : IDisposable
             bool isReply = cue.Kind is GamePartyCueKind.Ready or GamePartyCueKind.Failed or
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
-                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed;
+                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed;
             if (!isReply && senderId != leader.ContentId)
             { Reject("Command sender is a party member, but is NOT the actual party leader."); return; }
             if (isReply && senderId == 0)
@@ -121,6 +122,12 @@ public sealed unsafe class GamePartyChatSync : IDisposable
                 GamePartyCueKind.NativeArmAll => "ARM/DISARM PARTY",
                 GamePartyCueKind.NativeArmReady => "ARM ACKNOWLEDGEMENT",
                 GamePartyCueKind.NativeArmFailed => "ARM FAILURE",
+                GamePartyCueKind.FormationCapture => "CAPTURE STAGE POSITIONS",
+                GamePartyCueKind.FormationPosition => "STAGE POSITION REPLY",
+                GamePartyCueKind.FormationMove => "MOVE INTO FORMATION",
+                GamePartyCueKind.FormationArrived => "STAGE ARRIVAL",
+                GamePartyCueKind.FormationFailed => "STAGE MOVEMENT FAILED",
+                GamePartyCueKind.FormationStop => "STOP STAGE MOVEMENT",
                 GamePartyCueKind.NativeStopUnequip => "STOP + STOW",
                 GamePartyCueKind.Ready => "INSTRUMENT READY",
                 GamePartyCueKind.Failed => "INSTRUMENT FAILED",
@@ -147,7 +154,8 @@ public sealed unsafe class GamePartyChatSync : IDisposable
             cue.Kind is GamePartyCueKind.Ready or GamePartyCueKind.Failed or
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
-                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed)
+                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed)
         { reason = "Invalid leader party command."; return false; }
         return TrySendPartyMessage(text, out reason);
     }
@@ -161,7 +169,8 @@ public sealed unsafe class GamePartyChatSync : IDisposable
             cue.Kind is not (GamePartyCueKind.Ready or GamePartyCueKind.Failed or
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
-                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed))
+                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed))
         { reason = "Invalid follower READY/FAIL reply."; return false; }
         return TrySendPartyMessage(text, out reason);
     }
