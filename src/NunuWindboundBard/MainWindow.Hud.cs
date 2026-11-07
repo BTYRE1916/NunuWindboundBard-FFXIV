@@ -63,6 +63,10 @@ public sealed partial class MainWindow
     internal string HudPlayCaption => (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor
         ? cfg.GameEnsembleEnabled ? "START ENSEMBLE" : "PLAY ENSEMBLE" : "PLAY";
 
+    internal bool HudCanArmParty => NativeSyncEnabled &&
+        (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor;
+    internal string HudPartyArmStatus => nativeArmStatus;
+    internal void HudArmParty() => ConductorArmParty(true);
     internal bool HudIsFollower => (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower;
     internal bool HudIsSolo => (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Solo;
 

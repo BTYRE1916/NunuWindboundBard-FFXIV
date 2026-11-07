@@ -157,11 +157,12 @@ public sealed partial class MainWindow
             if (cue.Kind is GamePartyCueKind.Ready or GamePartyCueKind.Failed or
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
-                GamePartyCueKind.StageReport)
+                GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed)
             {
                 if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor)
                 {
                     OnNativeLeaderReply(cue, envelope.SenderContentId);
+                    OnNativeArmReply(cue, envelope.SenderContentId);
                     if (cue.Kind == GamePartyCueKind.StageReport)
                         ReceiveConcertStageReport(cue, envelope.SenderContentId);
                     OnPartyInstrumentReply(cue, envelope.SenderContentId); // legacy safe no-op in native mode
@@ -169,6 +170,11 @@ public sealed partial class MainWindow
                 continue;
             }
             if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower) continue;
+            if (cue.Kind == GamePartyCueKind.NativeArmAll)
+            {
+                ReceiveNativePartyArm(cue);
+                continue;
+            }
             if (cue.Kind == GamePartyCueKind.StageProbe)
             {
                 ReplyConcertStageStatus(cue);

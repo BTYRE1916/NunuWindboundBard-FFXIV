@@ -274,7 +274,6 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 29;
             Config.Save();
         }
-<<<<<<< HEAD
         if (Config.Version < 30)
         {
             // Add only the snapshot library after ALL previous migrations.
@@ -282,9 +281,15 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 30;
             Config.Save();
         }
+        if (Config.Version < 31)
+        {
+            // Native ensemble followers may be remotely armed by the verified
+            // party leader. Their actual outputArmed state is NEVER persisted.
+            Config.AllowLeaderArmCommands = true;
+            Config.Version = 31;
+            Config.Save();
+        }
         Config.ConcertSnapshots ??= new();
-=======
->>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
         Config.EnsembleLineupsByPlaylistId ??= new();
         Config.ManualOctaveLaneOverridesByFile ??= new(StringComparer.OrdinalIgnoreCase);
         AudioPreview.SetVolume(Config.PreviewVolume);
@@ -334,11 +339,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-<<<<<<< HEAD
-        Log.Information("Windbound Bard v0.28 loaded: named Concert Snapshots & Restore, no change to native MIDI engine.");
-=======
-        Log.Information("Windbound Bard v0.27 loaded: English / French UI, MIDI and ensemble engine unchanged.");
->>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
+        Log.Information("Windbound Bard v0.29 loaded: conductor ARM ALL FOLLOWERS with verified readiness acknowledgements.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -363,6 +364,7 @@ public sealed class Plugin : IDalamudPlugin
              Config.EnsembleMode == (int)EnsembleRole.Conductor);
         main.PollGamePartyChat();
         main.PollNativeConductorSync();
+        main.PollNativePartyArming(); // ARM/ACK after file/track preparation; no notes generated
         main.PollConcertDirector();
         main.PollNativeReadyChecks();
         main.PollGameEnsemble();

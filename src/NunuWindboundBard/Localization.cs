@@ -15,7 +15,17 @@ public static class Loc
     private static string selectedLanguage = "en";
     private static readonly Dictionary<string, string> French = new(StringComparer.Ordinal)
     {
-<<<<<<< HEAD
+        ["ONE-CLICK PARTY OUTPUT ARM"] = "ARMEMENT DE GROUPE EN UN CLIC",
+        ["ARM ALL PARTY BARDS##conductorArm"] = "ARMER TOUS LES MUSICIENS##conductorArm",
+        ["DISARM ALL##conductorDisarm"] = "DÉSARMER TOUS##conductorDisarm",
+        ["ARM ALL BARDS##directorArm"] = "ARMER TOUS LES MUSICIENS##directorArm",
+        ["ARM ALL BARDS##hudArmParty"] = "ARMER TOUS##hudArmParty",
+        ["ARM every active native Ensemble follower without starting notes."] = "Armez tous les membres suiveurs actifs sans jouer de notes.",
+        ["Sets ARM on this conductor and all opted-in active Followers. No instrument change or song START."] = "Arme ce chef et tous les musiciens suiveurs autorisés. Aucun changement d’instrument ni démarrage.",
+        ["Allow my party leader to ARM this Bard automatically##allowPartyArm"] = "Autoriser le chef du groupe à armer ce musicien##allowPartyArm",
+        ["Enabled by default for native Ensemble followers. ARM itself is never saved across restarts."] = "Activé par défaut pour les musiciens suiveurs. L’armement n’est jamais conservé après redémarrage.",
+        ["Conductor can ARM my output remotely; this never starts notes. Auto-Accept Ready Check remains separate."] = "Le chef peut armer ma sortie à distance sans jouer de notes. L’acceptation automatique reste indépendante.",
+        ["Waiting for: "] = "En attente de : ",
         ["Concert Snapshots"] = "Instantanés de concert",
         ["CONCERT SNAPSHOTS & RESTORE"] = "INSTANTANÉS ET RESTAURATION DE CONCERT",
         ["Save entire concert setups as named snapshots. Restore a snapshot to a NEW Solo/Ensemble playlist. No MIDI files are copied or altered."] = "Enregistrez votre configuration de concert sous un nom. Restaurez-la dans une NOUVELLE liste Solo/Ensemble. Aucun fichier MIDI n’est modifié ni copié.",
@@ -45,8 +55,6 @@ public static class Loc
         ["Export concert snapshot"] = "Exporter l’instantané de concert",
         ["Import concert snapshot"] = "Importer l’instantané de concert",
         ["None"] = "Aucun",
-=======
->>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
         ["Audio Preview"] = "Aperçu audio",
         ["LOCAL MIDI AUDIO PREVIEW — SOUNDFONT"] = "APERÇU AUDIO MIDI LOCAL — SOUNDFONT",
         ["Hear MIDI through your own speakers before playing in FFXIV. This preview sends NO game notes, instruments, Ready Checks or party commands."] = "Écoutez le MIDI sur vos haut-parleurs avant de jouer dans FFXIV. Cet aperçu n’envoie AUCUNE note, instrument, confirmation ni commande de groupe au jeu.",

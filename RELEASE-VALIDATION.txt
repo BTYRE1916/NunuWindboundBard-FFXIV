@@ -1,4 +1,22 @@
-<<<<<<< HEAD
+Windbound Bard v0.29.0.0 — one-click conductor ARM / DISARM for native FFXIV ensembles.
+
+New source: MainWindow.PartyArming.cs, Core/NativePartyArmPlan.cs.
+Updated: party protocol, verified chat sender/reply routing, native ensemble UI,
+Stage Manager, compact performance HUD, French translation, config v31.
+
+Safety:
+- Chat commands must originate from verified FFXIV party leader.
+- Verified roster and matching MIDI hash before ARM; stale nonce replay suppressed.
+- No MIDI notes, instrument changes or native START triggered by ARM.
+- ARM state is never persisted; followers may opt out.
+- Silent trackless followers return distinct ACK; full keyboard not ready has distinct ACK.
+- Incoming commands and ACK handling run on game Framework.Update.
+- No MIDI/FFXIV note engine changes.
+
+Included Windows/.NET 10 regression script: Tests/Run-v0.29-Tests.ps1.
+NOT COMPILED OR LIVE-GAME TESTED in this environment (no .NET SDK/FFXIV here).
+Please test first with two accounts and then all eight.
+
 Windbound Bard v0.28.0.0 — Concert Snapshots & Restore
 
 Features: named local backups, JSON import/export, preview/confirm restore as new saved playlist, Before restore auto safety snapshot, opt-in preflight, French strings.
@@ -21,24 +39,6 @@ and a native instrument close after the MIDI scheduler releases held keys.
 Core PlaybackEngine, GameEnsembleSync and Soulweaver files unchanged.
 Run Tests/Run-v0.19-Tests.ps1 on Windows .NET 10. No local .NET build available.
 
-=======
-Windbound Bard v0.22.0.0: MIDI track instrument + #+12 octave metadata detection; no native playback changes.
-Source and ZIP validation only, real C# build/FFXIV tests necessary.
-
-Windbound Bard v0.21 English/Français UI localization
-Resources: Assets/i18n/fr-FR.json, src/NunuWindboundBard/Localization.cs
-Version: 0.21.0.0, Configuration migration version 22.
-MIDI/ensemble engine source unchanged from v0.20.
-Validation: static source checks, translation catalogue audit and ZIP integrity; no Windows/Dalamud runtime here.
-
-Windbound Bard v0.19 — octet conductor track SET and STOP+UNEQUIP ALL
-Base v0.18.2. Commands use verified actual FFXIV party leader and ContentId-resolved replies.
-Added track/stop party protocol, explicit all-silent map, leader+follower stop state,
-and a native instrument close after the MIDI scheduler releases held keys.
-Core PlaybackEngine, GameEnsembleSync and Soulweaver files unchanged.
-Run Tests/Run-v0.19-Tests.ps1 on Windows .NET 10. No local .NET build available.
-
->>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
 Windbound Bard v0.20 — Solo USB hardware MIDI-IN (Windows winmm) + v0.19.1 native group STOP stow
 Added isolated live MIDI device backend, per-channel note/sustain router and Live MIDI Piano UI.
 Unchanged: chord scheduler, MIDI file engine, Soulweaver, native ensemble start, party chat/assignment protocol.

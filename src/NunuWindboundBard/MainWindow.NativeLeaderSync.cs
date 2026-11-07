@@ -152,6 +152,7 @@ public sealed partial class MainWindow
                 "and apply any conductor track assignments. Everyone must have the MIDI file locally."));
             if (ImGui.Button(Loc.T("SYNC SELECTED MIDI TO PARTY"))) BroadcastNativeFile();
             DrawConductorInstrumentPlan();
+            DrawNativePartyArmControls();
             if (ImGui.Button(Loc.T("SET PARTY INSTRUMENTS — auto-switch everyone"))) SetNativePartyInstruments();
             ImGui.SameLine();
             if (ImGui.Button(Loc.T("SET PARTY TRACKS — assign every Bard"))) SetNativePartyTracks();
@@ -170,12 +171,14 @@ public sealed partial class MainWindow
         {
             ImGui.TextWrapped(Loc.T("FOLLOWER: Song choice and SET instrument commands apply automatically. " +
                 "No clicking in your client is needed for each new song."));
-            ImGui.TextDisabled(Loc.T("Keep ARM enabled for musical output. Auto-Accept Ready Check is separately enabled above."));
+            DrawNativeFollowerArmConsent();
+            ImGui.TextDisabled(Loc.T("Conductor can ARM my output remotely; this never starts notes. Auto-Accept Ready Check remains separate."));
         }
         ImGui.TextWrapped(Loc.T("File: " + nativeFileSyncStatus));
         ImGui.TextWrapped(Loc.T("Tracks: " + nativeTracksSyncStatus));
         ImGui.TextWrapped(Loc.T("Instrument: " + nativeInstrumentSyncStatus));
         ImGui.TextWrapped(Loc.T("STOP / Unequip: " + nativeStopStatus));
+        ImGui.TextWrapped(Loc.T("Party ARM: " + nativeArmStatus));
         if (role == EnsembleRole.Follower)
             ImGui.TextDisabled(Loc.T("If the conductor switched locally but you did not, check the receiver diagnostics below."));
         if (ImGui.TreeNode(Loc.T("Party command receiver diagnostics##nativeSender")))
@@ -190,6 +193,7 @@ public sealed partial class MainWindow
                     "\nTracks: " + nativeTracksSyncStatus +
                     "\nInstrument: " + nativeInstrumentSyncStatus +
                     "\nSTOP: " + nativeStopStatus +
+                    "\nARM: " + nativeArmStatus +
                     "\nSwitcher: " + plugin.Instruments.Status);
             ImGui.TreePop();
         }
@@ -201,6 +205,7 @@ public sealed partial class MainWindow
     {
         if (!NativeSyncEnabled || cfg.EnsembleMode != (int)EnsembleRole.Conductor) return;
         ConcertOnMidiChanged(); // no stale stage READY when selecting a new MIDI
+        CancelNativePartyArming("Different MIDI selected; current ARM remains local, but party acknowledgement must be refreshed.");
         BroadcastNativeFile();
     }
 
@@ -735,6 +740,14 @@ public sealed partial class MainWindow
         {
             if (!string.IsNullOrEmpty(nativeLastFileSendError))
             { reason = nativeLastFileSendError; return false; }
+            // If conductor explicitly invoked ARM ALL, don't pretend the group
+            // is ready until the party acknowledges the request.
+            if (partyArmBatch is { RequestedArm: true } armedParty)
+            {
+                if (!armedParty.Complete || armedParty.Rejected.Count > 0 ||
+                    armedParty.TimedOut || armedParty.Acknowledged.Values.Any(x => x == 3))
+                { reason = nativeArmStatus; return false; }
+            }
             if (nativeLeaderFile is { Complete: false } file)
             { reason = NativeLeaderProgress(file, "MIDI"); return false; }
             if (nativeLeaderInstruments is { Complete: false } instruments)
@@ -765,5 +778,6 @@ public sealed partial class MainWindow
         nativeFileSyncStatus = message;
         nativeInstrumentSyncStatus = message;
         nativeTracksSyncStatus = message;
+        CancelNativePartyArming(message);
     }
 }

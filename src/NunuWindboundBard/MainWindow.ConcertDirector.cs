@@ -295,10 +295,13 @@ public sealed partial class MainWindow
         }
         if (ImGui.Button(Loc.T("PREPARE ENTIRE ORCHESTRA"))) ConcertPrepareOrchestra();
         ImGui.SameLine();
+        if (ImGui.Button(Loc.T("ARM ALL BARDS##directorArm"))) ConductorArmParty(true);
+        ImGui.SameLine();
         if (ImGui.Button(Loc.T("Refresh Stage Status"))) ConcertRequestStageStatus();
         ImGui.SameLine();
         if (ImGui.Button(Loc.T("Cancel Preparation"))) ConcertCancelPreparation("Preparation cancelled. No music was started.");
         ImGui.TextWrapped(Loc.T(concertStatus));
+        ImGui.TextWrapped(Loc.T("Party ARM: " + nativeArmStatus));
         string desired = !string.IsNullOrEmpty(nativeLoadedSha) ? nativeLoadedSha : concertHash;
         if (string.IsNullOrWhiteSpace(desired))
         { ImGui.TextDisabled(Loc.T("Load an Ensemble MIDI first.")); return; }

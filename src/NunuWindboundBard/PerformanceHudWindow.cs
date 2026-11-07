@@ -129,6 +129,12 @@ public sealed class PerformanceHudWindow : Window
         ImGui.TextColored(plugin.IsGameOutputSafe() ? Good : Warning,
             Loc.T(plugin.IsGameOutputSafe() ? "37-key READY" : "Performance not ready"));
 
+        if (main.HudCanArmParty)
+        {
+            if (ImGui.SmallButton(Loc.T("ARM ALL BARDS##hudArmParty"))) main.HudArmParty();
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Loc.T("ARM every active native Ensemble follower without starting notes."));
+            if (!cfg.HudCompact) ImGui.TextDisabled(Loc.T(main.HudPartyArmStatus));
+        }
         if (!main.HudIsFollower)
         {
             if (ImGui.SmallButton(Loc.T(main.HudPlayCaption + "##hudPlay"))) main.HudStartOrCue();

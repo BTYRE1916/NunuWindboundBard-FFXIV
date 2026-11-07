@@ -9,12 +9,12 @@ namespace NunuWindboundBard.Core;
 public enum GamePartyCueKind { Song, Stop, Start, Prepare, Ready, Failed,
     NativeFile, NativeFileReady, NativeFileFailed, NativeSetInstruments,
     NativeSetTracks, NativeTracksReady, NativeTracksFailed, NativeStopUnequip,
-    StageProbe, StageReport }
+    StageProbe, StageReport, NativeArmAll, NativeArmReady, NativeArmFailed }
 public readonly record struct GamePartyCue(GamePartyCueKind Kind, int PlaylistIndex, string Hash,
     long StartUnixMs = 0, int SpeedThousand = 0, string Nonce = "",
     string RosterTag = "", string PackedAssignments = "", string PackedInstruments = "",
     int StageFlags = 0, int StageInstrument = 0, int StageLanes = 0,
-    int TargetSlot = 0);
+    int TargetSlot = 0, bool ArmRequested = false, int ArmReplyCode = 0);
 
 /// <summary>
 /// A deliberately compact, strictly validated FFXIV party-chat protocol.
@@ -182,6 +182,32 @@ public static class GamePartyCueProtocol
             $"{flags:X2} {instrument} {enabledLanes}";
     }
 
+    /// <summary>Leader-only, never a musical START: arm (1) or disarm (0).
+    /// The roster hash prevents acting on commands from a changed party.
+    /// The MIDI hash protects ARM against a follower playing a different song.</summary>
+    public static string NativeArmParty(string nonce, string midiHash, string rosterTag, bool arm)
+    {
+        if (!IsHex(nonce, 16) || !IsHex(midiHash, 16) || !IsHex(rosterTag, 8))
+            throw new ArgumentException("Invalid party ARM command.");
+        return $"{Prefix} arm {nonce.ToUpperInvariant()} {midiHash.ToUpperInvariant()} " +
+               $"{rosterTag.ToUpperInvariant()} {(arm ? 1 : 0)}";
+    }
+
+    // 0=disarmed, 1=armed+37-key ready, 2=silent, 3=armed+keyboard not ready.
+    public static string NativeArmAck(string nonce, int response)
+    {
+        if (!IsHex(nonce, 16) || response is < 0 or > 3)
+            throw new ArgumentException("Invalid ARM acknowledgement.");
+        return $"{Prefix} armok {nonce.ToUpperInvariant()} {response}";
+    }
+
+    public static string NativeArmFail(string nonce, string reason)
+    {
+        if (!IsHex(nonce, 16) || !ValidReason(reason))
+            throw new ArgumentException("Invalid ARM failure response.");
+        return $"{Prefix} armfail {nonce.ToUpperInvariant()} {reason.ToUpperInvariant()}";
+    }
+
     private static string TargetSuffix(int slot) => slot == 0 ? "" : " t" + slot;
 
     // An optional target suffix is scoped to a ContentId-sorted roster slot.
@@ -206,6 +232,31 @@ public static class GamePartyCueProtocol
         if (string.IsNullOrWhiteSpace(text) || text.Length > 150) return false;
         string[] p = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (p.Length < 2 || !p[0].Equals(Prefix, StringComparison.OrdinalIgnoreCase)) return false;
+        if (p.Length == 6 && p[1].Equals("arm", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !IsHex(p[3], 16) || !IsHex(p[4], 8) ||
+                (p[5] != "0" && p[5] != "1")) return false;
+            cue = new GamePartyCue(GamePartyCueKind.NativeArmAll, -1, p[3].ToUpperInvariant(),
+                Nonce: p[2].ToUpperInvariant(), RosterTag: p[4].ToUpperInvariant(),
+                ArmRequested: p[5] == "1");
+            return true;
+        }
+        if (p.Length == 4 && p[1].Equals("armok", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !int.TryParse(p[3], NumberStyles.None,
+                CultureInfo.InvariantCulture, out int armReplyCode) || armReplyCode is < 0 or > 3)
+                return false;
+            cue = new GamePartyCue(GamePartyCueKind.NativeArmReady, -1, "",
+                Nonce: p[2].ToUpperInvariant(), ArmReplyCode: armReplyCode);
+            return true;
+        }
+        if (p.Length == 4 && p[1].Equals("armfail", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !ValidReason(p[3])) return false;
+            cue = new GamePartyCue(GamePartyCueKind.NativeArmFailed, -1, "",
+                Nonce: p[2].ToUpperInvariant(), PackedInstruments: p[3].ToUpperInvariant());
+            return true;
+        }
         if (p.Length == 4 && p[1].Equals("stage", StringComparison.OrdinalIgnoreCase))
         {
             if (!IsHex(p[2], 16) || !IsHex(p[3], 16)) return false;

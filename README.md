@@ -1,4 +1,34 @@
-<<<<<<< HEAD
+# Windbound Bard v0.29 — One-Click Conductor Party ARM
+
+**Dalamud API 15 · .NET 10 · Windows/Linux FFXIV clients**
+
+Adds **ARM ALL PARTY BARDS** for native FFXIV Ensembles. The conductor can prepare output for an entire duo, quartet or octet in one click without opening the follower windows. This is a preparation command only — it never starts music, changes instruments, or invokes the native Ensemble Ready Check.
+
+## How to use
+
+1. Install **v0.29 on every participating account**, join the same FFXIV party, and select Native Ensemble. Conductor chooses the **Conductor** role; the other accounts choose **Follower** with **Follow party leader** enabled.
+2. Leader loads the same MIDI on followers using Windbound's existing **SYNC SELECTED MIDI** and **SET PARTY TRACKS / SET PARTY INSTRUMENTS** controls (or **PREPARE ENTIRE ORCHESTRA**).
+3. Click **ARM ALL PARTY BARDS** in the Conductor panel or Stage Manager. The leader ARMs itself and broadcasts one small `!windbound arm` party-chat command. Active Followers with matching MIDI, enabled parts, and permission will ARM automatically and send an `armok` reply.
+4. Review **Party ARM: X/Y acknowledged**. It reports missing members, rejections, silent/trackless Bards, and followers that were ARMed but still need the full 37-key Performance keyboard. Open the keyboard/equip instruments before playing if needed.
+5. The conductor presses **START ENSEMBLE**, using FFXIV's native Ready Check exactly as before. The party ARM cue itself never plays notes.
+
+**DISARM ALL** is also available when the ensemble is stopped. It disables output on every opted-in follower without unequipping instruments or deleting MIDI files. The existing **STOP ENSEMBLE + UNEQUIP ALL** stays unchanged and separate.
+
+### Consent, limits and safety
+
+- **Allow my party leader to ARM this Bard automatically** is enabled by default for native Ensemble Followers, with a checkbox to disable it. ARM *state* is never persisted across plugin restarts; a new session starts disarmed until the leader clicks ARM ALL again.
+- Only a real verified FFXIV party leader can issue an ARM command. Clients verify a party-roster fingerprint and exact MIDI SHA256 prefix; invalid, stale, mismatched, or playing-client commands are rejected. The per-cue random nonce prevents replay.
+- Followers still need the same MIDI locally, selected parts and a compatible **37-key Performance** window. The button does not equip an instrument. A client without assigned notes acknowledges as *silent* rather than pretending to have active notes.
+- The sender's chat API accepting a command is **not delivery proof**. Missing replies are shown after a 25-second timeout, including accounts without Windbound or those using older plugin versions. Try the button again after resolving any issue.
+- No credentials, MIDI bytes, file paths or ContentIDs are sent in chat. Short party messages may be visible to players in the party.
+- There is no effect on the Solo MIDI player, audio previews, Concert Snapshots, saved octet lineups, Live MIDI Piano, or the native ensemble START timing.
+
+### Build and test
+
+Open `NunuWindboundBard.sln` in Visual Studio with the .NET 10 / Dalamud API 15 SDK. Run `Tests/Run-v0.29-Tests.ps1` for protocol checks. The new code has been statically checked and packed, but a **Windows build and a real two-client FFXIV test are still required** before relying on it for a concert.
+
+---
+
 # Nunu's Windbound Bard v0.28 — Concert Snapshots & Restore 🖤🎹
 
 This update builds on v0.27.1 MIDI Audio Preview and adds **named, exportable Concert Snapshots** for Solo, duet, quartet and octet performances. Existing native ensemble, automatic party instruments, persistent track mapping, Soulweaver, Concert Director, MIDI Audio Preview, Live MIDI Piano, Smart Playlists and French UI are preserved.
@@ -83,78 +113,6 @@ English/French language selection, MIDI instrument and octave tag detection, dir
 
 ## Why some songs showed no instrument or octave
 
-=======
-# Windbound Bard v0.27.1 — Audio Preview compiler hotfix
-
-Fixes `CS1061: MidiFileSequencer does not contain a definition for MidiFile` in `Core/AudioPreviewPlayer.cs`. Preview length is now taken from the existing `MeltySynth.MidiFile.Length`, which is supported by the package used in this project. All v0.27 audio-preview features, Concert Director, French localisation and ensemble behaviour are preserved. See `CHANGELOG-v0.27.1.md` and run `Tests/Check-v0.27.1-API.ps1` for the static compatibility check.
-
----
-
-# Nunu's Windbound Bard v0.27 — Local MIDI Audio Preview 🎹
-
-**Dalamud 15 · .NET 10 · complete source from v0.26 Concert Director**
-
-## Quick start
-
-1. Build `NunuWindboundBard.sln` with .NET 10 and Dalamud SDK 15. The
-   `MeltySynth` and `NAudio` NuGet dependencies are restored during build;
-   include their dependency DLLs when installing the compiled plugin.
-2. Open `/windbound`, load a `.mid`/`.midi` in **Songs & Playback**.
-3. Select **Audio Preview** (French: **Aperçu audio**), browse for your own
-   licensed `.sf2` SoundFont, then click **Play Audio Preview**.
-4. Select **Original MIDI** for the full GM instrument/tempo arrangement,
-   **Windbound arrangement** for the presently enabled C3–C6 parts, or
-   **Selected track** to hear one track, optionally with its octave shift.
-5. Adjust volume and tempo. Preview audio goes to local PC speakers only.
-   It never sends MIDI into FFXIV, changes instruments, queues notes for the
-   live performance, or sends commands to other accounts.
-
-**You must provide your own `.sf2` SoundFont.** No third-party copyrighted
-samples are packaged. Output uses WinMM on Windows; Wine/Proton audio output is
-not yet confirmed. The original MIDI mode preserves program changes and tempo;
-the reconstructed arrangement modes use notes and approximated GM instruments.
-
-The complete MIDI file player, Concert Director, ensemble sync, octet lineups,
-French translations, Smart Playlists, Live MIDI Piano, HUD and Soulweaver remain
-in this project. See `CHANGELOG-v0.27.md` for details.
-
----
-
-# Windbound Bard v0.26 — Concert Suite + MIDI Inspector
-
-Concert Director Stage Manager, automatic next-song preparation, single-Bard retry, and MIDI Arrangement Inspector are included in this cumulative full-source build. The **MIDI Inspector** tab reports song/track diagnostics and offers manual auto-fitting of untagged octaves without changing MIDI files. See `CHANGELOG-v0.24.md`, `CHANGELOG-v0.25.md`, `CHANGELOG-v0.26.md` and `Tests/Run-v0.26-Tests.ps1`. Existing solo instruments, native ensemble, Live MIDI Piano, Smart Playlists, HUD and French translations remain.
-
----
-
-# Windbound Bard v0.25 — Concert Setlist & Targeted Retry
-
-New `CHANGELOG-v0.25.md`: opt-in automatic **next-song preparation** (never auto-start), per-song concert cues and audience breaks, targeted single-Bard retry via party chat. Stage Manager v0.24, native Ready Check, full music engine and all other existing features retained.
-
----
-
-# Windbound Bard v0.24 — Concert Director
-
-See `CHANGELOG-v0.24.md`. The new Concert Director pane appears on the Ensemble tab. Use **PREPARE ENTIRE ORCHESTRA** then native **START ENSEMBLE**; stage status requests/replies are party-chat metadata only. Existing local, cross-PC, solo, Soulweaver, Live MIDI Piano, French and Smart Playlist features are retained.
-
----
-
-# Nunu's Windbound Bard v0.23 — Reuse Your Octet Across Songs 🎹🎻
-
-**New:** In `/windbound` → **Ensemble → Party-Roster Track Assignments**, leave **Keep party track assignments across songs** checked. As conductor, assign the eight performer parts just once. Windbound remembers the lane-order lineup in your active named Ensemble playlist and automatically applies it to the next MIDI file. Its existing native leader file-sync message also carries the resulting assignments to follower clients, so you still only need native Ready Check for playback.
-
-Existing per-song maps take priority when explicitly saved. Use **Apply saved lineup to this MIDI** if you want to overwrite an older song-specific choice; **Save current as default lineup** and **Forget saved lineup** manage the shared template. Mismatched track counts produce a warning; extra lanes are silent until assigned. Clearing a song's map does not erase the default lineup.
-
-English/French language selection, MIDI instrument and octave tag detection, direct note callbacks, group STOP, MIDI keyboard input, Smart Playlists and Soulweaver are preserved. `Tests/Run-v0.23-Tests.ps1` covers the persistent octet lineup and previous MIDI tests. **This source has not been compiled or tested in FFXIV here.**
-
----
-
-# Nunu’s Windbound Bard v0.22.2 — MIDI Instrument / Octave Detection Fix 🖤🎹
-
-**Built on v0.22.1 with the native ensemble engine, party/file sync, group STOP/unequip, live MIDI piano, Smart Playlists, Soulweaver and French/English interface preserved.**
-
-## Why some songs showed no instrument or octave
-
->>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
 Earlier v0.22 releases only read `#Lute` / `#+12` from FF03 track titles, FF04 instrument names and (for solo files only) filenames. Many MIDI editors instead export these tags as **FF01 Text**, **FF06 Marker** or **FF07 Cue** events, and may overwrite an earlier tagged track title later in the same track. Our reader did not retain those tags. Also, the Solo instrument dropdown did not use the detected instrument unless it had been manually selected.
 
 v0.22.2 fixes both paths:
