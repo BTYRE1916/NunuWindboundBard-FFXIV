@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Nunu's Windbound Bard v0.28 — Concert Snapshots & Restore 🖤🎹
 
 This update builds on v0.27.1 MIDI Audio Preview and adds **named, exportable Concert Snapshots** for Solo, duet, quartet and octet performances. Existing native ensemble, automatic party instruments, persistent track mapping, Soulweaver, Concert Director, MIDI Audio Preview, Live MIDI Piano, Smart Playlists and French UI are preserved.
