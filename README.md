@@ -1,3 +1,30 @@
+# Windbound Bard v0.31.2 — CS0165 / CS0177 compiler hotfix
+
+This is the complete **v0.31.1** project with two C# definite-assignment compiler errors corrected. Everything else, including the emergency `/windbound recover` command and experimental visual stage designer toggle, is preserved. See `CHANGELOG-v0.31.2.md` for the exact changes.
+
+---
+
+# Windbound Bard v0.31.1 — Emergency Playback Recovery Hotfix
+
+**Status:** Source patch / needs Visual Studio build and live FFXIV testing. This hotfix is not proof that the reported “already running” problem is fully solved; the precise source depends on the in-game diagnostics.
+
+The v0.31 Stage Designer added a navigation subsystem but did **not** modify the MIDI scheduler. The exact text **“Another stage movement is already running”** came from the vnavmesh stage-navigation component. The MIDI scheduler's `IsPlaying` guard is separate. To prevent any stage exception from blocking MIDI note dispatch, stage polling is now executed **after** the music scheduler, with explicit error isolation.
+
+## Recover a stuck local player
+
+1. Run **`/windbound recover`** (or Songs & Playback → **EMERGENCY: Reset stuck playback**). This stops local stage navigation, discards pending MIDI starts, resets the local scheduler, and disarms output. It does **not** delete MIDI files or saved presets or start any music.
+2. Allow a game frame for held notes to be released. If FFXIV itself is currently in an Ensemble, end it using the **in-game** Ensemble UI; a plugin-local reset cannot cancel the server's state.
+3. For a solo test, set Windbound to **Solo**, load `Samples/Bard-37-Note-Calibration.mid`, open the expanded 37-note Performance keyboard and **ARM** again, then press Play.
+4. If the error persists, copy **Songs & Playback → Song switching diagnostics**. The report now distinguishes local MIDI Playing/StopPending from active stage navigation and pending FFXIV native Ready Check.
+
+## Visual stage editor safe mode
+
+The experimental dot editor is **OFF by default on upgrade** to v0.31.1. Previous **Save Current Party Positions / Move Party Into Saved Formation** controls remain available and existing presets are preserved. To test the new square-and-dots editor, open Stage Formations → **Enable Visual Stage Designer (experimental)**. Disabling it doesn't change your saved layouts.
+
+If you need a reliable concert fallback, restore the **v0.30 project** from the backup ZIP and keep the plugin configuration backup. All changes here are scoped to recovery, stage feature isolation and versioned settings; the native note scheduler and 11 other core music/concert source files are unchanged.
+
+---
+
 # Nunu's Windbound Bard v0.31 — Visual Stage Designer 🖤🎻
 
 **Dalamud API 15 · .NET 10 · Stage formations, octet conductor, MIDI player**

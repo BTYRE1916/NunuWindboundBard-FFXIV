@@ -8,7 +8,7 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 32;
+    public int Version { get; set; } = 33;
     // v0.27 local-only SoundFont audio preview; no party/FFXIV MIDI output.
     public string PreviewSoundFontPath { get; set; } = "";
     public float PreviewVolume { get; set; } = .65f;
@@ -39,6 +39,9 @@ public sealed class Configuration : IPluginConfiguration
     public bool NativeLeaderSyncEnabled { get; set; } = true;
     // v0.30 optional stage formation movement. Followers must explicitly opt in.
     public bool AllowLeaderStageMovement { get; set; } = false;
+    // Experimental visual stage UI is opt-in until verified on live clients.
+    // Original saved-formation controls remain available when it is disabled.
+    public bool VisualStageDesignerEnabled { get; set; } = false;
     public List<StageFormationPreset> StageFormations { get; set; } = new();
     public string SelectedStageFormationId { get; set; } = "";
     // v0.29: accept ARM/DISARM requests from the verified party leader when

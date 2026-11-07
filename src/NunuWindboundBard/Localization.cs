@@ -15,6 +15,9 @@ public static class Loc
     private static string selectedLanguage = "en";
     private static readonly Dictionary<string, string> French = new(StringComparer.Ordinal)
     {
+        ["Enable Visual Stage Designer (experimental)"] = "Activer l'éditeur visuel de scène (expérimental)",
+        ["EMERGENCY: Reset stuck playback"] = "URGENCE : réinitialiser la lecture bloquée",
+        ["Also: /windbound recover"] = "Ou : /windbound recover",
         ["Stage Formations"] = "Formations de scène",
         ["VISUAL STAGE DESIGNER — DRAG YOUR BARDS"] = "ÉDITEUR VISUEL DE SCÈNE — DÉPLACEZ VOS BARDES",
         ["Arrange each Bard by dragging a numbered dot on the square stage. Select a dot to choose which party member occupies that spot. SET positions makes everyone walk there."] = "Placez chaque barde en déplaçant son point numéroté sur la scène carrée. Sélectionnez un point pour choisir le membre du groupe. DÉFINIR LES POSITIONS permet de déplacer tout le monde.",

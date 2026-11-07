@@ -39,7 +39,8 @@ public sealed class StageFormationNavigator
     public bool TryStart(Vector3 here, Vector3 target, out string reason)
     {
         Arrived = false;
-        if (Active) { reason = "Another stage movement is already running."; return false; }
+        if (Active) { reason = "Stage navigation is already running (not MIDI playback). " +
+            "Use STOP STAGE MOVEMENT or /windbound recover before moving again."; return false; }
         if (!StageFormationMath.Finite(here) || !StageFormationMath.Finite(target))
         { reason = "Invalid stage coordinates."; return false; }
         float distance = Vector3.Distance(here, target);

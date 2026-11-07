@@ -311,7 +311,7 @@ public sealed partial class MainWindow
         stageStatus = "Conductor stopped stage positioning.";
     }
 
-    public void PollStageFormations(string why1)
+    public void PollStageFormations()
     {
         bool safe = StageSafe(out _);
         if (Plugin.Objects.LocalPlayer is { } local)
@@ -353,9 +353,11 @@ public sealed partial class MainWindow
             var member = session.Preset.Members.First(m => m.ContentId == PartyRoster.GetLocalContentId(Plugin.Objects, Plugin.Party));
             var (here, _) = StageLocalPose();
             Vector3 target = StageFormationMath.Destination(member, session.Preset.Anchor, session.Preset.AnchorHeading);
-            if (!StageSafe(out _) || !stageNavigator.TryStart(here, target, out string why))
+            // StageSafe is always evaluated first and supplies a meaningful reason
+            // even when navigation must not be attempted (short-circuit OR).
+            if (!StageSafe(out string why) || !stageNavigator.TryStart(here, target, out why))
             {
-                stageStatus = $"Conductor cannot move: {why1}";
+                stageStatus = "Conductor cannot move: " + why;
                 recallingStage = null;
                 return;
             }
@@ -443,9 +445,25 @@ public sealed partial class MainWindow
                     }
                 ImGui.EndCombo();
             }
-            // Visual editor can create/modify party positions without first positioning
-            // every character manually. Save Current Positions above remains available.
-            DrawVisualStageDesigner();
+            // Safe-mode default: the experimental visual editor is opt-in.
+            // The original stage controls and music player remain accessible.
+            bool visualEnabled = cfg.VisualStageDesignerEnabled;
+            if (ImGui.Checkbox(Loc.T("Enable Visual Stage Designer (experimental)##visualStageEnabled"), ref visualEnabled))
+            {
+                cfg.VisualStageDesignerEnabled = visualEnabled;
+                cfg.Save();
+            }
+            if (visualEnabled)
+            {
+                try { DrawVisualStageDesigner(); }
+                catch (Exception error)
+                {
+                    stageVisualStatus = "Visual stage designer error (disabled for this client): " + error.Message;
+                    cfg.VisualStageDesignerEnabled = false;
+                    cfg.Save();
+                    ImGui.TextWrapped(Loc.T(stageVisualStatus));
+                }
+            }
             if (ImGui.Button(Loc.T("MOVE PARTY INTO SAVED FORMATION"))) RecallStageFormation();
             ImGui.SameLine();
             if (ImGui.Button(Loc.T("STOP STAGE MOVEMENT"))) StopStageFormation();
@@ -479,6 +497,38 @@ public sealed partial class MainWindow
         ImGui.Separator();
         ImGui.TextWrapped(Loc.T(stageStatus));
         ImGui.TextDisabled(Loc.T("This saves relative positions and a facing guide. Automatic facing is not yet implemented."));
+    }
+
+    /// <summary>Stage navigation is optional and must never strand the player
+    /// when vnavmesh/party metadata changes or a stage poll fails.</summary>
+    internal void RecoverStageAfterFailure(string detail)
+    {
+        stageNavigator.Stop("Stage feature reset after an error: " + detail);
+        capturingStage = null;
+        recallingStage = null;
+        stageCaptureReply = null;
+        stageMovementReply = null;
+        stageMovementNonce = "";
+        stageMoveReported = false;
+        lastRecallStageNonce = "";
+        stageStatus = "Stage feature reset; MIDI playback is independent. " + detail;
+    }
+
+    /// <summary>Start music cannot leave a path-walking operation running.</summary>
+    private void StopStageMovementBeforeMusic()
+    {
+        if (stageNavigator.Active || recallingStage is not null ||
+            !string.IsNullOrEmpty(stageMovementNonce))
+        {
+            try { StopStageFormation(); }
+            catch (Exception error)
+            {
+                // Navigation is an optional feature. Failure to stop its IPC
+                // must never prevent a musician from starting a MIDI.
+                RecoverStageAfterFailure(error.Message);
+            }
+            stageStatus = "Cancelled stage movement for MIDI playback.";
+        }
     }
 
     internal void StopStageMovementOnUnload() => stageNavigator.Stop("Plugin unloaded; stage movement stopped.");

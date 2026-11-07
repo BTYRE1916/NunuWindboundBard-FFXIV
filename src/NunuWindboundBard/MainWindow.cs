@@ -226,6 +226,12 @@ public sealed partial class MainWindow : Window, IDisposable
         if (ImGui.Button(Loc.T("STOP"))) StopPlayback();
         ImGui.SameLine();
         if (ImGui.Button(Loc.T("Next"))) NextSong();
+        // Explicit local recovery: never starts music, issues party PLAY or
+        // overwrites saved playlists. Safe if a prior test/cue was left active.
+        if (ImGui.SmallButton(Loc.T("EMERGENCY: Reset stuck playback##windboundRecover")))
+            RecoverLocalPlayback();
+        ImGui.SameLine();
+        ImGui.TextDisabled(Loc.T("Also: /windbound recover"));
 
         if (ImGui.TreeNode(Loc.T("Song switching diagnostics")))
         {
@@ -237,6 +243,8 @@ public sealed partial class MainWindow : Window, IDisposable
                 $"Output armed: {outputArmed}; Performance ready: {plugin.IsGameOutputSafe()}\n" +
                 $"Playback: {plugin.Player.Status}\n" +
                 $"Instrument switch: {plugin.Instruments.Status}\n" +
+                $"Stage navigation active: {stageNavigator.Active}; Stage status: {stageNavigator.Status}\n" +
+                $"Native ensemble: {plugin.GameEnsemble.ReadyCheckStatus}\n" +
                 $"Windbound: {status}";
             ImGui.TextWrapped(Loc.T(details));
             if (ImGui.Button(Loc.T("Copy song switching diagnostics"))) ImGui.SetClipboardText(details);
@@ -1119,6 +1127,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         try
         {
+            StopStageMovementBeforeMusic();
             if (cfg.GameEnsembleEnabled && cfg.EnsembleMode != (int)EnsembleRole.Solo)
             {
                 if (cfg.EnsembleMode == (int)EnsembleRole.Conductor)
@@ -1176,6 +1185,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void StartSongCore(long? ensembleStartQpc)
     {
+        StopStageMovementBeforeMusic();
         if (arranged is null) throw new InvalidOperationException("No prepared MIDI available.");
         if (outputArmed && !plugin.IsGameOutputSafe())
             throw new InvalidOperationException("Open expanded 37-note Bard Performance before playing. Focus is not required.");
@@ -1847,6 +1857,42 @@ public sealed partial class MainWindow : Window, IDisposable
         catch (Exception error)
         {
             ensembleStatus = "Ensemble receiver: " + error.Message;
+        }
+    }
+
+    /// <summary>
+    /// Emergency recovery for a local performer stuck in Playing/Stopping or in
+    /// a stage navigation state. Does not broadcast a musical START, edit the
+    /// playlist or create FFXIV note callbacks on the ImGui thread.
+    /// The engine releases held notes on its next Framework.Update.
+    /// </summary>
+    public void RecoverLocalPlayback()
+    {
+        try
+        {
+            RecoverStageAfterFailure("Manual playback recovery requested.");
+            plugin.LiveMidi.Panic();
+            plugin.AudioPreview.Stop("Preview stopped for playback recovery.");
+            pendingQueuedSongPath = "";
+            songFlow.Cancel();
+            CancelPendingInstrumentStart();
+            CancelOneClickInstrumentPreparation();
+            CancelNativeLeaderSync("Local playback reset; prepare native ensemble again.");
+            ConcertCancelPreparation("Local playback reset.");
+            ConcertCancelSetlist("Local playback reset.");
+            gameStartGate.Cancel("Local playback reset: old ensemble cue cleared.");
+            plugin.GameEnsemble.CancelLocalPreparation();
+            waitingForEnsembleCue = false;
+            outputArmed = false;
+            plugin.Player.RewindToStart();
+            status = "Local playback/stage state reset. Allow one game frame for notes to release, then ARM and Play. " +
+                "If FFXIV still reports a native ensemble is running, end that ensemble in-game first.";
+            ensembleStatus = status;
+        }
+        catch (Exception error)
+        {
+            status = "Recovery encountered an error: " + error.Message +
+                ". You can unload Windbound, reload and try again.";
         }
     }
 

@@ -251,6 +251,22 @@ public sealed unsafe class GameEnsembleSync : IDisposable
         }
     }
 
+    /// <summary>
+    /// Clears Windbound's pending local confirmation/start bookkeeping only.
+    /// It cannot cancel an FFXIV-server ensemble that has already begun.
+    /// This lets an emergency Reset recover after a failed native Ready Check
+    /// without treating an old signal as a future start.
+    /// </summary>
+    public void CancelLocalPreparation()
+    {
+        waitingForMetronome = false;
+        waitingForLocalConfirm = false;
+        manualConfirmPending = false;
+        triedShowMetronome = false;
+        consumedStarts = Interlocked.Read(ref pendingStarts);
+        readinessStatus = "Windbound local Ready Check state reset. If an FFXIV ensemble is active, stop it in-game.";
+    }
+
     /// <summary>Manual fallback queues the action onto Framework.Update, never
     /// invokes game callbacks from the ImGui Draw thread.</summary>
     public bool TryConfirmReadyCheck(bool follower, out string detail)

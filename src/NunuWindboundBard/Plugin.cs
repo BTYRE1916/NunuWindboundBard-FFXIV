@@ -38,8 +38,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly PerformanceHudWindow hud;
     private volatile bool performing;
     private volatile bool expandedKeyboard;
-    private object why;
-
     internal bool IsPerforming => performing;
     internal bool IsExpandedKeyboard => expandedKeyboard;
 
@@ -301,6 +299,14 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 32;
             Config.Save();
         }
+        if (Config.Version < 33)
+        {
+            // Safe-mode upgrade for v0.31.1: restore proven player controls
+            // while retaining all existing saved stage designs and MIDI settings.
+            Config.VisualStageDesignerEnabled = false;
+            Config.Version = 33;
+            Config.Save();
+        }
         Config.StageFormations ??= new();
         Config.ConcertSnapshots ??= new();
         Config.EnsembleLineupsByPlaylistId ??= new();
@@ -346,13 +352,13 @@ public sealed class Plugin : IDalamudPlugin
         windows.AddWindow(hud);
         Commands.AddHandler("/windbound", new CommandInfo(OnCommand)
         {
-            HelpMessage = Loc.T("Open Windbound Bard; /windbound hud toggles the HUD; /windbound stop stops playback; /windbound midipanic releases live keys.")
+            HelpMessage = Loc.T("Open Windbound Bard; /windbound recover clears stuck local playback/stage state; /windbound stop stops playback.")
         });
         Framework.Update += OnFrameworkUpdate;
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.31 loaded: optional saved stage formations through vnavmesh; party conductor and MIDI engine unchanged.");
+        Log.Information("Windbound Bard v0.31.2 loaded: C# definite-assignment hotfix; playback recovery and optional stage designer retained.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -375,8 +381,16 @@ public sealed class Plugin : IDalamudPlugin
         PartyChat.ReceiveEnabled = Config.GameEnsembleEnabled &&
             (Config.EnsembleMode == (int)EnsembleRole.Follower ||
              Config.EnsembleMode == (int)EnsembleRole.Conductor);
-        main.PollGamePartyChat();
-        main.PollStageFormations(why); // optional stage navigation, never a musical START
+        try { main.PollGamePartyChat(); }
+        catch (Exception error)
+        {
+            // A malformed stage-position message or disappearing navigation IPC
+            // must not strand the scheduler in an apparent Playing state.
+            Log.Error("Party command processing failed; continuing MIDI update: " + error);
+            main.RecoverStageAfterFailure(error.Message);
+        }
+        // v0.31.1: optional stage motion is intentionally NOT allowed to block
+        // playback's framework tick, including note-off/reset processing.
         main.PollNativeConductorSync();
         main.PollNativePartyArming(); // ARM/ACK after file/track preparation; no notes generated
         main.PollConcertDirector();
@@ -392,6 +406,14 @@ public sealed class Plugin : IDalamudPlugin
             Instruments.InProgress, Config.LiveMidiTranspose,
             Config.LiveMidiFoldToRange, Config.LiveMidiSustain, Config.LiveMidiChannel);
         Player.Update(performing && expandedKeyboard);
+        // Stage navigation is optional and can fail independently (e.g. an IPC
+        // provider unload). Never let that interrupt native MIDI event timing.
+        try { main.PollStageFormations(); }
+        catch (Exception error)
+        {
+            Log.Error("Stage Formations polling failed; MIDI scheduler remains active: " + error);
+            main.RecoverStageAfterFailure(error.Message);
+        }
         // Rehearsal preview never plays concurrently with live game MIDI output.
         if (Player.IsPlaying && (AudioPreview.IsPlaying || AudioPreview.IsLoading))
             AudioPreview.Stop("Preview stopped: FFXIV Performance MIDI started.");
@@ -410,6 +432,12 @@ public sealed class Plugin : IDalamudPlugin
     private void OnCommand(string command, string args)
     {
         string input = (args ?? string.Empty).Trim();
+        if (input.Equals("recover", StringComparison.OrdinalIgnoreCase) ||
+            input.Equals("resetmidi", StringComparison.OrdinalIgnoreCase))
+        {
+            main.RecoverLocalPlayback();
+            return;
+        }
         if (input.Equals("stop", StringComparison.OrdinalIgnoreCase))
         {
             main.StopPlayback();
