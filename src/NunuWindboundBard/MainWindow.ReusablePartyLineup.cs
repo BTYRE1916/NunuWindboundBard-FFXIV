@@ -59,7 +59,10 @@ public sealed partial class MainWindow
         TryPublishPartyAssignments();
         partyLineupStatus = "Default lineup applied to this MIDI; edit any differing tracks before SET PARTY TRACKS.";
         if (matched.HasDifferentLaneCount)
-            partyLineupStatus += Loc.IsFrench
+            partyLineupStatus += Loc.IsGerman
+                ? $" Gespeichert: {matched.SavedLaneCount}, aktuell: {matched.NewLaneCount} Spuren. " +
+                    $"Bitte {matched.UnassignedNewSlots} neue Spur(en) zuweisen."
+                : Loc.IsFrench
                 ? $" Formation enregistrée : {matched.SavedLaneCount}, pistes actuelles : {matched.NewLaneCount}. " +
                     $"Vérifiez {matched.UnassignedNewSlots} nouvelle(s) piste(s)."
                 : $" Saved {matched.SavedLaneCount}, now {matched.NewLaneCount} lanes; " +
@@ -93,7 +96,10 @@ public sealed partial class MainWindow
             partyLineupStatus = "Saved lineup cleared; this MIDI's specific assignments remain.";
         }
         if (hasSaved)
-            ImGui.TextDisabled(Loc.IsFrench
+            ImGui.TextDisabled(Loc.IsGerman
+                ? $"Gespeicherte Besetzung: {saved!.PerformerIdsBySlot.Count} Plätze, " +
+                    $"{saved.PerformerIdsBySlot.Count(x => x != 0)} zugewiesen."
+                : Loc.IsFrench
                 ? $"Formation enregistrée : {saved!.PerformerIdsBySlot.Count} emplacements, " +
                     $"{saved.PerformerIdsBySlot.Count(x => x != 0)} attribués."
                 : $"Saved lineup: {saved!.PerformerIdsBySlot.Count} slots, " +

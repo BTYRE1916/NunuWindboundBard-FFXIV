@@ -9,5 +9,6 @@
   <ItemGroup>
     <Compile Include="LocalizationSmokeTest.cs" />
     <Compile Include="../src/NunuWindboundBard/Localization.cs" Link="Localization.cs" />
+    <Compile Include="../src/NunuWindboundBard/Localization.German.cs" Link="Localization.German.cs" />
   </ItemGroup>
 </Project>

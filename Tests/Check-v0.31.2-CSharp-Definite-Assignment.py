@@ -24,5 +24,6 @@ assert body.index('angle = 0;') < body.index('if (!IsHex(')
 assert 'out uint zone, out Vector3 location, out float angle' in protocol
 
 ET.parse(project)
-assert '<Version>0.31.2.0</Version>' in project.read_text(encoding="utf-8")
+assert any(f'<Version>{v}</Version>' in project.read_text(encoding="utf-8")
+    for v in ("0.31.2.0", "0.32.0.0")), "Unexpected version; this check covers the v0.31.2 hotfix carried into v0.32"
 print('PASS: StageSafe error reason and ValidPose zone initialisation satisfy source-level definite assignment checks.')

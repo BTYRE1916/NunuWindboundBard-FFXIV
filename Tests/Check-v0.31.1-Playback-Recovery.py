@@ -20,5 +20,6 @@ assert "public void Update(bool canSend)" in engine
 assert "VisualStageDesignerEnabled" in (root/"Configuration.cs").read_text()
 assert "Enable Visual Stage Designer (experimental)##visualStageEnabled" in stage
 assert "if (Config.Version < 33)" in plugin
-assert '0.31.2.0' in (root/"NunuWindboundBard.csproj").read_text()
+assert any(v in (root/"NunuWindboundBard.csproj").read_text()
+    for v in ("0.31.2.0", "0.32.0.0")), "Playback recovery carried into the new localisation build"
 print('PASS: playback tick before optional stage poll, stage exception isolation, emergency recovery and native start reset')

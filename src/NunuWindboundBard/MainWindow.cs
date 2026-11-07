@@ -18,7 +18,8 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly Plugin plugin;
     private readonly Configuration cfg;
     private readonly FileDialogManager fileDialogs = new();
-    private static string MidiFilter => Loc.IsFrench ? "Fichiers MIDI{.mid,.midi}" : "MIDI files{.mid,.midi}";
+    private static string MidiFilter => Loc.IsGerman ? "MIDI-Dateien{.mid,.midi}"
+        : Loc.IsFrench ? "Fichiers MIDI{.mid,.midi}" : "MIDI files{.mid,.midi}";
     private MidiSong? song;
     private BardArrangement? arranged;
     private List<MidiLanePlan> lanes = new();
@@ -96,10 +97,17 @@ public sealed partial class MainWindow : Window, IDisposable
         ImGui.TextUnformatted(Loc.T("Interface language:"));
         ImGui.SameLine();
         ImGui.SetNextItemWidth(145);
-        if (ImGui.BeginCombo("##windboundLocale", cfg.Language == "fr" ? "Français" : "English"))
+        string selectedLanguageName = cfg.Language switch
         {
-            if (ImGui.Selectable("English##lang-en", cfg.Language != "fr")) SetLanguage("en");
+            "fr" => "Français",
+            "de" => "Deutsch",
+            _ => "English"
+        };
+        if (ImGui.BeginCombo("##windboundLocale", selectedLanguageName))
+        {
+            if (ImGui.Selectable("English##lang-en", cfg.Language == "en")) SetLanguage("en");
             if (ImGui.Selectable("Français##lang-fr", cfg.Language == "fr")) SetLanguage("fr");
+            if (ImGui.Selectable("Deutsch##lang-de", cfg.Language == "de")) SetLanguage("de");
             ImGui.EndCombo();
         }
         ImGui.Separator();
@@ -132,7 +140,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void SetLanguage(string language)
     {
-        cfg.Language = language == "fr" ? "fr" : "en";
+        cfg.Language = language is "fr" or "de" ? language : "en";
         Loc.SetLanguage(cfg.Language);
         WindowName = Loc.T("Windbound Bard | Nunu's MIDI Studio") + "###NunuWindboundBard";
         plugin.RefreshHudLanguage();
@@ -1310,8 +1318,9 @@ public sealed partial class MainWindow : Window, IDisposable
             foreach (var lane in lanes)
                 if (saved.TryGetValue(PartKey(lane.Key), out ulong id) && id != 0)
                     partyAssignments[lane.Key] = id;
-            partyLineupStatus = Loc.IsFrench
-                ? $"{partyAssignments.Count} affectations de pistes propres à ce morceau restaurées."
+            partyLineupStatus = Loc.IsGerman
+                ? $"{partyAssignments.Count} songspezifische Spurzuweisungen wiederhergestellt."
+                : Loc.IsFrench ? $"{partyAssignments.Count} affectations de pistes propres à ce morceau restaurées."
                 : $"Restored {partyAssignments.Count} song-specific track assignments.";
             // On upgrade, promote the first existing conductor song map to the
             // new playlist lineup automatically. Users who already configured
@@ -1326,8 +1335,9 @@ public sealed partial class MainWindow : Window, IDisposable
                     cfg.EnsembleLineupsByPlaylistId[id] = PartyTrackLineup.Capture(
                         lanes.Select(l => l.Key).ToList(), partyAssignments);
                     cfg.Save();
-                    partyLineupStatus += Loc.IsFrench
-                        ? " Formation mémorisée pour les prochains morceaux."
+                    partyLineupStatus += Loc.IsGerman
+                        ? " Besetzung für zukünftige Songs gespeichert."
+                        : Loc.IsFrench ? " Formation mémorisée pour les prochains morceaux."
                         : " Saved as the reusable lineup for future songs.";
                 }
             }
@@ -1343,13 +1353,18 @@ public sealed partial class MainWindow : Window, IDisposable
         var match = lineup.Apply(lanes.Select(l => l.Key).ToList());
         foreach (var item in match.Assignments) partyAssignments[item.Key] = item.Value;
         partyLineupStatus = match.HasDifferentLaneCount
-            ? Loc.IsFrench
+            ? Loc.IsGerman
+                ? $"{match.MatchedSlots} Musikerplätze wiederverwendet. Diese MIDI hat {match.NewLaneCount} Spuren " +
+                    $"(gespeicherte Besetzung: {match.SavedLaneCount}); bitte {match.UnassignedNewSlots} neue Plätze prüfen."
+                : Loc.IsFrench
                 ? $"{match.MatchedSlots} emplacements réutilisés. Ce MIDI comporte {match.NewLaneCount} pistes " +
                     $"(formation enregistrée : {match.SavedLaneCount}). Vérifiez les {match.UnassignedNewSlots} nouvelles pistes."
                 : $"Reused {match.MatchedSlots} performer slots from this Ensemble playlist. " +
                     $"MIDI has {match.NewLaneCount} lanes (saved layout: {match.SavedLaneCount}); " +
                     $"review the track list and assign {match.UnassignedNewSlots} new slot(s)."
-            : Loc.IsFrench
+            : Loc.IsGerman
+                ? $"Alle {match.MatchedSlots} Musikerplätze aus der gespeicherten Ensemble-Besetzung wiederverwendet."
+                : Loc.IsFrench
                 ? $"Les {match.MatchedSlots} emplacements de la formation Ensemble ont été réutilisés."
                 : $"Reused all {match.MatchedSlots} performer slots from the saved Ensemble lineup.";
     }

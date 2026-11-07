@@ -5,12 +5,12 @@ using System.Linq;
 namespace NunuWindboundBard;
 
 /// <summary>
-/// Self-contained/offline English/French UI translations. English labels and
+/// Self-contained/offline English/French/German UI translations. English labels and
 /// ImGui's ## stable widget IDs are preserved when English is selected.
 /// MIDI filenames, network protocol, keyboard notes, file hashes and saved
 /// playlists are never translated or modified.
 /// </summary>
-public static class Loc
+public static partial class Loc
 {
     private static string selectedLanguage = "en";
     private static readonly Dictionary<string, string> French = new(StringComparer.Ordinal)
@@ -960,9 +960,29 @@ public static class Loc
         ["☆ Favourite"] = "☆ Ajouter aux favoris",
     };
 
-    // Long translated phrases are also used to cover concatenated / dynamic UI
-    // strings. Very short words are exact-only to avoid changing MIDI file names.
-    private static readonly (string Key, string Value)[] Fragments = French
+    // Preserve hidden ImGui IDs. No translation of filenames or unknown
+    // track/character names. Build the lookups lazily: the German catalogue is
+    // declared in another partial-class source file, and C# doesn't guarantee
+    // the order of static field initializers between partial declarations.
+    private static string VisiblePart(string value)
+    {
+        int index = value.IndexOf("##", StringComparison.Ordinal);
+        return index < 0 ? value : value[..index];
+    }
+
+    private static Dictionary<string, string> VisibleDictionary(Dictionary<string, string> translations)
+    {
+        var lookup = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (key, value) in translations)
+        {
+            string visible = VisiblePart(key);
+            if (!lookup.ContainsKey(visible))
+                lookup[visible] = VisiblePart(value);
+        }
+        return lookup;
+    }
+
+    private static (string Key, string Value)[] BuildFragments(Dictionary<string, string> catalogue) => catalogue
         .Where(p => (p.Key.Length >= 13 && p.Key.Contains(' ')) ||
                     (p.Key.StartsWith(" ", StringComparison.Ordinal) && p.Key.Length >= 8) ||
                     p.Key.EndsWith(":", StringComparison.Ordinal) ||
@@ -970,15 +990,27 @@ public static class Loc
         .OrderByDescending(p => p.Key.Length)
         .Select(p => (p.Key, p.Value)).ToArray();
 
+    private static readonly Lazy<Dictionary<string, string>> FrenchVisible = new(() => VisibleDictionary(French));
+    private static readonly Lazy<Dictionary<string, string>> GermanVisible = new(() => VisibleDictionary(German));
+    private static readonly Lazy<(string Key, string Value)[]> FrenchFragments = new(() => BuildFragments(FrenchVisible.Value));
+    private static readonly Lazy<(string Key, string Value)[]> GermanFragments = new(() => BuildFragments(GermanVisible.Value));
     private static readonly Dictionary<string, string> Cache = new(StringComparer.Ordinal);
     private static readonly object Sync = new();
 
     public static bool IsFrench => selectedLanguage == "fr";
+    public static bool IsGerman => selectedLanguage == "de";
     public static string Language => selectedLanguage;
+    public static int FrenchTranslationCount => French.Count;
+    public static int GermanTranslationCount => German.Count;
 
     public static void SetLanguage(string? language)
     {
-        string value = string.Equals(language, "fr", StringComparison.OrdinalIgnoreCase) ? "fr" : "en";
+        string value = language?.ToLowerInvariant() switch
+        {
+            "fr" => "fr",
+            "de" => "de",
+            _ => "en"
+        };
         lock (Sync)
         {
             selectedLanguage = value;
@@ -989,20 +1021,25 @@ public static class Loc
     public static string T(string? text)
     {
         if (string.IsNullOrEmpty(text)) return text ?? string.Empty;
-        if (!IsFrench) return text;
+        if (!IsFrench && !IsGerman) return text;
 
-        // '##' is an internal Dear ImGui ID. Translate only the part visible
-        // to users so buttons keep their stable identities across languages.
+        // ImGui's ## ID is immutable. Translate the visible text only.
+        // The source catalogue also contains some keys with ## labels from
+        // before the translation layer; this handles those keys too.
         int at = text.IndexOf("##", StringComparison.Ordinal);
         string visible = at >= 0 ? text[..at] : text;
         string id = at >= 0 ? text[at..] : string.Empty;
         if (visible.Length == 0) return text;
-        if (French.TryGetValue(visible, out string? exact)) return exact + id;
+        var catalogue = IsGerman ? GermanVisible.Value : FrenchVisible.Value;
+        if (catalogue.TryGetValue(visible, out string? exact)) return exact + id;
+
         if (visible.StartsWith("SAVED ", StringComparison.Ordinal) &&
             visible.EndsWith(" PLAYLISTS", StringComparison.Ordinal))
         {
             string middle = visible[6..^10];
-            return "LISTES DE LECTURE " + T(middle).ToUpperInvariant() + " ENREGISTRÉES" + id;
+            return IsGerman
+                ? "GESPEICHERTE " + T(middle).ToUpperInvariant() + "-PLAYLISTS" + id
+                : "LISTES DE LECTURE " + T(middle).ToUpperInvariant() + " ENREGISTRÉES" + id;
         }
 
         string translated;
@@ -1010,13 +1047,14 @@ public static class Loc
         {
             if (Cache.TryGetValue(visible, out var known)) return known + id;
             translated = visible;
-            foreach (var phrase in Fragments)
+            var fragments = IsGerman ? GermanFragments.Value : FrenchFragments.Value;
+            foreach (var phrase in fragments)
             {
                 if (translated.Contains(phrase.Key, StringComparison.Ordinal))
                     translated = translated.Replace(phrase.Key, phrase.Value, StringComparison.Ordinal);
             }
-            // Bound the cache for live status messages containing timestamps
-            // and note counts; rendering should not grow memory indefinitely.
+            // Live status messages include timestamps and counters. Keep the
+            // cache bounded even during long concerts.
             if (Cache.Count >= 2048) Cache.Clear();
             Cache[visible] = translated;
         }

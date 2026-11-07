@@ -1,3 +1,22 @@
+# Windbound Bard v0.32 — German / Deutsche Benutzeroberfläche 🇩🇪
+
+**Based on stable-test v0.31.2**. Adds **Deutsch** to the existing **English / Français** language selector at the top of `/windbound`. Switch instantly without restarting; the language is saved per client. English is the default for new testers and previous settings remain intact.
+
+The new catalog contains **951 German interface translations** covering the existing French localization scope: songs, Solo/Ensemble, Concert Director, stage dots, Set Party Tracks/Instruments, SoundFont preview, Live MIDI Piano, snapshots and diagnostics. Technical engine output, MIDI track titles, arbitrary filenames and messages from the game or third-party drivers may remain untranslated. English and French continue to work.
+
+No MIDI/ensemble game logic was changed. The original German UI widget IDs (`##`) are stable, so translations don't change how buttons are identified. The full translation table is provided in `GERMAN-TRANSLATIONS.tsv` for beta-test corrections.
+
+### Install / test
+
+1. Build `NunuWindboundBard.sln` with .NET 10 + Dalamud API 15, then load the plugin.
+2. Open `/windbound` and select **Deutsch** in **Interface language / Sprache der Oberfläche**.
+3. Test tabs including **Bühnenformationen**, **Konzert-Schnappschüsse**, **Songs & Wiedergabe** and **Audiovorschau**.
+4. Run `Tests/Run-v0.32-Tests.ps1` to check German/French translation coverage, stable ImGui IDs, and old playback source checks.
+
+**This is a source package, not a compiled plugin.** No Windows/.NET compiler or live FFXIV client was available during packaging, so please build and test before distributing to your beta testers.
+
+---
+
 # Windbound Bard v0.31.2 — CS0165 / CS0177 compiler hotfix
 
 This is the complete **v0.31.1** project with two C# definite-assignment compiler errors corrected. Everything else, including the emergency `/windbound recover` command and experimental visual stage designer toggle, is preserved. See `CHANGELOG-v0.31.2.md` for the exact changes.

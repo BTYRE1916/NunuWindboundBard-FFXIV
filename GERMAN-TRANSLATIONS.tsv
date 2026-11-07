@@ -1,0 +1,952 @@
+Index	English	Deutsch
+1	Enable Visual Stage Designer (experimental)	Visuellen Bühnenplaner aktivieren (experimentell)
+2	EMERGENCY: Reset stuck playback	NOTFALL: Hängende Wiedergabe zurücksetzen
+3	Also: /windbound recover	Auch möglich: /windbound recover
+4	Stage Formations	Bühnenformationen
+5	VISUAL STAGE DESIGNER — DRAG YOUR BARDS	VISUELLER BÜHNENPLANER — BARDEN VERSCHIEBEN
+6	Arrange each Bard by dragging a numbered dot on the square stage. Select a dot to choose which party member occupies that spot. SET positions makes everyone walk there.	Ordne jeden Barden an, indem du seinen nummerierten Punkt auf der Bühnenfläche ziehst. Wähle einen Punkt aus, um den Gruppenmitgliedern Plätze zuzuweisen. Mit POSITIONEN FESTLEGEN gehen alle an ihre Plätze.
+7	CREATE VISUAL STAGE FROM PARTY	BÜHNENPLAN AUS GRUPPE ERSTELLEN
+8	A visual stage needs a party of 2–15 performers and a logged-in conductor.	Für eine visuelle Bühne werden 2–15 Musiker und ein angemeldeter Dirigent benötigt.
+9	NEW STAGE DIAGRAM	NEUER BÜHNENPLAN
+10	LOAD SAVED FORMATION INTO DIAGRAM	GESPEICHERTE FORMATION IN PLAN LADEN
+11	Diagram name##visualStageName	Name des Bühnenplans
+12	Stage width (metres)##visualStageWidth	Bühnenbreite (Meter)
+13	Snap 0.5m##visualStageSnap	Am 0,5-m-Raster ausrichten
+14	Selected spot	Ausgewählter Platz
+15	Assign Bard to selected spot##visualStageBard	Barden dem ausgewählten Platz zuweisen
+16	Facing guide (degrees)##visualStageFacing	Blickrichtung (Grad)
+17	Facing is a visual guide only; vnavmesh walks to the selected dot.	Die Blickrichtung dient nur als Orientierung; vnavmesh führt den Barden zum ausgewählten Punkt.
+18	Show all performer spots##visualSpotList	Alle Musikerplätze anzeigen
+19	The stage square is centred on the conductor's saved anchor and heading. Top is backstage; bottom is audience-side.	Die Bühne ist auf den gespeicherten Ausgangspunkt und die Ausrichtung des Dirigenten zentriert. Oben ist hinter der Bühne, unten die Publikumsseite.
+20	RE-ANCHOR STAGE AT MY POSITION	BÜHNE AUF MEINE POSITION ZENTRIEREN
+21	SAVE DIAGRAM AS NEW PRESET	PLAN ALS NEUE VORLAGE SPEICHERN
+22	SET POSITIONS & MOVE PARTY##visualStageApply	POSITIONEN FESTLEGEN & GRUPPE BEWEGEN
+23	SAVE CURRENT DIAGRAM##visualStageSave	AKTUELLEN BÜHNENPLAN SPEICHERN
+24	Moves only after SET. Requires vnavmesh on each client and follower stage-movement permission. No teleport or music start.	Die Bewegung beginnt erst nach FESTLEGEN. Auf jedem Client sind vnavmesh und die Zustimmung des Mitspielers erforderlich. Kein Teleportieren und kein Musikstart.
+25	Top: BACKSTAGE                        Bottom: AUDIENCE	Oben: HINTERBÜHNE                      Unten: PUBLIKUM
+26	Quick formation shapes:	Schnelle Formationen:
+27	Two rows##visualShapeRows	Zwei Reihen
+28	Straight line##visualShapeLine	Gerade Linie
+29	Arc##visualShapeArc	Bogen
+30	Circle##visualShapeCircle	Kreis
+31	New diagram created with one dot per Bard. Drag the dots and assign performers to spots.	Neuer Bühnenplan mit einem Punkt pro Barden erstellt. Ziehe die Punkte und weise die Musiker zu.
+32	Cannot create a visual stage: 	Visueller Bühnenplan konnte nicht erstellt werden: 
+33	Saved formation loaded into the stage diagram. Changes are local until saved or SET.	Gespeicherte Formation wurde geladen. Änderungen bleiben lokal, bis du sie speicherst oder festlegst.
+34	Could not load stage diagram: 	Bühnenplan konnte nicht geladen werden: 
+35	Saved a new stage diagram preset.	Neue Bühnenformation gespeichert.
+36	Stage diagram saved with the current performer-to-spot assignments.	Bühnenplan mit aktuellen Platzzuweisungen gespeichert.
+37	SET POSITIONS requested. 	POSITIONEN FESTLEGEN angefordert. 
+38	Could not set stage positions: 	Bühnenpositionen konnten nicht festgelegt werden: 
+39	Stage centre changed to the conductor's current position and facing.	Bühnenmittelpunkt auf die aktuelle Position und Blickrichtung des Dirigenten verschoben.
+40	Cannot re-anchor stage: 	Bühne konnte nicht neu ausgerichtet werden: 
+41	The current party differs from this diagram; create a new diagram before SET.	Die aktuelle Gruppe stimmt nicht mit diesem Plan überein. Erstelle vor dem Festlegen einen neuen Plan.
+42	Performers swapped between spots; no duplicates are assigned.	Musiker haben Plätze getauscht; niemand wurde doppelt zugewiesen.
+43	STAGE FORMATIONS — SAVE & RECALL	BÜHNENFORMATIONEN — SPEICHERN & WIEDERHERSTELLEN
+44	Save each Bard's position, then walk the party back to those spots on stage. Requires vnavmesh on every client. Only your party leader can send stage commands.	Speichere die Positionen aller Barden und führe die Gruppe später an diese Plätze zurück. vnavmesh wird auf jedem Client benötigt. Nur der Gruppenanführer darf Bühnenbefehle senden.
+45	Movement is walking only, limited to nearby spots; doesn't teleport, play music or force facing.	Nur Gehen zu nahegelegenen Zielen; kein Teleportieren, Musizieren oder erzwungenes Drehen.
+46	vnavmesh installed (local client)	vnavmesh installiert (lokaler Client)
+47	vnavmesh not installed on this client	vnavmesh auf diesem Client nicht installiert
+48	Allow my party leader to save my position and move me on stage##stageConsent	Meinem Gruppenanführer erlauben, meine Position zu speichern und mich auf der Bühne zu bewegen
+49	One-time opt-in. Disable it any time; no movement occurs on login or song load.	Einmalige Zustimmung. Jederzeit abschaltbar; beim Einloggen oder Laden eines Songs wird niemand bewegt.
+50	STOP MY STAGE MOVEMENT	MEINE BÜHNENBEWEGUNG STOPPEN
+51	Formation name##stageName	Formationsname
+52	SAVE CURRENT PARTY POSITIONS	AKTUELLE GRUPPENPOSITIONEN SPEICHERN
+53	Position everyone manually once, then Save. All party members must opt in.	Stelle alle einmal manuell auf und klicke dann auf Speichern. Alle Gruppenmitglieder müssen zustimmen.
+54	Saved formations##stageLibrary	Gespeicherte Formationen
+55	Choose a saved formation	Gespeicherte Formation auswählen
+56	MOVE PARTY INTO SAVED FORMATION	GRUPPE ZUR GESPEICHERTEN FORMATION BEWEGEN
+57	STOP STAGE MOVEMENT	BÜHNENBEWEGUNG STOPPEN
+58	Preview saved stage positions	Gespeicherte Bühnenpositionen anzeigen
+59	Delete selected formation...	Ausgewählte Formation löschen...
+60	Delete this saved formation? MIDI files and concert presets are not affected.	Diese Formation löschen? MIDI-Dateien und Konzertvorlagen bleiben erhalten.
+61	CONFIRM DELETE FORMATION	FORMATION WIRKLICH LÖSCHEN
+62	Cancel##stageDelete	Abbrechen
+63	This saves relative positions and a facing guide. Automatic facing is not yet implemented.	Relative Positionen und eine Blickrichtungshilfe werden gespeichert. Automatisches Ausrichten ist noch nicht verfügbar.
+64	ONE-CLICK PARTY OUTPUT ARM	GRUPPE MIT EINEM KLICK SCHARFSCHALTEN
+65	ARM ALL PARTY BARDS##conductorArm	ALLE GRUPPENBARDEN SCHARFSCHALTEN
+66	DISARM ALL##conductorDisarm	ALLE ENTSCHÄRFEN
+67	ARM ALL BARDS##directorArm	ALLE BARDEN SCHARFSCHALTEN
+68	ARM ALL BARDS##hudArmParty	ALLE BARDEN SCHARFSCHALTEN
+69	ARM every active native Ensemble follower without starting notes.	Alle aktiven Ensemble-Mitspieler scharfschalten, ohne Noten zu spielen.
+70	Sets ARM on this conductor and all opted-in active Followers. No instrument change or song START.	Schaltet den Dirigenten und alle zustimmenden aktiven Mitspieler scharf. Weder Instrumentwechsel noch Songstart.
+71	Allow my party leader to ARM this Bard automatically##allowPartyArm	Meinem Gruppenanführer erlauben, meinen Barden automatisch scharfzuschalten
+72	Enabled by default for native Ensemble followers. ARM itself is never saved across restarts.	Für Mitspieler im nativen Ensemble standardmäßig aktiviert. Die Scharfschaltung wird nach einem Neustart nicht gespeichert.
+73	Conductor can ARM my output remotely; this never starts notes. Auto-Accept Ready Check remains separate.	Der Dirigent kann meine Ausgabe aus der Ferne scharfschalten. Das spielt keine Noten. Die automatische Annahme des Bereitschaftschecks bleibt getrennt.
+74	Waiting for: 	Warte auf: 
+75	Concert Snapshots	Konzert-Schnappschüsse
+76	CONCERT SNAPSHOTS & RESTORE	KONZERT-SCHNAPPSCHÜSSE & WIEDERHERSTELLUNG
+77	Save entire concert setups as named snapshots. Restore a snapshot to a NEW Solo/Ensemble playlist. No MIDI files are copied or altered.	Speichere komplette Konzerteinstellungen als benannte Schnappschüsse. Stelle sie in einer NEUEN Solo-/Ensemble-Playlist wieder her. MIDI-Dateien werden nicht kopiert oder verändert.
+78	Snapshot name	Name des Schnappschusses
+79	SAVE CURRENT CONCERT SNAPSHOT	AKTUELLEN KONZERT-SCHNAPPSCHUSS SPEICHERN
+80	Import snapshot JSON...	Schnappschuss-JSON importieren...
+81	Saved snapshots include instrument choices, track assignments, octaves, setlist, lineup, playback settings and concert cues.	Gespeicherte Schnappschüsse enthalten Instrumente, Spurzuweisungen, Oktaven, Setliste, Besetzung, Wiedergabeeinstellungen und Konzertansagen.
+82	No snapshots saved yet. Give your current concert a name and press Save.	Noch keine Schnappschüsse gespeichert. Gib dem Konzert einen Namen und klicke auf Speichern.
+83	Saved concert	Gespeichertes Konzert
+84	Selected MIDI:	Ausgewählte MIDI:
+85	Missing MIDI files:	Fehlende MIDI-Dateien:
+86	Preview snapshot contents	Inhalt des Schnappschusses anzeigen
+87	Saved MIDI files:	Gespeicherte MIDI-Dateien:
+88	Additional songs omitted from preview.	Weitere Songs in der Vorschau ausgeblendet.
+89	song configurations	Songkonfigurationen
+90	performer slots	Musikerplätze
+91	Restore changes shared per-MIDI overrides; an automatic Before restore snapshot protects your previous settings.	Die Wiederherstellung ändert gemeinsame MIDI-spezifische Einstellungen. Ein automatischer „Vor Wiederherstellung“-Schnappschuss sichert deine bisherigen Einstellungen.
+92	RESTORE SELECTED SNAPSHOT...	AUSGEWÄHLTEN SCHNAPPSCHUSS WIEDERHERSTELLEN...
+93	Export snapshot JSON...	Schnappschuss als JSON exportieren...
+94	Delete snapshot...	Schnappschuss löschen...
+95	Create a NEW playlist and restore this concert's settings? Existing playlists and snapshots are preserved.	Eine NEUE Playlist erstellen und diese Konzerteinstellungen wiederherstellen? Vorhandene Playlists und Schnappschüsse bleiben erhalten.
+96	This changes the local plugin's saved per-MIDI overrides. No notes are played, no instruments equipped and no party commands sent.	Dies ändert die lokal gespeicherten MIDI-spezifischen Einstellungen. Es werden keine Noten gespielt, Instrumente angelegt oder Gruppenbefehle gesendet.
+97	CONFIRM RESTORE	WIEDERHERSTELLUNG BESTÄTIGEN
+98	Delete this saved snapshot? Your current playlist and MIDI files will not be deleted.	Diesen Schnappschuss löschen? Deine aktuelle Playlist und MIDI-Dateien bleiben erhalten.
+99	CONFIRM DELETE	LÖSCHEN BESTÄTIGEN
+100	ARM and follower consent are never restored. Only the conductor's native FFXIV Ready Check can start ensemble music.	Scharfschaltung und Zustimmung der Mitspieler werden nie wiederhergestellt. Nur der native FFXIV-Bereitschaftscheck des Dirigenten kann die Ensemblemusik starten.
+101	Export concert snapshot	Konzert-Schnappschuss exportieren
+102	Import concert snapshot	Konzert-Schnappschuss importieren
+103	None	Keine
+104	Audio Preview	Audiovorschau
+105	LOCAL MIDI AUDIO PREVIEW — SOUNDFONT	LOKALE MIDI-AUDIOVORSCHAU — SOUNDFONT
+106	Hear MIDI through your own speakers before playing in FFXIV. This preview sends NO game notes, instruments, Ready Checks or party commands.	Höre dir die MIDI über deine Lautsprecher an, bevor du sie in FFXIV spielst. Diese Vorschau sendet KEINE Spielnoten, Instrumentwechsel, Bereitschaftschecks oder Gruppenbefehle.
+107	Choose an .sf2 SoundFont file. SoundFonts are not distributed with this plugin.	Wähle eine .sf2-SoundFont-Datei. SoundFonts werden nicht mit diesem Plugin ausgeliefert.
+108	Browse SoundFont...	SoundFont durchsuchen...
+109	Save SoundFont path	SoundFont-Pfad speichern
+110	SoundFont found	SoundFont gefunden
+111	SoundFont not selected	Kein SoundFont ausgewählt
+112	Loaded MIDI:	Geladene MIDI:
+113	Preview source	Quelle der Vorschau
+114	Original MIDI (all tracks and GM instruments)	Original-MIDI (alle Spuren und GM-Instrumente)
+115	Windbound C3-C6 arrangement (enabled local parts)	Windbound-Arrangement C3–C6 (aktivierte lokale Stimmen)
+116	Selected MIDI track (solo preview)	Ausgewählte MIDI-Spur (Solo-Vorschau)
+117	Preview track	Vorschau-Spur
+118	Apply this track's saved octave shift	Gespeicherte Oktavverschiebung dieser Spur verwenden
+119	Uses Windbound's current enabled tracks, C3–C6 optimisation, octave shifts and chord handling.	Verwendet die aktuell aktivierten Spuren, die C3–C6-Optimierung, Oktavverschiebungen und Akkordverarbeitung von Windbound.
+120	Load a MIDI from Songs & Playback first.	Lade zuerst eine MIDI unter Songs & Wiedergabe.
+121	Preview volume	Vorschaulautstärke
+122	Preview tempo	Vorschautempo
+123	Play Audio Preview	Audiovorschau abspielen
+124	Pause Audio	Audio pausieren
+125	Resume Audio	Audio fortsetzen
+126	Stop Audio Preview	Audiovorschau stoppen
+127	Audio only. Starting FFXIV MIDI performance automatically stops this local preview.	Nur Audio. Beim Start der FFXIV-MIDI-Wiedergabe endet diese lokale Vorschau automatisch.
+128	Choose a SoundFont (.sf2)	SoundFont (.sf2) auswählen
+129	Choose a SoundFont (.sf2) to hear the MIDI through your speakers.	Wähle einen SoundFont (.sf2), um die MIDI über deine Lautsprecher zu hören.
+130	SoundFont path saved. Ready for local preview.	SoundFont-Pfad gespeichert. Bereit für die lokale Vorschau.
+131	SoundFont path saved but the file was not found.	SoundFont-Pfad gespeichert, Datei jedoch nicht gefunden.
+132	SoundFont selected. Press Play Audio Preview to listen.	SoundFont ausgewählt. Klicke auf Audiovorschau abspielen.
+133	Audio preview is local and will not play notes in FFXIV.	Die Audiovorschau ist lokal und spielt keine Noten in FFXIV.
+134	Idle	Leerlauf
+135	Preparing preview...	Vorschau wird vorbereitet...
+136	Loading SoundFont and MIDI for local preview...	SoundFont und MIDI für lokale Vorschau werden geladen...
+137	Preview playing through local speakers.	Vorschau läuft über lokale Lautsprecher.
+138	Preview paused.	Vorschau pausiert.
+139	Audio preview stopped.	Audiovorschau gestoppt.
+140	Audio preview finished.	Audiovorschau abgeschlossen.
+141	Preview stopped: FFXIV Performance MIDI started.	Vorschau gestoppt: FFXIV-MIDI-Wiedergabe wurde gestartet.
+142	Arrangement changed; start a fresh audio preview.	Arrangement geändert; starte eine neue Audiovorschau.
+143	MIDI selection changed; start a new audio preview.	MIDI-Auswahl geändert; starte eine neue Audiovorschau.
+144	MIDI Inspector	MIDI-Prüfer
+145	MIDI ARRANGEMENT INSPECTOR — PRE-CONCERT CHECK	MIDI-ARRANGEMENT-PRÜFER — VOR DEM KONZERT
+146	Analyse each MIDI track before performance. The original MIDI file is never modified.	Analysiere jede MIDI-Spur vor dem Auftritt. Die ursprüngliche MIDI-Datei wird niemals verändert.
+147	INSPECT MIDI ARRANGEMENT	MIDI-ARRANGEMENT PRÜFEN
+148	Auto-fit untagged octaves (manual action)	Nicht markierte Oktaven automatisch anpassen (manuell)
+149	Copy Inspection Report	Prüfbericht kopieren
+150	Auto-fit skips #+12 tags, disabled lanes and saved manual octave overrides.	Automatische Anpassung überspringt #+12-Markierungen, deaktivierte Spuren und gespeicherte manuelle Oktavvorgaben.
+151	Each row: Source / playable / lowest-highest pitch / octave / instrument / assigned Bard	Je Zeile: Quelle / spielbar / tiefste–höchste Note / Oktave / Instrument / zugewiesener Bard
+152	No problems detected in the current MIDI arrangement.	Keine Probleme im aktuellen MIDI-Arrangement gefunden.
+153	Only the first 140 issues are shown; copy the full report for everything.	Nur die ersten 140 Probleme werden angezeigt; kopiere den vollständigen Bericht für alle Einträge.
+154	Concert Setlist Automation	Automatische Konzert-Setliste
+155	Automatically prepare next Ensemble song (never auto-start)	Nächsten Ensemble-Song automatisch vorbereiten (niemals automatisch starten)
+156	MIDI, tracks and instruments are staged after the piece finishes. Press native START for every new song.	MIDI, Spuren und Instrumente werden nach dem Stück vorbereitet. Drücke für jeden neuen Song den nativen START-Knopf.
+157	Concert notes for this song	Konzertnotizen für diesen Song
+158	Introduction / audience announcement##concertIntro	Einleitung / Publikumsansage
+159	Break after song (seconds)	Pause nach Song (Sekunden)
+160	HOLD after this song until I prepare next	Nach diesem Song HALTEN, bis ich den nächsten vorbereite
+161	Mark this song as an Encore	Diesen Song als Zugabe markieren
+162	Audience cue: 	Publikums-Hinweis: 
+163	Next: 	Als Nächstes: 
+164	PREPARE NEXT SONG NOW	NÄCHSTEN SONG JETZT VORBEREITEN
+165	CONCERT DIRECTOR — ORCHESTRA STAGE MANAGER	KONZERTDIREKTOR — ORCHESTER-BÜHNENLEITUNG
+166	Follower: status requests from your conductor are answered automatically.	Mitspieler: Statusanfragen des Dirigenten werden automatisch beantwortet.
+167	PREPARE ENTIRE ORCHESTRA	GESAMTES ORCHESTER VORBEREITEN
+168	Refresh Stage Status	Bühnenstatus aktualisieren
+169	Cancel Preparation	Vorbereitung abbrechen
+170	Load an Ensemble MIDI first.	Lade zuerst eine Ensemble-MIDI.
+171	Copy Stage Report	Bühnenbericht kopieren
+172	Stage reports are received via FFXIV party chat; the native Ready Check alone starts music.	Bühnenstatusberichte kommen über den FFXIV-Gruppenchat; nur der native Bereitschaftscheck startet Musik.
+173	Retry##stageRetry	Erneut versuchen
+174	No recent status report	Kein aktueller Statusbericht
+175	Native Ensemble disabled	Natives Ensemble deaktiviert
+176	Different MIDI / file not loaded	Andere MIDI / Datei nicht geladen
+177	Previous song still active / loading	Vorheriger Song noch aktiv / wird geladen
+178	Switching instrument	Instrument wird gewechselt
+179	No MIDI tracks assigned	Keine MIDI-Spuren zugewiesen
+180	Track assignment not ready	Spurzuweisung nicht bereit
+181	Output not ARMed	Ausgabe nicht scharfgeschaltet
+182	37-key Performance keyboard not ready	37-Tasten-Performance-Klaviatur nicht bereit
+183	Ready	Bereit
+184	No status report received	Kein Statusbericht empfangen
+185	All reported Bards READY. Press FFXIV native START ENSEMBLE when ready to perform.	Alle gemeldeten Barden sind BEREIT. Drücke START ENSEMBLE, um die native FFXIV-Wiedergabe zu beginnen.
+186	Synchronising the selected MIDI across the party...	Ausgewählte MIDI wird mit der Gruppe synchronisiert...
+187	MIDI loaded. Applying conductor track assignments...	MIDI geladen. Spurzuweisungen des Dirigenten werden angewendet...
+188	Tracks assigned. Automatically equipping the orchestra...	Spuren zugewiesen. Orchesterinstrumente werden automatisch angelegt...
+189	Instruments confirmed. Checking the complete orchestra...	Instrumente bestätigt. Das gesamte Orchester wird überprüft...
+190	Concert Director is not in Conductor mode.	Konzertdirektor ist nicht im Dirigentenmodus.
+191	To change only one song, untick reuse before editing tracks, then turn it on again afterwards.	Um nur einen Song zu ändern, deaktiviere die Wiederverwendung vor dem Bearbeiten und aktiviere sie danach erneut.
+192	Assign performers once; subsequent Ensemble MIDI files will reuse the lineup.	Weise die Musiker einmal zu; nachfolgende Ensemble-MIDIs verwenden dieselbe Besetzung.
+193	No track lineup assigned for this MIDI yet.	Für diese MIDI ist noch keine Spurbesetzung zugewiesen.
+194	Keep party track assignments across songs	Gruppen-Spurzuweisungen über Songs hinweg beibehalten
+195	Reuse the same Bard lineup in this Ensemble playlist. New MIDI parts follow the saved track order; saved song-specific assignments take priority.	Dieselbe Bardenbesetzung in dieser Ensemble-Playlist verwenden. Neue MIDI-Spuren folgen der gespeicherten Reihenfolge; songspezifische Zuweisungen haben Vorrang.
+196	Save current as default lineup	Aktuelle Besetzung als Standard speichern
+197	Apply saved lineup to this MIDI	Gespeicherte Besetzung auf diese MIDI anwenden
+198	Forget saved lineup	Gespeicherte Besetzung vergessen
+199	No saved lineup for this Ensemble playlist yet.	Noch keine gespeicherte Besetzung für diese Ensemble-Playlist.
+200	Default lineup stored for this Ensemble playlist.	Standardbesetzung für diese Ensemble-Playlist gespeichert.
+201	Default lineup applied to this MIDI; edit any differing tracks before SET PARTY TRACKS.	Standardbesetzung auf diese MIDI angewendet; bearbeite abweichende Spuren vor SPUREN FÜR GRUPPE FESTLEGEN.
+202	Saved lineup cleared; this MIDI's specific assignments remain.	Gespeicherte Besetzung gelöscht; die Zuweisungen dieser MIDI bleiben erhalten.
+203	No performer assignments to save. Choose party members above first.	Keine Musikerzuweisungen zum Speichern. Wähle zuerst oben Gruppenmitglieder aus.
+204	No saved party lineup available.	Keine gespeicherte Gruppenbesetzung verfügbar.
+205	Cannot change party lineup while MIDI is playing.	Während der MIDI-Wiedergabe kann die Gruppenbesetzung nicht geändert werden.
+206	The saved lineup is not erased by Clear party assignments; choose Forget saved lineup to remove it.	Die gespeicherte Besetzung wird durch Gruppenzuweisungen löschen nicht entfernt; verwende Gespeicherte Besetzung vergessen.
+207	Assign MIDI tracks to party members first to infer their instruments.	Weise zuerst MIDI-Spuren den Gruppenmitgliedern zu, damit Instrumente erkannt werden können.
+208	Instrument preference: manual (saved for this MIDI)	Instrumentvorgabe: manuell (für diese MIDI gespeichert)
+209	Instrument preference: automatic MIDI detection	Instrumentvorgabe: automatische MIDI-Erkennung
+210	Use detected instrument for this MIDI	Erkanntes Instrument für diese MIDI verwenden
+211	Re-read MIDI tags now (keep manual overrides)	MIDI-Markierungen neu einlesen (manuelle Vorgaben beibehalten)
+212	Copy detected MIDI metadata report	Bericht über erkannte MIDI-Metadaten kopieren
+213	Solo instrument suggested:	Vorgeschlagenes Solo-Instrument:
+214	manual octave overrides:	manuelle Oktavvorgaben:
+215	APPLIED	ANGEWENDET
+216	file octave	Datei-Oktave
+217	MIDI INSTRUMENTS & OCTAVE TAGS — automatic detection	MIDI-INSTRUMENTE & OKTAVMARKIERUNGEN — automatische Erkennung
+218	Auto-detect instruments from MIDI tracks / GM programs	Instrumente aus MIDI-Spuren / GM-Programmen automatisch erkennen
+219	Read #+12 / #-12 octave tags on MIDI tracks	Oktavmarkierungen #+12 / #-12 aus MIDI-Spuren lesen
+220	Track names such as #+12 #Lute or #-12 #Piano take priority over General MIDI programs. Octaves affect only their own tracks; a manual octave edit is kept on reload.	Spurnamen wie #+12 #Lute oder #-12 #Piano haben Vorrang vor General-MIDI-Programmen. Oktaven gelten nur für die jeweilige Spur; manuelle Änderungen bleiben beim Neuladen erhalten.
+221	In Ensemble, first assign tracks to Bards, then press SET PARTY INSTRUMENTS to equip the automatically detected instruments.	Im Ensemble zuerst die Spuren den Barden zuweisen, dann GRUPPENINSTRUMENTE FESTLEGEN drücken, um die automatisch erkannten Instrumente anzulegen.
+222	Use MIDI instrument suggestions (clear manual instrument overrides)	MIDI-Instrumentvorschläge verwenden (manuelle Instrumentvorgaben löschen)
+223	Restore MIDI octave tags (clear manual octave overrides)	MIDI-Oktavmarkierungen wiederherstellen (manuelle Oktavvorgaben löschen)
+224	Detected MIDI tracks, instruments and octaves	Erkannte MIDI-Spuren, Instrumente und Oktaven
+225	Unknown / keep current	Unbekannt / aktuelles Instrument beibehalten
+226	Unknown Bard	Unbekannter Bard
+227	 — conflicting instrument tracks; dominant instrument suggested (review!)	 — widersprüchliche Instrumente auf Spuren; vorherrschendes Instrument vorgeschlagen (bitte prüfen!)
+228	from	aus
+229	assigned MIDI lane(s)	zugewiesene MIDI-Spur(en)
+230	Read	Gelesen
+231	explicit octave tag(s) and instrument suggestions.	explizite Oktavmarkierung(en) und Instrumentvorschläge.
+232	octave	Oktave
+233	(optimiser default)	(Standard der Optimierung)
+234	GM	GM
+235	  (muted)	  (stumm)
+236	 MIDI notes	 MIDI-Noten
+237	 Shuffled:	 Gemischt:
+238	 already active	 bereits aktiv
+239	 chord groups	 Akkordgruppen
+240	 count-in	 Vorzähler
+241	 duplicates	 Duplikate
+242	 follower(s)	 Mitspieler
+243	 followers	 Mitspieler
+244	 initially in range	 anfangs im Tonumfang
+245	 new MIDI(s)	 neue MIDI(s)
+246	 notes held	 gehaltene Noten
+247	 notes played	 gespielte Noten
+248	 part(s)	 Stimme(n)
+249	 parts	 Stimmen
+250	 songs	 Songs
+251	 tracks	 Spuren
+252	+ Details	+ Details
+253	- Details	- Details
+254	...and more	...und weitere
+255	1. In Instruments, choose the instrument for the MIDI. With auto-switch enabled, Play first closes any different Performance instrument through the game UI, equips the new one, and starts notes after the keyboard is confirmed ready. 'Keep current' retains your existing selection.	1. Wähle unter Instrumente das Instrument für die MIDI. Bei aktiviertem automatischem Wechsel schließt Play zuerst das bisherige Instrument über die Spieloberfläche, legt das neue an und startet die Noten erst, wenn die Klaviatur bereit ist. Aktuelles beibehalten verwendet die bisherige Auswahl.
+256	2. Load your MIDI. Optimise into C3–C6, leave Full chords selected, or choose a legacy reduction for extremely dense passages.	2. Lade deine MIDI. Optimiere für C3–C6, belasse Volle Akkorde oder wähle für sehr dichte Passagen eine ältere Reduktionsmethode.
+257	2. Songs & Playback shows every MIDI track/channel, with -12 and +12 octave buttons. Changes update the FFXIV Optimiser and are saved per song.	2. Songs & Wiedergabe zeigt jede MIDI-Spur und jeden Kanal mit Oktavtasten -12 und +12. Änderungen aktualisieren die FFXIV-Optimierung und werden pro Song gespeichert.
+258	3. Open Bard Performance in EXPANDED (37-note) mode. Mini mode is not supported by this output adapter.	3. Öffne Bard-Performance im ERWEITERTEN Modus (37 Tasten). Der Miniklaviertasten-Modus wird nicht unterstützt.
+259	3. Tick ARM, test C4, then Play. The plugin calls the game Performance addon directly on each framework update. Normal chat keystrokes remain free and alt-tab is allowed.	3. Aktiviere SCHARF, teste C4 und drücke Play. Das Plugin ruft das Performance-Addon bei jedem Framework-Update direkt auf. Chat-Eingaben bleiben frei und Alt-Tab ist möglich.
+260	37-key Performance READY	37-Tasten-Performance BEREIT
+261	37-key READY	37 TASTEN BEREIT
+262	4. Click Browse MIDI to load a file, Add MIDI files to select several files, or Add MIDI folder to import a directory (optional subfolders). All pickers are drawn inside Dalamud.	4. Klicke auf MIDI durchsuchen, um eine Datei zu laden, MIDI-Dateien hinzufügen, um mehrere Dateien auszuwählen, oder MIDI-Ordner hinzufügen, um einen Ordner (optional mit Unterordnern) zu importieren. Alle Dialoge laufen innerhalb von Dalamud.
+263	5. For electric guitar, open the Guitar Tones tab, enable Override by Track, and choose Overdriven/Clean/Muted/Power Chords/Special for each MIDI track/channel. The guitar Tone Change UI must be available in Performance.	5. Öffne für E-Gitarren Gitarrenklänge, aktiviere Überschreiben nach Spur und wähle für jede MIDI-Spur Kanal Overdrive/Clean/Gedämpft/Powerchords/Spezial. Die Klangwechsel-Oberfläche muss in Performance verfügbar sein.
+264	6. /windbound stop stops the scheduler. Exported MIDI keeps the original source unchanged.	6. /windbound stop hält den Player an. Exportierte MIDI-Dateien verändern die ursprüngliche Quelle nicht.
+265	A callback being sent does not prove the game sounded every overlapping note.	Eine gesendete Spielaktion beweist nicht, dass das Spiel jede überlappende Note hörbar abgespielt hat.
+266	A guitar has one active tone at a time: simultaneous notes from tracks assigned different tones may be limited by FFXIV. Select 'Use current in-game tone' for tracks that should not trigger a switch.	Eine Gitarre hat nur einen aktiven Klang zugleich: gleichzeitige Noten aus Spuren mit verschiedenen Klängen können in FFXIV eingeschränkt sein. Wähle Aktuellen Spielklang verwenden für Spuren ohne Wechsel.
+267	A network performer disconnected; ensemble stopped to avoid an incomplete duet.	Ein Netzwerk-Musiker wurde getrennt; das Ensemble wurde gestoppt, um ein unvollständiges Duett zu vermeiden.
+268	A silent/unassigned part will not play on any Bard.	Eine stumme oder nicht zugewiesene Stimme wird von keinem Barden gespielt.
+269	ANALYSIS & PART GENERATION	ANALYSE & STIMMEN ERZEUGEN
+270	ARM in Songs & Playback; expanded Performance keyboard must be open.	In Songs & Wiedergabe SCHARF aktivieren; die erweiterte Performance-Klaviatur muss geöffnet sein.
+271	ARM live notes to FFXIV	Live-Noten an FFXIV ausgeben (SCHARF)
+272	ARM notes	Noten scharfschalten
+273	ARM output and open expanded Performance mode.	Ausgabe scharfschalten und erweiterten Performance-Modus öffnen.
+274	ARM output and open the full Bard Performance keyboard.	Ausgabe scharfschalten und die vollständige Bard-Performance-Klaviatur öffnen.
+275	ARM output and open the full Performance keyboard first.	Ausgabe scharfschalten und zuerst die vollständige Performance-Klaviatur öffnen.
+276	ARM output before starting Ensemble with assigned MIDI notes.	Ausgabe vor dem Ensemble-Start mit zugewiesenen MIDI-Noten scharfschalten.
+277	ARM output before starting the conductor's own MIDI parts.	Ausgabe vor dem Start der eigenen MIDI-Stimmen des Dirigenten scharfschalten.
+278	ARM: Direct FFXIV Performance notes (no typing into chat)	SCHARF: Direkte FFXIV-Performance-Noten (kein Tippen im Chat)
+279	About / Setup	Info / Einrichtung
+280	Add MIDI files to the playlist	MIDI-Dateien zur Playlist hinzufügen
+281	Add MIDI files...	MIDI-Dateien hinzufügen...
+282	Add MIDI folder...	MIDI-Ordner hinzufügen...
+283	Add last export to playlist	Letzten Export zur Playlist hinzufügen
+284	Add the MIDI to the active Ensemble playlist before syncing it.	MIDI vor der Synchronisierung zur aktiven Ensemble-Playlist hinzufügen.
+285	Add to end of Play Next queue	Am Ende der Als Nächstes-Warteschlange hinzufügen
+286	Add to favourites	Zu Favoriten hinzufügen
+287	Add typed file	Eingegebene Datei hinzufügen
+288	Add typed folder	Eingegebenen Ordner hinzufügen
+289	All	Alle
+290	All Bards READY. One-click ensemble START sent; instruments switched automatically.	Alle Barden BEREIT. Ein-Klick-Ensemble-START gesendet; Instrumente automatisch gewechselt.
+291	All channels (omni)	Alle Kanäle (Omni)
+292	All followers READY; waiting for my instrument and ARM output.	Alle Mitspieler BEREIT; warte auf mein Instrument und die scharfe Ausgabe.
+293	All performers must arm output before the conductor cues the local or TCP ensemble.	Vor der Freigabe des lokalen oder TCP-Ensembles müssen alle Musiker die Ausgabe scharfschalten.
+294	All playlist MIDI paths exist.	Alle MIDI-Pfade der Playlist sind vorhanden.
+295	Allow my FFXIV party leader to start my Bard automatically	Meinem FFXIV-Gruppenanführer erlauben, meinen Barden automatisch zu starten
+296	Already equipped:	Bereits angelegt:
+297	Already playing; STOP before cue.	Wiedergabe läuft bereits; vor dem Signal STOP drücken.
+298	An instrument change is already underway; wait for it to finish.	Instrumentwechsel läuft bereits; warte bis er abgeschlossen ist.
+299	Analyse & Generate Parts	Analysieren & Stimmen erzeugen
+300	Analyse all non-percussion tracks (ignore local ensemble mutes)	Alle Spuren außer Schlagzeug analysieren (lokale Ensemble-Stummschaltung ignorieren)
+301	Analysis	Analyse
+302	Another instrument is being equipped. Finish that change before starting this MIDI.	Ein anderes Instrument wird gerade angelegt. Warte damit, bevor du diese MIDI startest.
+303	Another instrument switch is already active.	Ein anderer Instrumentwechsel ist bereits aktiv.
+304	Applying conductor party-track map.	Gruppen-Spurzuweisung des Dirigenten wird angewendet.
+305	Arm output in Songs & Playback first	Zuerst unter Songs & Wiedergabe Ausgabe scharfschalten
+306	Armed: direct game callbacks. Alt-tab and chat are NOT keyboard output targets.	Scharfgeschaltet: direkte Spielaktionen. Alt-Tab und Chat sind KEINE Ziele für Tastaturausgabe.
+307	Arpeggio spacing (ms)	Arpeggio-Abstand (ms)
+308	Arrangement error:	Arrangementfehler:
+309	Assign MIDI tracks in Party-Roster Track Assignments below, then press SET PARTY TRACKS.	Weise den Barden unten unter Gruppen-Spurzuweisungen MIDI-Spuren zu und drücke SPUREN FESTLEGEN.
+310	Assign MIDI tracks to each Bard	Jedem Barden MIDI-Spuren zuweisen
+311	Assign all parts to me	Alle Stimmen mir zuweisen
+312	Assign in Ensemble later	Später im Ensemble zuweisen
+313	Assignments are saved for this MIDI and shared with same-PC Windbound clients.	Die Zuweisungen werden für diese MIDI gespeichert und mit Windbound-Clients auf demselben PC geteilt.
+314	Assignments are sent to connected multi-device followers. Stop the song before editing.	Zuweisungen werden an verbundene Mitspieler übertragen. Stoppe den Song vor dem Bearbeiten.
+315	Auto next	Automatisch nächster Song
+316	Auto next is suspended in Ensemble mode; cue each song together.	Automatischer nächster Song ist im Ensemble-Modus ausgesetzt; starte alle Songs gemeinsam.
+317	Auto next##SmartPlaylist	Automatisch nächster Song
+318	Auto-Accept Ready Check	Bereitschaftscheck automatisch annehmen
+319	Auto-Accept is ON by default for every new installation, once a Bard selects	Die automatische Annahme ist bei jeder Neuinstallation standardmäßig EIN, sobald ein Bard auswählt
+320	Auto-assign parts to FFXIV party order	Stimmen in FFXIV-Gruppenreihenfolge automatisch zuweisen
+321	Auto-switching to	Automatischer Wechsel zu
+322	Automatic close unavailable	Automatisches Schließen nicht verfügbar
+323	Automatic switching: when a different instrument is already active, Windbound requests a native Performance-window close, waits for FFXIV to exit Performance, then equips your chosen instrument through the game-owned hotbar dispatcher. No keyboard injection. If FFXIV rejects the native close on your game build, Windbound reports the reason and can continue after manual exit. Test after FFXIV updates.	Automatischer Wechsel: Wenn bereits ein anderes Instrument aktiv ist, fordert Windbound das Schließen des Performance-Fensters an, wartet, bis FFXIV Performance verlässt, und legt dann das gewählte Instrument über die native Hotbar-Funktion an. Keine Tastatureingaben. Falls FFXIV das Schließen in dieser Spielversion ablehnt, meldet Windbound den Grund und kann nach manuellem Schließen fortfahren. Nach FFXIV-Updates testen.
+324	Automatically accept FFXIV Ensemble Ready Check on this Bard	FFXIV-Ensemble-Bereitschaftscheck für diesen Barden automatisch annehmen
+325	Automatically follow the party leader's MIDI and instrument choices	MIDI- und Instrumentauswahl des Gruppenanführers automatisch übernehmen
+326	Automatically switch instrument before Play	Instrument vor der Wiedergabe automatisch wechseln
+327	Backend: native FFXIV Performance addon callbacks, not SendInput, not Windows Messages or global virtual keys. Chat input remains separate; no focus requirement.	Backend: Direkte Aufrufe des nativen FFXIV-Performance-Addons, keine SendInput-, Windows-Nachrichten- oder globalen virtuellen Tasten. Der Chat bleibt unabhängig; kein Fensterfokus nötig.
+328	Bard arrangement:	Barden-Arrangement:
+329	Bass Drum	Große Trommel
+330	Best for Edea on another PC: connect both PCs with Tailscale, use the conductor's Tailscale IP, and share the private code directly. Ordinary TCP data is not encrypted by this plugin.	Für Edea auf einem anderen PC: Verbinde beide PCs mit Tailscale, verwende die Tailscale-IP des Dirigenten und teile den privaten Code direkt. Gewöhnliche TCP-Daten werden von diesem Plugin nicht verschlüsselt.
+331	Both computers must have correctly synchronised system clocks (NTP).	Die Systemuhren beider Computer müssen korrekt synchronisiert sein (NTP).
+332	Browse MIDI...	MIDI durchsuchen...
+333	C4 callback queued for next FFXIV framework update.	C4-Aufruf für das nächste FFXIV-Framework-Update vorgemerkt.
+334	C4 test failed:	C4-Test fehlgeschlagen:
+335	C4 test queued. This does not generate a Windows keystroke.	C4-Test vorgemerkt. Dabei wird kein Windows-Tastendruck erzeugt.
+336	CONDUCTOR FILE + INSTRUMENT SYNC	DIRIGENT — DATEI- & INSTRUMENTSYNCHRONISIERUNG
+337	Can't determine local character identity; assignment not applied.	Lokaler Charakter konnte nicht identifiziert werden; Zuweisung wurde nicht angewendet.
+338	Can't start:	Start nicht möglich:
+339	Can't switch:	Wechsel nicht möglich:
+340	Cancel	Abbrechen
+341	Cannot equip Piano:	Piano kann nicht angelegt werden:
+342	Cannot identify conductor in party.	Dirigent in der Gruppe konnte nicht identifiziert werden.
+343	Cannot prepare party instruments:	Gruppeninstrumente können nicht vorbereitet werden:
+344	Cello	Cello
+345	Change Solo/Ensemble mode to open this playlist.	Zum Öffnen dieser Playlist zwischen Solo und Ensemble wechseln.
+346	Change the instrument	Instrument wechseln
+347	Change the instrument in the Instruments tab. Track octave controls are below.	Instrument im Reiter Instrumente wechseln. Oktavsteuerung der Spuren folgt unten.
+348	Changes take effect at the next Play or Ensemble cue, not mid-song.	Änderungen gelten ab dem nächsten Play- oder Ensemble-Signal, nicht mitten im Song.
+349	Changing libraries saves the previous one automatically.	Beim Wechsel der Bibliothek wird die vorherige automatisch gespeichert.
+350	Channel	Kanal
+351	Check conductor readiness	Bereitschaft des Dirigenten prüfen
+352	Choices are saved separately for every MIDI path; 'Keep current' never changes the instrument.	Die Auswahl wird für jeden MIDI-Pfad getrennt gespeichert; Aktuelles beibehalten wechselt das Instrument nie.
+353	Choose Conductor or Follower first.	Zuerst Dirigent oder Mitspieler auswählen.
+354	Choose Conductor to HOST or Follower to JOIN.	Zum HOSTEN Dirigent, zum BEITRETEN Mitspieler auswählen.
+355	Choose MIDI folder to import	MIDI-Ordner zum Importieren auswählen
+356	Choose Native Ensemble Conductor first.	Zuerst den nativen Ensemble-Dirigenten auswählen.
+357	Choose a .mid or .midi file.	Eine .mid- oder .midi-Datei auswählen.
+358	Choose a party instrument per Bard. The legacy one-click mode will prepare everyone.	Wähle pro Barden ein Gruppeninstrument. Der alte Ein-Klick-Modus bereitet alle vor.
+359	Choose a song from the active Ensemble playlist first.	Zuerst einen Song aus der aktiven Ensemble-Playlist auswählen.
+360	Choose instruments for the party before starting an ensemble.	Vor dem Ensemble-Start die Instrumente für die Gruppe auswählen.
+361	Choose the instrument for each Bard, then press SET PARTY INSTRUMENTS.	Wähle für jeden Barden das Instrument und drücke GRUPPENINSTRUMENTE FESTLEGEN.
+362	Choose the number of musicians:	Anzahl der Musiker auswählen:
+363	Choose which FFXIV Performance instrument should be equipped before this MIDI plays. Windbound switches in-game, waits for the 37-note Performance keyboard, then begins playback. No virtual-key typing or focus requirement.	Wähle das FFXIV-Performance-Instrument, das vor diesem MIDI-Song angelegt werden soll. Windbound wechselt im Spiel, wartet auf die 37-Tasten-Klaviatur und beginnt danach mit der Wiedergabe. Keine virtuellen Tastendrücke und kein Fokus erforderlich.
+364	Chord handling:	Akkordverarbeitung:
+365	Chord onsets:	Akkordanfänge:
+366	Chord test is included in Samples. Enter its full path to load it.	Der Akkordtest liegt im Samples-Ordner. Gib den vollständigen Pfad ein, um ihn zu laden.
+367	Clarinet	Klarinette
+368	Clean	Clean
+369	Clear	Leeren
+370	Clear Play Next queue	Warteschlange Als Nächstes leeren
+371	Clear party assignments	Gruppen-Spurzuweisungen löschen
+372	Clear tone choices for this MIDI	Klangvorgaben für diese MIDI löschen
+373	Clock synchronisation:	Uhrensynchronisierung:
+374	Conductor	Dirigent
+375	Conductor LAN / Tailscale IP	Dirigenten-IP (LAN / Tailscale)
+376	Conductor MIDI cannot be loaded:	MIDI des Dirigenten konnte nicht geladen werden:
+377	Conductor READY:	Dirigent BEREIT:
+378	Conductor READY: 	Dirigent BEREIT: 
+379	Conductor START rejected:	Dirigenten-START abgelehnt:
+380	Conductor STOP received.	Dirigenten-STOP empfangen.
+381	Conductor STOP received. Notes releasing, then unequipping Performance.	Dirigenten-STOP empfangen. Noten werden losgelassen, danach wird Performance beendet.
+382	Conductor chose	Dirigent hat ausgewählt
+383	Conductor cue received. No tracks assigned to my character; staying silent.	Dirigentensignal empfangen. Für meinen Charakter sind keine Spuren zugewiesen; ich bleibe stumm.
+384	Conductor has not published party assignments.	Der Dirigent hat noch keine Gruppenzuweisungen veröffentlicht.
+385	Conductor instrument PREPARE failed:	Instrumentenvorbereitung durch den Dirigenten fehlgeschlagen:
+386	Conductor party-track map rejected:	Spurzuweisung des Dirigenten abgelehnt:
+387	Conductor selected MIDI	Dirigent wählte MIDI aus
+388	Conductor sent STOP; waiting for next cue.	Dirigent sendete STOP; warte auf das nächste Signal.
+389	Conductor track map rejected:	Spurplan des Dirigenten abgelehnt:
+390	Conductor's own instrument is not ready.	Das eigene Instrument des Dirigenten ist nicht bereit.
+391	Connect keyboard	MIDI-Tastatur verbinden
+392	Connected	Verbunden
+393	Connected Windbound performers:	Verbundene Windbound-Musiker:
+394	Connected:	Verbunden:
+395	Connection code is only kept in memory. Reconnect after restarting FFXIV. Never expose TCP port publicly.	Der Verbindungscode bleibt nur im Speicher. Nach einem FFXIV-Neustart erneut verbinden. Den TCP-Port nie öffentlich freigeben.
+396	Controller octave transpose:	Oktavtransposition des Controllers:
+397	Copy MIDI loading diagnostics	MIDI-Ladediagnose kopieren
+398	Copy bindings to clipboard	Tastenbelegung in Zwischenablage kopieren
+399	Copy ensemble diagnostics	Ensemble-Diagnose kopieren
+400	Copy instrument diagnostics	Instrumentendiagnose kopieren
+401	Copy native diagnostics	Native Diagnose kopieren
+402	Copy one-click diagnostics	Ein-Klick-Diagnose kopieren
+403	Copy party-command report	Bericht über Gruppenbefehle kopieren
+404	Copy song switching diagnostics	Diagnose zum Songwechsel kopieren
+405	Copy songs from current playlist into new playlist	Songs aus aktueller Playlist in neue Playlist kopieren
+406	Could not SET Party Tracks:	Gruppenspuren konnten nicht FESTGELEGT werden:
+407	Could not add MIDI files:	MIDI-Dateien konnten nicht hinzugefügt werden:
+408	Could not apply SET:	FESTLEGEN konnte nicht angewendet werden:
+409	Could not broadcast ensemble START:	Ensemble-START konnte nicht gesendet werden:
+410	Could not change playlist mode:	Playlist-Modus konnte nicht gewechselt werden:
+411	Could not connect:	Verbindung fehlgeschlagen:
+412	Could not identify local performer.	Lokaler Musiker konnte nicht identifiziert werden.
+413	Could not load MIDI:	MIDI konnte nicht geladen werden:
+414	Could not load party song:	Gruppensong konnte nicht geladen werden:
+415	Could not load selected ensemble MIDI.	Ausgewählte Ensemble-MIDI konnte nicht geladen werden.
+416	Could not load the matching Ensemble MIDI:	Passende Ensemble-MIDI konnte nicht geladen werden:
+417	Could not play after instrument switch:	Wiedergabe nach Instrumentwechsel nicht möglich:
+418	Could not send instrument READY:	Instrumenten-BEREIT-Meldung konnte nicht gesendet werden:
+419	Could not send instrument preparation:	Instrumentenvorbereitung konnte nicht gesendet werden:
+420	Could not share MIDI:	MIDI konnte nicht geteilt werden:
+421	Could not share song selection:	Songauswahl konnte nicht geteilt werden:
+422	Couldn't publish local part assignments:	Lokale Stimmenzuweisungen konnten nicht veröffentlicht werden:
+423	Count-in before start (ms)	Vorzählzeit vor dem Start (ms)
+424	Create failed:	Erstellen fehlgeschlagen:
+425	Create playlist	Playlist erstellen
+426	Cue ensemble start	Ensemblestart auslösen
+427	Cue ignored:	Signal ignoriert:
+428	Cue received, but no MIDI tracks are assigned to this Bard. Remaining silent.	Signal empfangen, aber diesem Barden sind keine MIDI-Spuren zugewiesen. Bleibe stumm.
+429	Current MIDI isn't selected in the Ensemble playlist.	Die aktuelle MIDI ist nicht in der Ensemble-Playlist ausgewählt.
+430	Currently equipped:	Aktuell angelegt:
+431	Cymbal	Becken
+432	Different local instrument change is in progress; STOP and retry.	Ein anderer lokaler Instrumentwechsel läuft; STOP drücken und erneut versuchen.
+433	Direct Output	Direkte Ausgabe
+434	Direct Output & Test	Direkte Ausgabe & Test
+435	Direct Performance output bypasses Windows keyboard events entirely. This 37-key map remains a MANUAL reference for playing notes yourself; the player sends pitch indices through the expanded Performance interface, even if you chat or alt-tab.	Die direkte Performance-Ausgabe umgeht Windows-Tastaturereignisse vollständig. Diese 37-Tasten-Zuordnung dient nur als MANUELLE Referenz zum Selbstspielen; der Player sendet Tonindizes über die erweiterte Performance-Oberfläche, auch während Chat oder Alt-Tab.
+436	Disconnect	Trennen
+437	Disconnect from conductor	Vom Dirigenten trennen
+438	Disconnected.	Verbindung getrennt.
+439	Double Bass	Kontrabass
+440	Drag a song onto another to reorder it. Right-click for favourites, Play Next and sorting.	Ziehe einen Song auf einen anderen, um ihn neu anzuordnen. Rechtsklick für Favoriten, Als Nächstes und Sortierung.
+441	Drag the title bar to move. /windbound hud toggles visibility.	Ziehe die Titelleiste zum Verschieben. /windbound hud schaltet das HUD um.
+442	Driver errors:	Treiberfehler:
+443	Each named track becomes a separate MIDI lane. You may change instrument choices and party assignments before export.	Jede benannte Spur wird zu einer eigenen MIDI-Stimme. Instrumente und Gruppenzuweisungen kannst du vor dem Export bearbeiten.
+444	Electric Guitar: Clean	E-Gitarre: Clean
+445	Electric Guitar: Muted	E-Gitarre: Gedämpft
+446	Electric Guitar: Overdriven	E-Gitarre: Overdrive
+447	Electric Guitar: Power Chords	E-Gitarre: Powerchords
+448	Electric Guitar: Special	E-Gitarre: Spezial
+449	Electric guitars: choose Overdriven, Clean, Muted, Power Chords or Special above. Guitar Tones can still override tone per MIDI part while the song plays.	E-Gitarren: Wähle oben Overdrive, Clean, Gedämpft, Powerchords oder Spezial. Unter Gitarrenklänge kannst du pro MIDI-Stimme den Klang während des Songs überschreiben.
+450	Enable ARM on Songs & Playback for every Bard with assigned notes.	Für jeden Barden mit zugewiesenen Noten unter Songs & Wiedergabe SCHARF aktivieren.
+451	Enable FFXIV party-chat coordination.	FFXIV-Gruppenchat-Koordination aktivieren.
+452	Enable Game Ensemble and choose Conductor or Follower.	Game-Ensemble aktivieren und Dirigent oder Mitspieler auswählen.
+453	Enable Multi-Device (two or more PCs)	Multi-Geräte-Modus aktivieren (zwei oder mehr PCs)
+454	Enable Wait for conductor cue.	Auf Dirigentensignal warten aktivieren.
+455	Enable all pitched parts	Alle gestimmten Stimmen aktivieren
+456	Enable follower permission in Ensemble tab	Mitspielerberechtigung im Ensemble-Reiter aktivieren
+457	Enable live MIDI controller input	Live-MIDI-Controller-Eingabe aktivieren
+458	Enable per-track guitar-tone overrides	Gitarrenklang pro Spur überschreiben
+459	Enable permission and ARM output once per session.	Berechtigung und scharfe Ausgabe einmal pro Sitzung aktivieren.
+460	Ensemble READY:	Ensemble BEREIT:
+461	Ensemble READY: 	Ensemble BEREIT: 
+462	Ensemble cue failed:	Ensemblesignal fehlgeschlagen:
+463	Ensemble instruments are recommendations; each player equips their chosen instrument locally before cue.	Ensemble-Instrumente sind Empfehlungen; jeder Spieler legt sein Instrument lokal vor dem Start an.
+464	Ensemble library	Ensemble-Bibliothek
+465	Ensemble playing: shared-clock start, direct Performance callbacks.	Ensemble spielt: Start mit gemeinsamer Uhr, direkte Performance-Aktionen.
+466	Ensemble queued for a scheduled local clock start; no focus requirement.	Ensemble für geplanten Start der lokalen Uhr vorgemerkt; kein Fensterfokus erforderlich.
+467	Ensemble receiver:	Ensemble-Empfänger:
+468	Ensemble stage / group	Ensemble-Bühne / Gruppe
+469	Ensemble starts in	Ensemble startet in
+470	Ensemble starts in 	Ensemble startet in 
+471	Ensemble: conductor must select the next MIDI and cue the party together.	Ensemble: Der Dirigent muss die nächste MIDI auswählen und die Gruppe gemeinsam starten.
+472	Ensemble: select the next song on every client, then conductor sends a new cue.	Ensemble: Wähle auf jedem Client den nächsten Song, dann gibt der Dirigent ein neues Signal.
+473	Ensembles: conductor should STOP, then cue all Bards again to keep sync.	Ensemble: Der Dirigent sollte STOP drücken und alle Barden erneut gemeinsam starten, damit sie synchron bleiben.
+474	Enter the expanded 37-note Performance keyboard before starting Ensemble.	Vor dem Ensemble-Start die erweiterte 37-Tasten-Performance-Klaviatur öffnen.
+475	Equip FFXIV Piano (instrument 2)	FFXIV-Piano anlegen (Instrument 2)
+476	Equipping Piano; open the 37-key layout if the UI isn't visible.	Piano wird angelegt; öffne das 37-Tasten-Layout, falls die Oberfläche nicht sichtbar ist.
+477	Error	Fehler
+478	Estimated key:	Geschätzte Tonart:
+479	Expanded Performance addon detected	Erweitertes Performance-Addon erkannt
+480	Expanded Performance addon not open	Erweitertes Performance-Addon nicht geöffnet
+481	Export	Exportieren
+482	Export & add to Ensemble playlist	Exportieren & zur Ensemble-Playlist hinzufügen
+483	Export & add to Solo playlist	Exportieren & zur Solo-Playlist hinzufügen
+484	Export / studio status:	Export-/Studiostatus:
+485	Export Soulweaver arrangement	Soulweaver-Arrangement exportieren
+486	Export Windbound playlist	Windbound-Playlist exportieren
+487	Export arrangement MIDI...	Arrangement-MIDI exportieren...
+488	Export failed:	Export fehlgeschlagen:
+489	Export new FFXIV C3-C6 MIDI	Neue FFXIV-MIDI für C3–C6 exportieren
+490	Export playlist JSON...	Playlist-JSON exportieren...
+491	Export to playlist failed:	Export zur Playlist fehlgeschlagen:
+492	Export verified:	Export überprüft:
+493	Exported and verified:	Exportiert und geprüft:
+494	Exported notes:	Exportierte Noten:
+495	Exported playlist:	Exportierte Playlist:
+496	Exporter keeps original MIDI unchanged; arrangement modes affect playback only.	Beim Export bleibt die ursprüngliche MIDI unverändert; Arrangementmodi wirken nur auf die Wiedergabe.
+497	Exports preserve original tempo changes and create one track per musician.	Exporte erhalten die ursprünglichen Tempowechsel und erzeugen eine Spur pro Musiker.
+498	FFXIV Ensemble START received but local MIDI start failed:	FFXIV-Ensemble-START empfangen, aber lokaler MIDI-Start fehlgeschlagen:
+499	FFXIV Optimiser	FFXIV-Optimierung
+500	FFXIV Ready Check	FFXIV-Bereitschaftscheck
+501	FFXIV Ready Check auto-accepts on prepared participants; game sends the synchronised START. No party-chat timers.	Vorbereitete Barden nehmen den FFXIV-Bereitschaftscheck automatisch an; das Spiel sendet den synchronisierten START. Keine Gruppenchat-Timer.
+502	FFXIV hotbar module is not ready.	Das FFXIV-Hotbar-Modul ist nicht bereit.
+503	FFXIV native Ensemble START listener: ONLINE	Nativer FFXIV-Ensemble-START-Empfänger: ONLINE
+504	FFXIV still reports Performance active.	FFXIV meldet Performance weiterhin als aktiv.
+505	FFXIV supports only C3-C6. Velocity is not controllable by the in-game keyboard callbacks.	FFXIV unterstützt nur C3–C6. Die Anschlagstärke lässt sich über die Spielklaviatur nicht steuern.
+506	FFXIV • C3–C6 • Dalamud 15 • Native Ensemble + Soulweaver	FFXIV • C3–C6 • Dalamud 15 • Natives Ensemble + Soulweaver
+507	FOLLOWER: No Play or Confirm click. Wait for FFXIV's native Ready Check.	MITSPIELER: Kein Play oder Bestätigen nötig. Auf den nativen FFXIV-Bereitschaftscheck warten.
+508	FOLLOWER: Song choice and SET instrument commands apply automatically.	MITSPIELER: Songauswahl und Instrument-FESTLEGEN-Befehle werden automatisch übernommen.
+509	Failed	Fehlgeschlagen
+510	Favourite	Favorit
+511	Favourites only	Nur Favoriten
+512	Fiddle	Fiedel
+513	Fife	Piccoloflöte
+514	File:	Datei:
+515	File: 	Datei: 
+516	Filename	Dateiname
+517	Filter tags	Tags filtern
+518	Finish the previous performance and reset the MIDI before the next cue.	Vor dem nächsten Signal die vorherige Wiedergabe beenden und die MIDI zurücksetzen.
+519	Finishing the previous song's note releases; playback will start automatically.	Noten der vorherigen Wiedergabe werden freigegeben; danach startet die neue Wiedergabe automatisch.
+520	Flute	Flöte
+521	Fold other octaves into C3-C6	Andere Oktaven in C3–C6 umlegen
+522	Folder imported:	Ordner importiert:
+523	Folder scan failed:	Ordnersuche fehlgeschlagen:
+524	Follow conductor's party-track assignments	Spurzuweisungen des Dirigenten übernehmen
+525	Follow party leader	Gruppenanführer folgen
+526	Follower	Mitspieler
+527	Follower not ready:	Mitspieler nicht bereit:
+528	Follower or Conductor	Mitspieler oder Dirigent
+529	Follower or Conductor and ARMs output. The leader can auto-load each player's matching MIDI,	Mitspieler oder Dirigent und schaltet die Ausgabe scharf. Der Anführer kann die passende MIDI jedes Spielers automatisch laden,
+530	Follower status check:	Mitspieler-Statusprüfung:
+531	Follower: wait for your conductor's ensemble cue.	Mitspieler: Warte auf das Ensemble-Signal deines Dirigenten.
+532	Followers are not ready:	Mitspieler sind nicht bereit:
+533	Followers only opt in once per plugin session; no per-song acceptance required.	Mitspieler stimmen nur einmal pro Plugin-Sitzung zu; keine Bestätigung pro Song nötig.
+534	Followers switch automatically, then the game synchronises START via native Ready Check.	Mitspieler wechseln automatisch ihre Instrumente; danach synchronisiert das Spiel den START über den nativen Bereitschaftscheck.
+535	For ensemble synchronization, use STOP (not Pause). Cue again to restart.	Für synchronisierte Ensembles STOP verwenden (nicht Pause). Zum Fortsetzen erneut ein Signal geben.
+536	From	Von
+537	Full chords / original timing (experimental)	Volle Akkorde / Originaltiming (experimentell)
+538	Full player	Vollständiger Player
+539	GUITAR TONE OVERRIDE BY TRACK	GITARRENKLANG NACH SPUR ÜBERSCHREIBEN
+540	Generate a Soulweaver arrangement first.	Zuerst ein Soulweaver-Arrangement erzeugen.
+541	Generate an arrangement and export it first.	Zuerst ein Arrangement erzeugen und exportieren.
+542	Generate code	Code erzeugen
+543	Gentle arpeggio	Sanftes Arpeggio
+544	Guitar Tones	Gitarrenklänge
+545	Guitar tone selector detected in FFXIV.	Gitarrenklang-Auswahl in FFXIV erkannt.
+546	HOST a private ensemble first.	Zuerst ein privates Ensemble HOSTEN.
+547	HOST private ensemble	Privates Ensemble HOSTEN
+548	Harp	Harfe
+549	Held notes:	Gehaltene Noten:
+550	Hide HUD	HUD ausblenden
+551	Hide Performance HUD	Performance-HUD ausblenden
+552	Highest (melody)	Höchste Note (Melodie)
+553	Horn	Horn
+554	Host failed:	Hosting fehlgeschlagen:
+555	Hosting stopped.	Hosting beendet.
+556	Hosting. Tell Edea your private IP, port, stage and code.	Hosting aktiv. Teile Edea deine private IP, den Port, die Bühne und den Code mit.
+557	IMPORTANT: Experimental native game interface; callback behaviour can change with FFXIV patches. Some instruments may not sustain every simultaneous chord tone. Verify by ear. Third-party plugins may violate the game's terms and Performance music rules.	WICHTIG: Experimentelle native Spielschnittstelle; FFXIV-Updates können Aufrufe verändern. Manche Instrumente halten eventuell nicht alle gleichzeitigen Akkordtöne. Nach Gehör prüfen. Drittanbieter-Plugins können gegen Spielregeln und Performance-Musikregeln verstoßen.
+558	INSTRUMENT SELECTION — PER MIDI	INSTRUMENTAUSWAHL — PRO MIDI
+559	If the conductor switched locally but you did not, check the receiver diagnostics below.	Wenn der Dirigent lokal gewechselt hat, du jedoch nicht: prüfe unten die Empfängerdiagnose.
+560	Ignored START:	START ignoriert:
+561	Ignored conductor START: permission not enabled on this Follower.	Dirigenten-START ignoriert: Mitspielerberechtigung nicht aktiviert.
+562	Ignored repeated one-click START cue (duplicate nonce).	Doppeltes Ein-Klick-START-Signal ignoriert.
+563	Import Windbound playlist	Windbound-Playlist importieren
+564	Import failed:	Import fehlgeschlagen:
+565	Import playlist JSON...	Playlist-JSON importieren...
+566	In Ensemble mode the queue is for planning; performers still use the conductor's cue.	Im Ensemble-Modus dient die Warteschlange nur zur Planung; die Musiker folgen weiterhin dem Dirigentensignal.
+567	In ensemble mode, conductor must cue everybody again.	Im Ensemble muss der Dirigent alle erneut gemeinsam starten.
+568	Include subfolders when importing MIDI folders	Beim Importieren von MIDI-Ordnern Unterordner einschließen
+569	Instrument READY	Instrument BEREIT
+570	Instrument SET failed:	Instrument-FESTLEGEN fehlgeschlagen:
+571	Instrument already stowed; FFXIV Performance state inactive.	Instrument bereits verstaut; FFXIV-Performance nicht aktiv.
+572	Instrument for this MIDI:	Instrument für diese MIDI:
+573	Instrument for this song	Instrument für diesen Song
+574	Instrument preparation failed:	Instrumentenvorbereitung fehlgeschlagen:
+575	Instrument preparation is already running. Use STOP to cancel.	Instrumentenvorbereitung läuft bereits. Mit STOP abbrechen.
+576	Instrument ready:	Instrument bereit:
+577	Instrument request cancelled; no further action will be sent.	Instrumentenanforderung abgebrochen; es wird keine weitere Aktion gesendet.
+578	Instrument stowed: FFXIV confirms Performance mode ended.	Instrument verstaut: FFXIV bestätigt das Ende des Performance-Modus.
+579	Instrument switch failed; playback not started:	Instrumentwechsel fehlgeschlagen; Wiedergabe nicht gestartet:
+580	Instrument switch requested:	Instrumentwechsel angefordert:
+581	Instrument switching diagnostics	Instrumentwechsel-Diagnose
+582	Instrument:	Instrument:
+583	Instrument: 	Instrument: 
+584	Interface language:	Sprache der Oberfläche:
+585	JOIN conductor	DIRIGENT BEITRETEN
+586	Join a party with at least two identifiable characters first.	Zuerst einer Gruppe mit mindestens zwei identifizierbaren Charakteren beitreten.
+587	Join an FFXIV party with the other Bards first.	Zuerst einer FFXIV-Gruppe mit den anderen Barden beitreten.
+588	Join failed:	Beitritt fehlgeschlagen:
+589	Joining. Waiting for the conductor to share MIDI and tracks.	Beitritt läuft. Warte darauf, dass der Dirigent MIDI und Spuren freigibt.
+590	Keep ARM enabled for musical output. Auto-Accept Ready Check is separately enabled above.	Ausgabe für die Musik scharfgeschaltet lassen. Die automatische Annahme des Bereitschaftschecks ist oben separat aktiviert.
+591	Keep current	Aktuelles beibehalten
+592	Keep current instrument	Aktuelles Instrument beibehalten
+593	Keep current##0-	Aktuelles beibehalten
+594	LIVE MIDI PIANO — SOLO PERFORMANCE	LIVE-MIDI-PIANO — SOLO-PERFORMANCE
+595	LIVE MIDI is Solo-only. Select Solo in Ensemble before connecting/playing.	LIVE MIDI funktioniert nur im Solo-Modus. Vor dem Verbinden oder Spielen unter Ensemble Solo auswählen.
+596	LOCAL mode: all Windbound Bard clients share the same Windows PC. No network connection required.	LOKAL-Modus: Alle Windbound-Clients laufen auf demselben Windows-PC. Keine Netzwerkverbindung erforderlich.
+597	Last MIDI note:	Letzte MIDI-Note:
+598	Leader STOP has not been requested.	Der Anführer hat noch keinen STOP angefordert.
+599	Leader STOP requested; unequipping Performance.	Anführer-STOP angefordert; Performance-Instrument wird verstaut.
+600	Leader STOP: requesting FFXIV's native unequip action (instrument 0)...	Anführer-STOP: natives FFXIV-Verstauen (Instrument 0) wird angefordert...
+601	Leader only. One click: PREPARE instruments → wait for READY → START together.	Nur Anführer. Ein Klick: Instrumente VORBEREITEN → auf BEREIT warten → gemeinsam STARTEN.
+602	Live MIDI Piano	Live-MIDI-Piano
+603	Live MIDI playing	Live-MIDI spielt
+604	Load a MIDI and select Analyse & Generate to build an arrangement.	Lade eine MIDI und wähle Analysieren & Erzeugen, um ein Arrangement zu erstellen.
+605	Load a MIDI first.	Zuerst eine MIDI laden.
+606	Load a MIDI in Songs & Playback first to store an instrument for it.	Lade zuerst unter Songs & Wiedergabe eine MIDI, um ein Instrument dafür zu speichern.
+607	Load a MIDI in Songs & Playback first, then return here.	Lade zuerst eine MIDI unter Songs & Wiedergabe und kehre dann hierher zurück.
+608	Load a MIDI in Songs & Playback first.	Lade zuerst eine MIDI unter Songs & Wiedergabe.
+609	Load a MIDI in the full player	MIDI im vollständigen Player laden
+610	Load a MIDI to choose instruments for the party.	Lade eine MIDI, um Gruppeninstrumente auszuwählen.
+611	Load a MIDI to configure guitar tones by track/channel.	Lade eine MIDI, um Gitarrenklänge pro Spur/Kanal einzustellen.
+612	Load a Standard MIDI File (.mid / .midi), format 0 or 1:	Standard-MIDI-Datei laden (.mid / .midi), Format 0 oder 1:
+613	Load a song first; each PC must have the SAME MIDI for FFXIV Game Ensemble.	Lade zuerst einen Song; für das FFXIV-Ensemble muss auf jedem PC dieselbe MIDI vorhanden sein.
+614	Load an Ensemble MIDI to choose party members for each part.	Lade eine Ensemble-MIDI, um den Stimmen Gruppenmitglieder zuzuweisen.
+615	Load and prepare a MIDI first.	Zuerst eine MIDI laden und vorbereiten.
+616	Load chord test	Akkordtest laden
+617	Load exported arrangement in Windbound	Exportiertes Arrangement in Windbound laden
+618	Load sample	Beispiel laden
+619	Load the Ensemble MIDI before setting tracks.	Lade die Ensemble-MIDI vor dem Festlegen der Spuren.
+620	Load the matching ensemble MIDI before opening FFXIV Ready Check.	Lade die passende Ensemble-MIDI vor dem Öffnen des FFXIV-Bereitschaftschecks.
+621	Load the same prepared MIDI on both clients before accepting Ready Check.	Lade auf beiden Clients dieselbe vorbereitete MIDI, bevor du den Bereitschaftscheck annimmst.
+622	Load typed path	Eingegebenen Pfad laden
+623	Loaded song differs from conductor.	Geladener Song unterscheidet sich vom Dirigenten.
+624	Loaded:	Geladen:
+625	Loading	Wird geladen
+626	Local Bard is missing from the conductor's instrument map.	Lokaler Bard fehlt im Instrumentplan des Dirigenten.
+627	Local START gate:	Lokale START-Sperre:
+628	Local STOP + unequip queued; party signal failed:	Lokaler STOP + Verstauen vorgemerkt; Gruppensignal fehlgeschlagen:
+629	Local STOP + unequip queued; remote STOP NOT delivered:	Lokaler STOP + Verstauen vorgemerkt; entfernter STOP NICHT zugestellt:
+630	Local playback could not be prepared:	Lokale Wiedergabe konnte nicht vorbereitet werden:
+631	Local same-PC ensemble mode.	Lokaler Ensemble-Modus auf demselben PC.
+632	Lock	Sperren
+633	Log into FFXIV before switching instruments.	Vor dem Instrumentwechsel in FFXIV einloggen.
+634	Loudest	Lauteste
+635	Lowest	Tiefste
+636	Lute	Laute
+637	MIDI PANIC	MIDI-NOTSTOPP
+638	MIDI TRACKS & OCTAVES	MIDI-SPUREN & OKTAVEN
+639	MIDI channel	MIDI-Kanal
+640	MIDI file playback is running. Live keys are safely suspended until the song stops.	MIDI-Dateiwiedergabe läuft. Live-Tasten sind sicher ausgesetzt, bis der Song stoppt.
+641	MIDI hardware reported an invalid message: released all held notes. Check the MIDI cable/driver.	MIDI-Hardware meldete eine ungültige Nachricht: alle gehaltenen Noten wurden losgelassen. MIDI-Kabel/Treiber prüfen.
+642	MIDI input device	MIDI-Eingabegerät
+643	MIDI input enumeration unavailable:	MIDI-Eingabegeräte konnten nicht abgefragt werden:
+644	MIDI input overflow: released all notes. Check computer load or device driver.	MIDI-Eingabe überlastet: alle Noten losgelassen. Rechnerlast oder Gerätetreiber prüfen.
+645	MIDI is not prepared.	MIDI ist nicht vorbereitet.
+646	MIDI is received into your plugin cache, never added to your saved Solo/Ensemble playlists.	MIDI wird im Plugin-Cache empfangen und nie zu gespeicherten Solo-/Ensemble-Playlists hinzugefügt.
+647	MIDI isn't idle or finished loading.	MIDI ist nicht im Leerlauf oder noch nicht vollständig geladen.
+648	MIDI keyboard disconnected. Notes will be released on the game update thread.	MIDI-Tastatur getrennt. Die Noten werden im nächsten Spiel-Update freigegeben.
+649	MIDI loading diagnostics (for sharing errors)	MIDI-Ladediagnose (für Fehlermeldungen)
+650	MIDI mismatch; sync conductor's selected MIDI first.	MIDI stimmt nicht überein; zuerst die ausgewählte MIDI des Dirigenten synchronisieren.
+651	MIDI notes	MIDI-Noten
+652	MIDI parts	MIDI-Stimmen
+653	MIDI-to-Performance callback failed:	MIDI-zu-Performance-Aufruf fehlgeschlagen:
+654	MIDI/assignment sharing failed:	Teilen von MIDI/Zuweisungen fehlgeschlagen:
+655	MIDI/part map sent; followers must acknowledge the updated revision.	MIDI-/Stimmenplan gesendet; Mitspieler müssen die neue Version bestätigen.
+656	MUSICIAN PARTS & INSTRUMENT RECOMMENDATIONS	MUSIKERSTIMMEN & INSTRUMENTEMPFEHLUNGEN
+657	Manually confirm my Ready Check	Meinen Bereitschaftscheck manuell bestätigen
+658	Matching MIDI isn't loaded; the leader's playlist entry is missing locally.	Passende MIDI nicht geladen; der Playlist-Eintrag des Anführers fehlt lokal.
+659	Matching MIDI loaded and track assignments applied:	Passende MIDI geladen und Spurzuweisungen angewendet:
+660	Matching MIDI missing from Ensemble playlist.	Passende MIDI fehlt in der Ensemble-Playlist.
+661	Minimum note duration (ms)	Mindestdauer einer Note (ms)
+662	Minimum note gap (ms)	Mindestabstand zwischen Noten (ms)
+663	Move Down	Nach unten verschieben
+664	Move Up	Nach oben verschieben
+665	Move one place down	Eine Position nach unten
+666	Move one place up	Eine Position nach oben
+667	Move:	Verschieben:
+668	Musical phrases:	Musikalische Phrasen:
+669	Mute/unmute each track/channel; change octave in 12-semitone steps. Same settings as the Optimiser.	Jede Spur/Kanal stummschalten oder aktivieren; Oktaven in 12-Halbtonschritten ändern. Dieselben Einstellungen wie im Optimierer.
+670	Muted	Gedämpft
+671	My party character:	Mein Gruppencharakter:
+672	NUNU'S ENSEMBLE STAGE	NUNUS ENSEMBLE-BÜHNE
+673	Native Ensemble diagnostics / manual fallback	Native Ensemble-Diagnose / manuelle Alternative
+674	Native Ensemble listener unavailable (game patch / signature mismatch)	Nativer Ensemble-Empfänger nicht verfügbar (Spielupdate / Signatur stimmt nicht)
+675	Native Ensemble: keep MIDI loaded, ARM and open the 37-key Performance UI. Incoming Ready Checks are auto-confirmed.	Natives Ensemble: MIDI geladen lassen, Ausgabe scharfschalten und 37-Tasten-Klaviatur öffnen. Eingehende Bereitschaftschecks werden automatisch bestätigt.
+676	Native Ready Check still works, but each Bard must choose its own file and instrument.	Der native Bereitschaftscheck funktioniert weiter, aber jeder Bard muss Datei und Instrument selbst wählen.
+677	Native mode: the leader's MIDI selection can load your matching file and assigned tracks automatically.	Nativer Modus: Die MIDI-Auswahl des Anführers kann deine passende Datei und zugewiesenen Spuren automatisch laden.
+678	Native: track assignments are sent to followers when the leader selects a MIDI; music START still comes from FFXIV.	Nativ: Spurzuweisungen werden beim MIDI-Wechsel des Anführers an Mitspieler gesendet; Musik-START kommt weiterhin aus FFXIV.
+679	Network	Netzwerk
+680	New playlist name	Neuer Playlistname
+681	Next	Nächster
+682	Next:	Als Nächstes:
+683	No	Nein
+684	No MIDI files will be deleted from disk.	MIDI-Dateien auf der Festplatte werden nicht gelöscht.
+685	No MIDI load errors recorded this session.	In dieser Sitzung keine MIDI-Ladefehler aufgezeichnet.
+686	No MIDI loaded	Keine MIDI geladen
+687	No MIDI ports listed. Click Refresh after connecting the synth piano.	Keine MIDI-Anschlüsse gefunden. Verbinde dein Synth-Piano und klicke auf Aktualisieren.
+688	No MIDI song file needed, no Windows keystrokes and no chat interference.	Keine MIDI-Songdatei nötig, keine Windows-Tastendrücke und keine Beeinträchtigung des Chats.
+689	No Tailscale or separate party-chat PLAY timer.	Kein Tailscale und kein separater Gruppenchat-PLAY-Timer.
+690	No VPN, port forwarding, Windows IPC, or game Ready Check required.	Kein VPN, Port-Forwarding, Windows-IPC oder Spielbereitschaftscheck erforderlich.
+691	No clicking in your client is needed for each new song.	Für jeden neuen Song ist auf deinem Client kein weiterer Klick nötig.
+692	No conductor MIDI selection received yet.	Noch keine MIDI-Auswahl vom Dirigenten empfangen.
+693	No conductor Set Party Tracks received yet.	Noch kein SPUREN FESTLEGEN vom Dirigenten empfangen.
+694	No conductor instrument SET received yet.	Noch kein INSTRUMENTE FESTLEGEN vom Dirigenten empfangen.
+695	No file contents, filesystem paths or account IDs are transmitted.	Keine Dateiinhalte, Dateipfade oder Konto-IDs werden übertragen.
+696	No followers connected yet.	Noch keine Mitspieler verbunden.
+697	No guitar tone selector detected; equip an electric guitar in Performance for tone switching.	Kein Gitarrenklang-Menü erkannt; lege eine E-Gitarre in Performance an.
+698	No loaded MIDI song is necessary.	Eine geladene MIDI-Songdatei ist nicht erforderlich.
+699	No notes for this part	Keine Noten für diese Stimme
+700	No parts assigned	Keine Stimmen zugewiesen
+701	No party members detected. Enter a party or log in as a character.	Keine Gruppenmitglieder erkannt. Einer Gruppe beitreten oder mit einem Charakter einloggen.
+702	No song loaded	Kein Song geladen
+703	No song loaded.	Kein Song geladen.
+704	No tracks assigned locally.	Lokal keine Spuren zugewiesen.
+705	No tracks assigned to this client.	Diesem Client sind keine Spuren zugewiesen.
+706	Non-destructive octave adaptation for Bard Performance (C3–C6). Full-chord mode preserves MIDI note start times and durations; FFXIV may still limit the audible overlap.	Schonende Oktavanpassung für Bard-Performance (C3–C6). Der Modus Volle Akkorde erhält Startzeiten und Dauer der MIDI-Noten; FFXIV kann trotzdem die hörbare Überlagerung begrenzen.
+707	Not connected. Multi-Device is opt-in.	Nicht verbunden. Der Multi-Geräte-Modus ist optional.
+708	Not resolved	Nicht geklärt
+709	ONE-CLICK PARTY ENSEMBLE — NO MANUAL READY CHECK	GRUPPENENSEMBLE MIT EINEM KLICK — KEIN MANUELLER BEREITSCHAFTSCHECK
+710	Oboe	Oboe
+711	Octave adjustment help	Hilfe zur Oktavanpassung
+712	Octave shift:	Oktavverschiebung:
+713	Octave-optimised:	Oktavoptimiert:
+714	Off	Aus
+715	Off = ignore notes outside the 37-key range	Aus = Noten außerhalb des 37-Tasten-Tonumfangs ignorieren
+716	Once set, each client uses only its assigned parts.	Nach dem Festlegen spielt jeder Client nur seine zugewiesenen Stimmen.
+717	One	Eins
+718	One application may have exclusive access to a USB MIDI port.	Eine andere Anwendung könnte den USB-MIDI-Anschluss exklusiv belegen.
+719	One click automatically prepares the selected instruments, waits for	Ein Klick bereitet die gewählten Instrumente automatisch vor und wartet auf
+720	One-click: opt in once above, ARM output, and wait for your leader.	Ein-Klick: Oben einmal zustimmen, Ausgabe scharfschalten und auf den Anführer warten.
+721	Only this	Nur dieser
+722	Opacity	Deckkraft
+723	Open MIDI for Windbound Bard	MIDI für Windbound Bard öffnen
+724	Open expanded 37-key Performance	Erweiterte 37-Tasten-Performance öffnen
+725	Open expanded 37-note Performance keyboard for direct output	Erweiterte 37-Tasten-Performance-Klaviatur für die direkte Ausgabe öffnen
+726	Or use the typed path above:	Oder den oben eingegebenen Pfad verwenden:
+727	Out-of-range:	Außerhalb des Tonumfangs:
+728	Output armed	Ausgabe scharfgeschaltet
+729	Overdriven	Overdrive
+730	Overflow:	Überlauf:
+731	PANIC: All Notes Off	PANIK: Alle Noten aus
+732	PARTY	GRUPPE
+733	PARTY INSTRUMENTS — AUTO-SWITCH BEFORE PLAY	GRUPPENINSTRUMENTE — VOR DEM SPIELEN AUTOMATISCH WECHSELN
+734	PARTY INSTRUMENTS — CONDUCTOR CHOICE	GRUPPENINSTRUMENTE — AUSWAHL DES DIRIGENTEN
+735	PARTY-ROSTER TRACK ASSIGNMENTS	SPURZUWEISUNGEN NACH GRUPPENMITGLIED
+736	PLAY	ABSPIELEN
+737	PLAY ENSEMBLE	ENSEMBLE ABSPIELEN
+738	PLAY ENSEMBLE (one click)	ENSEMBLE ABSPIELEN (ein Klick)
+739	PLAY ENSEMBLE — auto-switch instruments & start	ENSEMBLE ABSPIELEN — Instrumente automatisch wechseln & starten
+740	PREPARE, READY and PLAY are visible FFXIV party messages.	VORBEREITEN, BEREIT und ABSPIELEN sind sichtbare FFXIV-Gruppennachrichten.
+741	PRIVATE MULTI-DEVICE ENSEMBLE	PRIVATES ENSEMBLE AUF MEHREREN GERÄTEN
+742	Panpipes	Panflöte
+743	Parts assigned to THIS Bard client:	DIESEM BARDEN zugewiesene Stimmen:
+744	Party assignments are active; conductor controls the note lanes. Manual checkboxes may be replaced.	Gruppenzuweisungen sind aktiv; der Dirigent bestimmt die Spuren. Manuelle Häkchen können überschrieben werden.
+745	Party command receiver diagnostics	Gruppenbefehls-Empfängerdiagnose
+746	Party-chat delivery and client frame timing can cause drift; native FFXIV Ensemble remains more precise.	Die Gruppenchat-Zustellung und Bildrate können die Synchronität beeinflussen; das native FFXIV-Ensemble ist genauer.
+747	Paused	Pausiert
+748	Per-performer chord limit (0 = unlimited)	Akkordlimit pro Musiker (0 = unbegrenzt)
+749	Performance mode not detected (preview still works)	Performance-Modus nicht erkannt (Vorschau funktioniert weiterhin)
+750	Performance not ready	Performance nicht bereit
+751	Performance: FULL 37-KEY READY	Performance: ALLE 37 TASTEN BEREIT
+752	Piano roll: C6 (top) to C3 (bottom) | 7.6s window	Pianorolle: C6 (oben) bis C3 (unten) | 7,6-s-Fenster
+753	Play	Abspielen
+754	Play FFXIV Piano live using your USB MIDI keyboard / synthesizer.	FFXIV-Piano live mit deinem USB-MIDI-Keyboard oder Synthesizer spielen.
+755	Play NEXT (top of queue)	ALS NÄCHSTES ABSPIELEN (Warteschlangenanfang)
+756	Play Next	Als Nächstes
+757	Play Next queue	Als Nächstes-Warteschlange
+758	Play Next queue ({smart.PlayNext.Count})	Als Nächstes-Warteschlange ({smart.PlayNext.Count})
+759	Play Next requests take priority; Repeat One is bypassed by manual Next.	Als Nächstes hat Vorrang; manuelles Weiter überspringt Eins wiederholen.
+760	Playable octave shifts: -48 to +48 semitones, by 12. Edits affect the next playback.	Spielbare Oktavverschiebungen: -48 bis +48 Halbtöne in 12er-Schritten. Änderungen gelten ab der nächsten Wiedergabe.
+761	Playback speed	Wiedergabegeschwindigkeit
+762	Playback-only transpose (semitones)	Nur für Wiedergabe transponieren (Halbtöne)
+763	Playing	Spielt
+764	Playing in FFXIV	Spielt in FFXIV
+765	Playlist	Playlist
+766	Playlist library	Playlist-Bibliothek
+767	Playlist library##StoredList	Playlist-Bibliothek
+768	Playlist:	Playlist:
+769	Power Chords	Powerchords
+770	Prepared	Vorbereitet
+771	Prepared notes:	Vorbereitete Noten:
+772	Prepared playback:	Vorbereitete Wiedergabe:
+773	Preparing ensemble instruments...	Ensemble-Instrumente werden vorbereitet...
+774	Preview	Vorschau
+775	Private duet code (not saved)	Privater Duett-Code (nicht gespeichert)
+776	Publish assignments	Zuweisungen veröffentlichen
+777	READY	BEREIT
+778	Range:	Tonumfang:
+779	Ready for conductor cue	Bereit für das Dirigentensignal
+780	Ready to perform.	Bereit zum Auftreten.
+781	Ready to play.	Bereit zum Spielen.
+782	Recalculate suggested octaves	Vorgeschlagene Oktaven neu berechnen
+783	Received notes:	Empfangene Noten:
+784	Recently played	Kürzlich gespielt
+785	Recently played ({smart.Recent.Count})	Kürzlich gespielt ({smart.Recent.Count})
+786	Recommended: native FFXIV Ensemble synchronisation (the same Ready Check and game START mechanism used by MidiBard 2).	Empfohlen: Native FFXIV-Ensemble-Synchronisierung (derselbe Bereitschaftscheck und Spiel-START wie bei MidiBard 2).
+787	Reconnect keyboard	MIDI-Tastatur erneut verbinden
+788	Refresh MIDI devices	MIDI-Geräte aktualisieren
+789	Remaining silent.	Bleibe stumm.
+790	Remove	Entfernen
+791	Remove from playlist (keep file)	Aus Playlist entfernen (Datei behalten)
+792	Remove missing playlist entries	Fehlende Playlist-Einträge entfernen
+793	Remove missing playlist entries?	Fehlende Playlist-Einträge entfernen?
+794	Remove selected	Auswahl entfernen
+795	Rename	Umbenennen
+796	Rename current list	Aktuelle Liste umbenennen
+797	Repair remaining high/low notes by octaves	Verbliebene zu hohe/tiefe Noten durch Oktaven anpassen
+798	Repeat	Wiederholen
+799	Repeat##smart	Wiederholen
+800	Reset	Zurücksetzen
+801	Reset MIDI to start (00:00)	MIDI an den Anfang zurücksetzen (00:00)
+802	Reset all octaves to 0	Alle Oktaven auf 0 zurücksetzen
+803	Reset octave	Oktave zurücksetzen
+804	Restore 37-key preset	37-Tasten-Vorlage wiederherstellen
+805	Resume	Fortsetzen
+806	Review removing	Entfernen prüfen
+807	Right-click for Reset MIDI to 00:00 (local account only).	Rechtsklick: MIDI an den Anfang (00:00) zurücksetzen (nur lokaler Account).
+808	Right-click to STOP and reset this MIDI to 00:00 (local player only).	Rechtsklick: MIDI STOPPEN und auf 00:00 zurücksetzen (nur lokaler Player).
+809	SAVE / ADD TO LIBRARY	SPEICHERN / ZUR BIBLIOTHEK HINZUFÜGEN
+810	SAVED ENSEMBLE PLAYLISTS	GESPEICHERTE ENSEMBLE-PLAYLISTS
+811	SAVED SOLO PLAYLISTS	GESPEICHERTE SOLO-PLAYLISTS
+812	SAVED {kind} PLAYLISTS	GESPEICHERTE {kind}-PLAYLISTS
+813	SET PARTY INSTRUMENTS — auto-switch everyone	GRUPPENINSTRUMENTE FESTLEGEN — alle automatisch wechseln
+814	SET PARTY TRACKS — assign every Bard	GRUPPENSPUREN FESTLEGEN — jedem Barden zuweisen
+815	SET PARTY TRACKS — send to every Bard	GRUPPENSPUREN FESTLEGEN — an jeden Barden senden
+816	SET changes instruments only. START ENSEMBLE below uses FFXIV's native Ready Check.	FESTLEGEN ändert nur Instrumente. ENSEMBLE STARTEN unten nutzt den nativen FFXIV-Bereitschaftscheck.
+817	SMART PLAYLIST MANAGER	INTELLIGENTE PLAYLISTVERWALTUNG
+818	SMART PLAYLIST MANAGER —	INTELLIGENTE PLAYLISTVERWALTUNG —
+819	SOULWEAVER — ADAPTIVE ORCHESTRA STUDIO	SOULWEAVER — ADAPTIVES ORCHESTERSTUDIO
+820	START ENSEMBLE (FFXIV native)	ENSEMBLE STARTEN (FFXIV nativ)
+821	START ENSEMBLE (native)	ENSEMBLE STARTEN (nativ)
+822	START ENSEMBLE — FFXIV Ready Check	ENSEMBLE STARTEN — FFXIV-Bereitschaftscheck
+823	STOP	STOPP
+824	STOP / Unequip:	STOPP / Instrument verstauen:
+825	STOP ENSEMBLE	ENSEMBLE STOPPEN
+826	STOP ENSEMBLE + UNEQUIP ALL	ENSEMBLE STOPPEN + ALLE INSTRUMENTE VERSTAUEN
+827	STOP all local bards	Alle lokalen Barden STOPPEN
+828	STOP connected bards	Verbundene Barden STOPPEN
+829	STOP ensemble	Ensemble stoppen
+830	STOP my playback	Meine Wiedergabe stoppen
+831	STOP releases notes and closes Performance for leader and every follower.	STOPP lässt Noten los und beendet Performance für Dirigent und alle Mitspieler.
+832	SYNC SELECTED MIDI TO PARTY	AUSGEWÄHLTE MIDI MIT GRUPPE SYNCHRONISIEREN
+833	Safe preview mode: no keys sent to the game.	Sicherer Vorschaumodus: keine Tasten an das Spiel gesendet.
+834	Save	Speichern
+835	Save playlist	Playlist speichern
+836	Save tags	Tags speichern
+837	Saved MIDI:	Gespeicherte MIDI:
+838	Saved MIDI: 	Gespeicherte MIDI: 
+839	Scan for missing files	Nach fehlenden Dateien suchen
+840	Search names, paths or tags	Namen, Pfade oder Tags suchen
+841	Selected	Ausgewählt
+842	Selected:	Ausgewählt:
+843	Selecting a song automatically tells the party to load the identical MIDI	Wenn du einen Song auswählst, wird die Gruppe automatisch angewiesen, dieselbe MIDI zu laden
+844	Selections are saved per MIDI. 'Keep current' requires the Bard already in Performance.	Die Auswahl wird pro MIDI gespeichert. Aktuelles beibehalten setzt voraus, dass der Bard bereits Performance geöffnet hat.
+845	Send updated MIDI + assignments	Aktualisierte MIDI + Zuweisungen senden
+846	Show 	Anzeigen 
+847	Show Performance HUD	Performance-HUD anzeigen
+848	Show next song	Nächsten Song anzeigen
+849	Show piano roll	Pianorolle anzeigen
+850	Showing	Anzeige
+851	Shuffle	Zufallswiedergabe
+852	Shuffle##smart	Zufallswiedergabe
+853	Shuffle: surprise next song	Zufall: Überraschungssong als Nächstes
+854	Snare Drum	Kleine Trommel
+855	Solo / not connected.	Solo / nicht verbunden.
+856	Solo and Ensemble playlists are separate. Switching modes restores that mode's saved library.	Solo- und Ensemble-Playlists sind getrennt. Beim Moduswechsel wird die gespeicherte Bibliothek des Modus geladen.
+857	Solo library	Solo-Bibliothek
+858	Song switching diagnostics	Diagnose zum Songwechsel
+859	Songs & Playback	Songs & Wiedergabe
+860	Soulweaver Studio	Soulweaver-Studio
+861	Source:	Quelle:
+862	Source: 	Quelle: 
+863	Special	Spezial
+864	Status	Status
+865	Stop hosting / disconnect	Hosting stoppen / Verbindung trennen
+866	Stopped	Gestoppt
+867	Stopping / rewinding...	Wird gestoppt / zurückgespult...
+868	Switch before ensemble cues so every performer is ready.	Vor dem Ensemble-Signal wechseln, damit alle Musiker bereit sind.
+869	Switch to Conductor or Follower to use synchronized starts.	Für synchronisierte Starts auf Dirigent oder Mitspieler wechseln.
+870	Switch to selected instrument NOW	JETZT zum ausgewählten Instrument wechseln
+871	Switching instrument...	Instrument wird gewechselt...
+872	Tags (comma-separated)	Tags (kommagetrennt)
+873	Tags:	Tags:
+874	Test C4	C4 testen
+875	Test C4 (only when armed)	C4 testen (nur scharfgeschaltet)
+876	The conductor then selects and equips your instrument automatically.	Der Dirigent wählt dein Instrument aus und legt es automatisch an.
+877	The conductor's assigned parts override your manual track checkboxes before the cue.	Die vom Dirigenten zugewiesenen Stimmen überschreiben vor dem Signal deine manuellen Spur-Häkchen.
+878	The copied text can contain a local file path. Review it before sharing.	Der kopierte Text kann einen lokalen Dateipfad enthalten. Prüfe ihn vor der Weitergabe.
+879	The matching MIDI, select assigned parts and play without per-song confirmations.	Die passende MIDI laden, zugewiesene Stimmen auswählen und ohne Bestätigung pro Song spielen.
+880	The queue is separate from your saved playlist and survives restarts.	Die Warteschlange ist von der gespeicherten Playlist getrennt und bleibt nach Neustarts erhalten.
+881	This first release uses deterministic melody, bass and harmony heuristics; preview the resulting parts before exporting.	Diese erste Version nutzt feste Heuristiken für Melodie, Bass und Harmonie; prüfe die erzeugten Stimmen vor dem Export.
+882	Timpani	Pauke
+883	To	Bis
+884	Tone choices are remembered per MIDI path and separately for each track/channel.	Klangvorgaben werden pro MIDI-Pfad und getrennt nach Spur/Kanal gespeichert.
+885	Tone switches this playback:	Klangwechsel während dieser Wiedergabe:
+886	Track	Spur
+887	Track assignments	Spurzuweisungen
+888	Track:	Spur:
+889	Tracks	Spuren
+890	Tracks:	Spuren:
+891	Tracks: 	Spuren: 
+892	Transform a source MIDI into separate Solo, Duet, Quartet or Octet parts.	Eine Quell-MIDI in getrennte Solo-, Duett-, Quartett- oder Oktettstimmen aufteilen.
+893	Trumpet	Trompete
+894	Unassigned	Nicht zugewiesen
+895	Unassigned / silent	Nicht zugewiesen / stumm
+896	Uncheck to respect the track mute choices currently shown in Songs & Playback.	Deaktivieren, um die derzeit unter Songs & Wiedergabe ausgewählten Spur-Stummschaltungen zu übernehmen.
+897	Unfavourite	Aus Favoriten entfernen
+898	Unlimited preserves every prepared note. A smaller cap may be useful for dense arrangements.	Unbegrenzt bewahrt alle vorbereiteten Noten. Ein kleineres Limit kann bei dichten Arrangements sinnvoll sein.
+899	Unlock	Entsperren
+900	Use FFXIV native Ensemble (MidiBard-style; same PC or cross-PC)	Natives FFXIV-Ensemble verwenden (MidiBard-Stil; gleicher oder anderer PC)
+901	Use conductor's party-member track assignments	Gruppen-Spurzuweisungen des Dirigenten verwenden
+902	Use current in-game tone	Aktuellen Spielklang verwenden
+903	Use sustain pedal (CC64)	Sustainpedal verwenden (CC64)
+904	Use the game	Das Spiel verwenden
+905	Viola	Bratsche
+906	Violin	Violine
+907	Visual part preview: up to the first 30 seconds, colour-coded by musician (not an audio renderer).	Visuelle Stimmenvorschau: bis zu 30 Sekunden, nach Musiker farblich markiert (keine Audiowiedergabe).
+908	Wait for conductor cue	Auf Dirigentensignal warten
+909	Waiting for	Warte auf
+910	Waiting for conductor	Warte auf den Dirigenten
+911	Waiting for conductor's MIDI.	Warte auf die MIDI des Dirigenten.
+912	Waiting for party-track assignments.	Warte auf Gruppen-Spurzuweisungen.
+913	Waiting for the conductor	Warte auf den Dirigenten
+914	Warning	Warnung
+915	Welcome to Windbound Bard. Load a MIDI or the bundled calibration file.	Willkommen bei Windbound Bard. Lade eine MIDI oder die beiliegende Kalibrierungsdatei.
+916	While performing with an electric guitar, select a different tone for each MIDI track/channel. The player changes the guitar tone just before each matching note-on, without sending keyboard input into chat.	Wenn du E-Gitarre spielst, wähle für jede MIDI-Spur/Kanal einen anderen Klang. Der Player wechselt den Gitarrenklang kurz vor dem passenden Notenstart, ohne Tastatureingaben in den Chat zu senden.
+917	Windbound Bard | Nunu's MIDI Studio	Windbound Bard | Nunus MIDI-Studio
+918	Windbound Bard | Performance HUD	Windbound Bard | Performance-HUD
+919	Windbound receives NOTE ON/OFF and sustain (CC64) and sends direct FFXIV 37-key callbacks.	Windbound empfängt NOTE ON/OFF und Sustain (CC64) und sendet direkte FFXIV-Aufrufe für die 37-Tasten-Klaviatur.
+920	Windows MIDI ports (winmm), including Wine only if your Wine MIDI driver exposes the controller.	Windows-MIDI-Anschlüsse (winmm), auch unter Wine, wenn der Wine-MIDI-Treiber den Controller erkennt.
+921	Works across PCs and on the same PC without VPN. Legacy local/TCP controls remain available when native mode is disabled.	Funktioniert zwischen PCs und auf demselben PC ohne VPN. Alte lokale/TCP-Steuerungen bleiben verfügbar, wenn der native Modus ausgeschaltet ist.
+922	Your source MIDI is never overwritten. Existing Windbound multi-device ensembles can transfer the exported MIDI normally.	Die Quell-MIDI wird niemals überschrieben. Windbound-Ensembles mit mehreren Geräten können exportierte MIDI-Dateien wie gewohnt übertragen.
+923	Your source MIDI, game note output and existing playlists are not changed by analysis.	Die Analyse verändert weder die Quell-MIDI noch die Notenausgabe des Spiels oder bestehende Playlists.
+924	[Me]	[Ich]
+925	[Me] 	[Ich] 
+926	and apply any conductor track assignments. Everyone must have the MIDI file locally.	und wende die Spurzuweisungen des Dirigenten an. Alle benötigen dieselbe MIDI-Datei lokal.
+927	chord groups	Akkordgruppen
+928	entries...	Einträge...
+929	notes played	gespielte Noten
+930	of	von
+931	or right-click the progress bar	oder Rechtsklick auf die Fortschrittsleiste
+932	out of range	außerhalb des Tonumfangs
+933	party-member READY replies, then sends a common START cue. Followers load	BEREIT-Antworten der Gruppenmitglieder und sendet dann ein gemeinsames START-Signal. Mitspieler laden
+934	saved order unchanged by Play Next.	Die gespeicherte Reihenfolge bleibt durch Als Nächstes unverändert.
+935	semitones	Halbtöne
+936	set instruments, and start everyone with the game's native Ready Check.	Instrumente festlegen und alle mit dem nativen Bereitschaftscheck des Spiels starten.
+937	song	Song
+938	songs	Songs
+939	source tracks	Quellspuren
+940	the matching MIDI, select assigned parts and play without per-song confirmations.	die passende MIDI, wählen ihre Stimmen und spielen ohne Bestätigung für jeden Song.
+941	★ Unfavourite	★ Aus Favoriten entfernen
+942	☆ Favourite	☆ Zu Favoriten hinzufügen
+943	/windbound hud  |  independent per-client HUD	/windbound hud  |  unabhängiges HUD je Spielclient
+944	/windbound hud | per-character compact control, movable for multiple accounts	/windbound hud | kompaktes, verschiebbares HUD pro Charakter für mehrere Accounts
+945	Ensemble	Ensemble
+946	Instruments	Instrumente
+947	NUNU'S WINDBOUND BARD   /windbound	NUNUS WINDBOUND BARD   /windbound
+948	Open Windbound Bard; /windbound recover clears stuck local playback/stage state; /windbound stop stops playback.	Windbound Bard öffnen; /windbound recover setzt hängende lokale Wiedergabe/Bühnenbewegung zurück; /windbound stop beendet die Wiedergabe.
+949	Solo	Solo
+950	TCP port	TCP-Port
+951	WINDBOUND	WINDBOUND
