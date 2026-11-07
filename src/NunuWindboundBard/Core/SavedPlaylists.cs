@@ -21,6 +21,11 @@ public sealed class PlaylistFile
     public string Name { get; set; } = "Imported playlist";
     public int Purpose { get; set; }
     public List<string> Files { get; set; } = new();
+    // Optional v0.16 fields. Legacy playlist JSON without these still imports normally.
+    public List<string> Favorites { get; set; } = new();
+    public Dictionary<string, List<string>> Tags { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public bool Shuffle { get; set; }
+    public PlaylistRepeatMode Repeat { get; set; } = PlaylistRepeatMode.All;
 }
 
 public static class SavedPlaylistLibrary
@@ -174,9 +179,14 @@ public static class SavedPlaylistLibrary
         return name;
     }
 
-    public static void Export(string path, SavedPlaylist profile, IReadOnlyList<string> activeFiles)
+    public static void Export(string path, SavedPlaylist profile, IReadOnlyList<string> activeFiles, SmartPlaylistState? state = null)
     {
-        var dto = new PlaylistFile { Name = profile.Name, Purpose = profile.Purpose, Files = activeFiles.ToList() };
+        var dto = new PlaylistFile { Name = profile.Name, Purpose = profile.Purpose, Files = activeFiles.ToList(),
+            Favorites = state?.Favorites.ToList() ?? new(),
+            Tags = state?.Tags.ToDictionary(kv => kv.Key, kv => kv.Value.ToList(), StringComparer.OrdinalIgnoreCase)
+                ?? new(StringComparer.OrdinalIgnoreCase),
+            Shuffle = state?.Shuffle ?? false,
+            Repeat = state?.Repeat ?? PlaylistRepeatMode.All };
         string json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, json);
     }
@@ -200,6 +210,17 @@ public static class SavedPlaylistLibrary
             .Where(x => Path.GetExtension(x).Equals(".mid", StringComparison.OrdinalIgnoreCase) ||
                         Path.GetExtension(x).Equals(".midi", StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        dto.Favorites = (dto.Favorites ?? new()).Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => Path.GetFullPath(Path.IsPathRooted(x) ? x : Path.Combine(directory, x)))
+            .Where(x => dto.Files.Contains(x, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        dto.Tags = (dto.Tags ?? new()).Where(kv => !string.IsNullOrWhiteSpace(kv.Key))
+            .Select(kv => (Path: Path.GetFullPath(Path.IsPathRooted(kv.Key) ? kv.Key : Path.Combine(directory, kv.Key)),
+                Value: kv.Value ?? new List<string>()))
+            .Where(kv => dto.Files.Contains(kv.Path, StringComparer.OrdinalIgnoreCase))
+            .GroupBy(kv => kv.Path, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Value.Where(t => t is not null).Take(8).ToList(), StringComparer.OrdinalIgnoreCase);
+        if (!Enum.IsDefined(dto.Repeat)) dto.Repeat = PlaylistRepeatMode.All;
         return dto;
     }
 }

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="AudioPreviewMidiBuilderSmokeTest.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MidiFileReader.cs" Link="MidiFileReader.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/AudioPreviewMidiBuilder.cs" Link="AudioPreviewMidiBuilder.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MidiInstrumentInference.cs" Link="MidiInstrumentInference.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MidiTrackTags.cs" Link="MidiTrackTags.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/InstrumentCatalog.cs" Link="InstrumentCatalog.cs" />
+  </ItemGroup>
+</Project>

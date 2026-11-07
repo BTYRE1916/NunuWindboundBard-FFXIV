@@ -1,147 +1,261 @@
-# Nunu's Windbound Bard v0.11.1 — Soulweaver Export Fix 🖤🎼
+# Nunu's Windbound Bard v0.28 — Concert Snapshots & Restore 🖤🎹
 
-**Dalamud API 15 · .NET 10 · Complete Visual Studio source project**
+This update builds on v0.27.1 MIDI Audio Preview and adds **named, exportable Concert Snapshots** for Solo, duet, quartet and octet performances. Existing native ensemble, automatic party instruments, persistent track mapping, Soulweaver, Concert Director, MIDI Audio Preview, Live MIDI Piano, Smart Playlists and French UI are preserved.
 
-## v0.11.1: Soulweaver export / playlist hotfix
+**Quickstart:** `/windbound` → **Concert Snapshots**. Type a concert name, click **SAVE CURRENT CONCERT SNAPSHOT**, choose it from the list and **Export snapshot JSON...** to keep an independent backup. To use it later, select the snapshot, open **Preview snapshot contents**, click **RESTORE SELECTED SNAPSHOT...** and **CONFIRM RESTORE**. A restored snapshot creates a **new saved playlist profile**, and Windbound automatically saves a *Before restore* backup of your previous setup.
 
-This patch fixes an exporter bug found when trying real-world arrangements: repeated notes of the **same pitch** can overlap after melody/harmony parts from multiple MIDI tracks are combined. The old writer placed every note on MIDI channel 0, causing note-off events to end the wrong note and making strict verification reject the new MIDI before it was saved. v0.11.1 assigns only those overlapping repetitions to additional melodic MIDI channels, preserving the original notes and timing. Every part still occupies its own named MIDI track.
+The snapshot contains playlist/song order, conductor role and FFXIV native ensemble options, track/performer lineup, per-song instruments, octave/transpose overrides, playback tempo and settings, setlist annotations, favourites and queue. Individual MIDI files themselves are **not** included in the JSON. The interface shows missing file references before restoration; repair MIDI paths on another PC if needed. JSON backups include local file paths and character IDs; keep them private.
 
-- Export now reports a detailed pitch/timing mismatch if validation fails, rather than a generic message.
-- After successful export, the full output path is shown in the Soulweaver tab.
-- **Export & add to playlist** saves the MIDI and registers it in the selected **Solo** or **Ensemble** library, even when the other library is open.
-- **Add last export to playlist** retries registration without re-exporting the MIDI if the file saved but the configuration failed.
-- Tests now cover multiple overlapping same-pitch notes and library changes. Existing music, networking and instrument-switch logic remain unchanged.
+Restoration is **local only and never auto-starts a concert**. No party chat/FFXIV Ready Check is sent; ARM is turned off. After restoring a saved octet, ensure the same characters are in the in-game party, ARM the performers, and press **PREPARE ENTIRE ORCHESTRA** (Concert Director) to resynchronise everyone before the normal native START. Existing per-MIDI preferences in the plugin are shared by path; the automatic Before restore snapshot allows rollback of any overwritten per-song preferences.
 
-**Test:** Open `/windbound` → Soulweaver Studio → Generate Parts → **Export & add to Solo/Ensemble playlist**. Confirm that "Saved MIDI:" shows a path and the studio reports the selected library. Switch to that library under Songs & Playback; the exported arrangement should appear. If it doesn't, use **Add last export to playlist** and share the displayed error message. The exported MIDI files are placed in `PluginConfigDirectory/SoulweaverArrangements` and never overwrite their source.
-
-## Soulweaver — adaptive ensemble arranging
-
-Open `/windbound` → **Soulweaver Studio** after loading a MIDI in **Songs & Playback**.
-
-Soulweaver creates an **entirely new playable MIDI with independent musician tracks** — not merely a list of original tracks. The first version uses transparent, deterministic musical heuristics (MIDI pitch/register, lane relationships, chord voices, onsets, durations and velocity) to identify melody, bass, countermelody, harmony and accompaniment. It does **not** use an external AI service, synthesize new harmony, or claim to identify music perfectly.
-
-1. Load your song. Adjust octaves in **Songs & Playback** or **FFXIV Optimiser** as desired.
-2. In **Soulweaver Studio**, choose **Solo (1)**, **Duet (2)**, **Quartet (4)** or **Octet (8)**.
-3. Keep **Analyse all non-percussion tracks** ON if you are a conductor; it prevents your own muted ensemble parts from disappearing from the generated file. If you want to arrange *only* your current selected tracks, turn it OFF.
-4. Choose a **per-performer chord limit** (0 = unlimited/preserve all notes; choose a limit only if very dense passages misbehave in-game).
-5. Click **Analyse & Generate Parts**. Inspect the key estimate, chord counts, phrase estimate, part registers, note counts and **coloured note timeline** (visual preview of the first 30 seconds).
-6. Override suggested **instruments** for any part; optionally assign each part to a named member of your current FFXIV party. Click **Auto-assign parts to FFXIV party order** for a quick starting point.
-7. Click **Export arrangement MIDI...** to choose a path, **or** **Export & add to Solo/Ensemble playlist**. Export always creates a different file: it will not overwrite your source or any existing file.
-8. Switch to the appropriate saved Solo/Ensemble library, **load the newly exported MIDI**, and play. Duet/Quartet/Octet exports have a dedicated tempo track plus one named track per performer. The chosen party assignments are stored against the exported file for the existing conductor to use.
-
-### Example: a duet with Edea
-
-- In Soulweaver choose **Duet**. Its default roles are Lead (Piano) and Supporting Voice (usually Violin; Cello is recommended for a lower-register accompaniment).
-- Assign the Lead part to your character and Supporting Voice to Edea from the **Player** dropdowns.
-- Click **Export & add to Ensemble playlist**.
-- Change to **Ensemble → Conductor**, open your exported MIDI, check the party assignments and send the MIDI + cue through existing **Multi-Device** mode. Each musician should equip their own desired Performance instrument before readying up.
-- **No foreground requirement; chat-safe direct Performance callbacks remain untouched.**
-
-### Fidelity, limitations and safety
-
-- The **FFXIV C3–C6 limit** still applies. Soulweaver uses the current per-track octave shifts and source-note repair rules.
-- **Original tempo changes, meter and key signatures are retained in exported MIDI**, along with original absolute note timing and note-off durations. Generated parts are normal format-1 Standard MIDI Files, suitable for editing in other MIDI software.
-- **All prepared notes are preserved by default**. Only choosing a chord cap deliberately drops notes; the report shows how many. Solo does not invent or replace notes. Some duet/quartet/octet parts may be empty if a source contains too little musical material. Try a smaller group or a richer MIDI.
-- Musical **key detection is an estimate**, not a claim of ground-truth key. The part-splitting engine is rule-based; listen to the output and adjust manually if a particular song needs custom voicing.
-- This version is **offline arrangement generation**, not yet live improvised call-and-response, real-time self-healing ensembles or AI composition. Those ambitious features need later, separately tested work.
-- A new instrument is chosen locally by each FFXIV player: assigning an instrument to a Soulweaver performer does not remotely equip another person's character.
-- As always, only use the experimental plugin in ways consistent with the game's rules, and keep network ensemble transport on a trusted LAN or encrypted private network.
-
-### Testing and included demonstration
-
-- `Samples/Soulweaver-Quartet-Demo.mid`: original synthetic four-part music with tempo change, simultaneous notes and sustained bass, useful to test all four arrangement sizes.
-- `Tests/Run-v0.11-Tests.ps1`: Windows/.NET 10 smoke tests for generated note and track counts, 37-key pitch range, note timings, saved tempo, and source-file non-overwrite checks.
-- Existing v0.10 auto-next tests and v0.9 networking tests are included unchanged.
-- **Build verification limitation:** This source was prepared and inspected in a non-Windows environment without the .NET SDK or live FFXIV. The plugin and new C# smoke tests have not been compiled or exercised in-game here; run them on your Windows setup before using Soulweaver on a full performance.
-
-### Installing / building
-
-Open `NunuWindboundBard.sln` in Visual Studio with .NET 10 and Dalamud API 15, or run `Build-Plugin.ps1` on Windows. Load the built development plugin via `/xlsettings` → Experimental. This is **source**, not a pre-built release ZIP. For your GitHub experimental repository, publish the built plugin in a new release ZIP and update the repository index from `0.10.0.0` to **`0.11.0.0`** and the download URL to your new release.
+Run `Tests/Run-v0.28-Tests.ps1` for the snapshot JSON and source regression checks on a Windows PC with .NET 10. The bundle has not been compiled or tested inside FFXIV in this environment.
 
 ---
 
-# Nunu's Windbound Bard v0.10 — Reliable Auto Next & Song Switching
+# Windbound Bard v0.27.1 — Audio Preview compiler hotfix
 
-**Dalamud API 15 · .NET 10 · full Visual Studio source**
-
-## What's fixed since v0.9
-
-- **Auto Next works while the Windbound UI is closed or hidden**, including when you alt-tab. The end-of-song transition now runs on Dalamud's framework update loop, rather than the ImGui `Draw()` method.
-- **Manual playlist/file changes during a performance are safely queued.** Windbound stops the old note stream, lets the game-thread scheduler release all held notes, loads the chosen MIDI, and (in Solo mode) starts it automatically.
-- **Play pressed immediately after Stop isn't lost:** it queues a one-shot start until the old performance has stopped.
-- **Next button** uses the same safe stop-and-release handoff.
-- **Broken, missing, or empty playlist entries are skipped** by Auto Next; the previous arrangement is never replayed accidentally after a failed file load. Songs with muted parts can still be loaded manually for editing.
-- **Instrument preparation can't silently wait forever:** a guarded 55-second timeout prints the switcher's diagnostics. Windbound still attempts the instrument choice automatically; it doesn't require a manual reset if the native switch succeeds.
-- **Deliberate Stop cancels outstanding song changes.** Ensemble sessions remain conductor-cued; Solo Auto Next doesn't run during ensembles.
-
-Nothing has changed in the FFXIV direct Performance note callbacks, chord scheduling, optimizer, guitar tones, party assignment, or multi-device transport. Your Solo and Ensemble playlist profiles and per-file instrument/octave choices stay intact.
-
-## Test in FFXIV
-
-1. Build this source as a development plugin, or publish the built output in a **new** release. In `/windbound`, select **Solo** and enable **Auto next**. Add two or three short MIDIs to the same saved playlist.
-2. Open full 37-key Bard Performance, ARM output, then play the first MIDI. **Close `/windbound` and alt-tab**; it should automatically continue to the next song after the first finishes.
-3. While a MIDI is playing, reopen Windbound and click a different song in the playlist. It should release the old notes and switch to the selected MIDI without you manually resetting the instrument.
-4. Try Piano in one song and Violin in the next, each set in the Instruments tab. Native instrument switching remains game-build-sensitive; if it fails, send the **Instrument switching diagnostics** instead of repeatedly resetting.
-5. Test the Next and Stop buttons. Stop must not trigger Auto Next.
-6. Test Ensemble mode; it must **not** auto-advance without the conductor cue.
-
-Run `Tests\Run-v0.10-Tests.ps1` in PowerShell on Windows with .NET 10 for source and deterministic song-flow tests. Existing v0.9 network/playlist tests can still be run with `Tests\Run-v0.9-Tests.ps1`.
-
-**Testing limitation:** This source update was statically checked and packaged in a non-Windows environment. It has **not** been compiled in Visual Studio or tested inside FFXIV here; confirm both transitions and instrument switching on your PC. Instrument switching depends on FFXIV native UI behaviour, which may change across game updates.
+Fixes `CS1061: MidiFileSequencer does not contain a definition for MidiFile` in `Core/AudioPreviewPlayer.cs`. Preview length is now taken from the existing `MeltySynth.MidiFile.Length`, which is supported by the package used in this project. All v0.27 audio-preview features, Concert Director, French localisation and ensemble behaviour are preserved. See `CHANGELOG-v0.27.1.md` and run `Tests/Check-v0.27.1-API.ps1` for the static compatibility check.
 
 ---
 
-## Previous v0.9 features — Multi-Device Ensemble / Duo Edition
+# Nunu's Windbound Bard v0.27 — Local MIDI Audio Preview 🎹
 
-**Dalamud API 15 · .NET 10 · FFXIV Performance MIDI Player**
+**Dalamud 15 · .NET 10 · complete source from v0.26 Concert Director**
 
-This version extends the working v0.8 plugin. **All v0.8 features remain:** chord-aware native Performance output, alt-tab and chat-safe performances, C3–C6 MIDI optimiser, per-track octaves, automatic instrument selection, guitar tone overrides, scrollable playlist, saved Solo/Ensemble playlist profiles and same-PC conductor/follower mode.
+## Quick start
 
-## What's new
+1. Build `NunuWindboundBard.sln` with .NET 10 and Dalamud SDK 15. The
+   `MeltySynth` and `NAudio` NuGet dependencies are restored during build;
+   include their dependency DLLs when installing the compiled plugin.
+2. Open `/windbound`, load a `.mid`/`.midi` in **Songs & Playback**.
+3. Select **Audio Preview** (French: **Aperçu audio**), browse for your own
+   licensed `.sf2` SoundFont, then click **Play Audio Preview**.
+4. Select **Original MIDI** for the full GM instrument/tempo arrangement,
+   **Windbound arrangement** for the presently enabled C3–C6 parts, or
+   **Selected track** to hear one track, optionally with its octave shift.
+5. Adjust volume and tempo. Preview audio goes to local PC speakers only.
+   It never sends MIDI into FFXIV, changes instruments, queues notes for the
+   live performance, or sends commands to other accounts.
 
-**Opt-in Multi-Device mode** lets one player (the conductor) host a private TCP stage while other Windbound Bard players join from different PCs. Once paired:
+**You must provide your own `.sf2` SoundFont.** No third-party copyrighted
+samples are packaged. Output uses WinMM on Windows; Wine/Proton audio output is
+not yet confirmed. The original MIDI mode preserves program changes and tempo;
+the reconstructed arrangement modes use notes and approximated GM instruments.
 
-- The conductor's loaded MIDI is transferred automatically to each follower (max **4 MB**; `.mid` / `.midi` only, SHA-256 verified).
-- The conductor's **track/channel → party member** assignments are transferred as part of the same session revision.
-- The conductor's octave shifts, note-repair option, chord strategy, transpose, gap and arpeggio settings travel with the MIDI, so the duet plays the intended arrangement.
-- The follower automatically loads the song into a separate plugin cache (does **not** add it to or overwrite saved playlists).
-- The follower reports **READY** only when the right session is loaded, the assigned tracks are playable, an expanded Performance keyboard is open, output is ARMed, **Wait for conductor cue** is checked and network clocks are synchronised.
-- Host sends a coordinated START cue with a **minimum 5-second count-in**. Clients estimate cross-PC clock differences from periodic round-trip samples; the game note scheduler still starts on its own framework thread. STOP is distributed too.
-- If multi-device is **OFF**, the existing memory-mapped same-PC ensemble behaves exactly as before.
+The complete MIDI file player, Concert Director, ensemble sync, octet lineups,
+French translations, Smart Playlists, Live MIDI Piano, HUD and Soulweaver remain
+in this project. See `CHANGELOG-v0.27.md` for details.
 
-**No mandatory foreground/window focus; no chat keystrokes; no direct MIDI into other applications.**
+---
 
-## Quickstart: Father's duet with Edea
+# Windbound Bard v0.26 — Concert Suite + MIDI Inspector
 
-1. Both of you load **v0.9** as a Dalamud development plugin, join the **same FFXIV party**, and arrange a private network connection between your computers. For different home networks, use [Tailscale](https://tailscale.com/docs/how-to/connect-to-devices) or an equivalent private encrypted network. The plugin itself does **not encrypt** transport. Do **not** port-forward its TCP listener onto the public Internet.
-2. On **Father's PC**: `/windbound` → **Ensemble** → **Conductor** → check **Enable Multi-Device**. Set a stage name such as `NunuEdeaDuo`, leave TCP port `47542`, and click **Generate code**. Keep the code private; send it to Edea by a private channel. Click **HOST private ensemble**.
-3. On **Edea's PC**: `/windbound` → **Ensemble** → **Follower** → check **Enable Multi-Device**. Enter the **same stage name, port and code**, and paste Father's **Tailscale IP / private LAN IP** into **Conductor LAN / Tailscale IP**. Click **JOIN conductor**.
-4. Father loads a MIDI and uses the existing **Party-roster Track Assignments** dropdowns to give the melody to Nunu and the accompaniment to Edea. Click **Send updated MIDI + assignments** if necessary. The song and arrangement are delivered automatically; Edea does not need to find a matching local file.
-5. Edea chooses her own **instrument** using the Instruments tab and enters **expanded 37-note Bard Performance**. On the Songs page she enables **ARM output**, and on Ensemble she checks **Follow conductor's party-track assignments** and **Wait for conductor cue**.
-6. Father does the same for his own instrument and ARM if he is playing. Look for **Edea Uematsu — READY** on the conductor's stage. Click **Cue ensemble start**. Both clients start the assigned parts on their synchronised clocks. To stop both, use **STOP connected bards**.
+Concert Director Stage Manager, automatic next-song preparation, single-Bard retry, and MIDI Arrangement Inspector are included in this cumulative full-source build. The **MIDI Inspector** tab reports song/track diagnostics and offers manual auto-fitting of untagged octaves without changing MIDI files. See `CHANGELOG-v0.24.md`, `CHANGELOG-v0.25.md`, `CHANGELOG-v0.26.md` and `Tests/Run-v0.26-Tests.ps1`. Existing solo instruments, native ensemble, Live MIDI Piano, Smart Playlists, HUD and French translations remain.
 
-### Troubleshooting connection and timing
+---
 
-- **Connection refused / timeout:** Verify both PCs are online in Tailscale, use the conductor's private Tailscale IPv4 address, confirm port `47542`, and allow an inbound TCP rule for FFXIV or the port on the conductor's Windows firewall. Use `tailscale ping <host>` to confirm private reachability. Public port forwarding is not necessary or recommended.
-- **Session code wrong:** Both need the identical, case-sensitive stage name and secret code; the code isn't saved and must be re-entered after game restart.
-- **Edea stuck at WAITING:** Her game must show expanded Performance, ARM and Wait for cue. Check if her actual FFXIV character ContentId is in Father's party list and has at least one MIDI track assigned. Both clients must use **Follow conductor's party-track assignments** for automatic parts.
-- **Clock sync waiting:** Leave both clients connected for a couple of seconds. The plugin collects at least three latency samples. Network jitter or a slow relay can affect precision; it isn't guaranteed frame-perfect.
-- **Song fails to transfer:** Network MIDI files are limited to 4 MB (by raw file size). No remote file paths are executed; the bytes are checked for MIDI signature and SHA-256 before saving to the plugin's `NetworkMIDICache` directory.
-- **Edea needs another instrument:** Each player selects their own instrument in their own plugin. Change it **before** cueing. Multi-device controls the song, track assignments and timing, not another person's UI actions.
+# Windbound Bard v0.25 — Concert Setlist & Targeted Retry
 
-## Security and limits
+New `CHANGELOG-v0.25.md`: opt-in automatic **next-song preparation** (never auto-start), per-song concert cues and audience breaks, targeted single-Bard retry via party chat. Stage Manager v0.24, native Ready Check, full music engine and all other existing features retained.
 
-The code is verified by **HMAC-SHA256 challenge/response** before accepting session data. **This is authentication, not encryption**: MIDI and commands travel in plaintext TCP once paired. Use a trusted LAN or encrypted overlay such as Tailscale. Generated secrets are 24 hex characters (96 bits); secrets are never written to plugin config or logs. Only the network address and TCP port are saved. Authentication does not independently verify a claimed FFXIV ContentId; only connect with trusted friends. No public relay server, NAT punch-through, in-game party-chat communication, remote command execution or auto-connect on launch. The built-in FFXIV Ensemble Ready Check is **not** hooked.
+---
 
-This is a **preview build**, not yet compiled or exercised in a live FFXIV client. Cross-device clock synchronisation is approximate and needs real duet testing. FFXIV and Dalamud updates can affect native Performance controls. As always, third-party plugins may be against the game's terms.
+# Windbound Bard v0.24 — Concert Director
 
-## Building
+See `CHANGELOG-v0.24.md`. The new Concert Director pane appears on the Ensemble tab. Use **PREPARE ENTIRE ORCHESTRA** then native **START ENSEMBLE**; stage status requests/replies are party-chat metadata only. Existing local, cross-PC, solo, Soulweaver, Live MIDI Piano, French and Smart Playlist features are retained.
 
-Open `NunuWindboundBard.sln` in Visual Studio on Windows (with the appropriate Dalamud dev setup and .NET 10 SDK) or run `Build-Plugin.ps1`. The project SDK is `Dalamud.NET.Sdk/15.0.0`. Load `src/NunuWindboundBard` output as a Dalamud development plugin.
+---
 
-## Source and test notes
+# Nunu's Windbound Bard v0.23 — Reuse Your Octet Across Songs 🎹🎻
 
-- `src/NunuWindboundBard/Core/MultiDeviceEnsemble.cs` — pairing, frame-bounded private TCP, challenge/response auth, session transmission, follower readiness and NTP-style offset measurement (monotonic stopwatch clocks).
-- `src/NunuWindboundBard/MainWindow.cs` — Multi-Device tab controls, stage/host/join, song/cache handling, part assignment, readiness gating and START/STOP integration.
-- `Tests/MultiDeviceTransportSmokeTest.csproj` — standalone localhost conductor/follower test for authentication, MIDI byte transfer, saved octave maps, READY, synced START/STOP. Run `Tests/Run-v0.9-Tests.ps1` on Windows. It also runs previous saved-playlist and party-assignment regression tests.
-- All core audio, instrument, solo playlist, local ensemble and MIDI/optimiser files are unchanged from the tested v0.8 source.
+**New:** In `/windbound` → **Ensemble → Party-Roster Track Assignments**, leave **Keep party track assignments across songs** checked. As conductor, assign the eight performer parts just once. Windbound remembers the lane-order lineup in your active named Ensemble playlist and automatically applies it to the next MIDI file. Its existing native leader file-sync message also carries the resulting assignments to follower clients, so you still only need native Ready Check for playback.
+
+Existing per-song maps take priority when explicitly saved. Use **Apply saved lineup to this MIDI** if you want to overwrite an older song-specific choice; **Save current as default lineup** and **Forget saved lineup** manage the shared template. Mismatched track counts produce a warning; extra lanes are silent until assigned. Clearing a song's map does not erase the default lineup.
+
+English/French language selection, MIDI instrument and octave tag detection, direct note callbacks, group STOP, MIDI keyboard input, Smart Playlists and Soulweaver are preserved. `Tests/Run-v0.23-Tests.ps1` covers the persistent octet lineup and previous MIDI tests. **This source has not been compiled or tested in FFXIV here.**
+
+---
+
+# Nunu’s Windbound Bard v0.22.2 — MIDI Instrument / Octave Detection Fix 🖤🎹
+
+**Built on v0.22.1 with the native ensemble engine, party/file sync, group STOP/unequip, live MIDI piano, Smart Playlists, Soulweaver and French/English interface preserved.**
+
+## Why some songs showed no instrument or octave
+
+Earlier v0.22 releases only read `#Lute` / `#+12` from FF03 track titles, FF04 instrument names and (for solo files only) filenames. Many MIDI editors instead export these tags as **FF01 Text**, **FF06 Marker** or **FF07 Cue** events, and may overwrite an earlier tagged track title later in the same track. Our reader did not retain those tags. Also, the Solo instrument dropdown did not use the detected instrument unless it had been manually selected.
+
+v0.22.2 fixes both paths:
+
+- Reads `#+12`, `#-12`, `#Lute`, `#Violin`, `#Piano` etc. from **FF01 text, FF03 name, FF04 instrument name, FF06 marker and FF07 cue**, preserving even tags that appear before later renamed track titles.
+- Reads standard **MIDI Program Change**, including unambiguous declarations located in a different MIDI track on the same channel.
+- Gives human-readable musical track names (e.g., `Violin Melody`) priority over generic, often incorrect GM Piano defaults.
+- Uses an inferred instrument in **Solo** when no explicit manual instrument has been saved; the conductor still infers the dominant instrument for each assigned party member before **SET PARTY INSTRUMENTS**.
+- Treats a saved **Keep current** as a true manual override. **Use detected instrument for this MIDI** removes that override and resumes automatic detection.
+- Applies octave tags per track/channel on load, respecting saved manual octave edits. The controls **Restore MIDI octave tags** and **Re-read MIDI tags now** are provided in Songs & Playback / Instruments.
+- Shows both the **file octave** and **APPLIED octave** per track and includes **Copy detected MIDI metadata report** for diagnosing real-world files.
+
+## Test your arrangement
+
+1. Load your MIDI in `/windbound` → **Songs & Playback**. Open **MIDI INSTRUMENTS & OCTAVE TAGS**.
+2. Leave **Auto-detect instruments** and **Read #+12 / #-12 octave tags** enabled.
+3. Expand **Detected MIDI tracks, instruments and octaves**. Look at **file octave** and **APPLIED**. If a saved manual octave override is overriding the tag, press **Restore MIDI octave tags**. For a saved instrument preference, press **Use detected instrument for this MIDI** or **Use MIDI instrument suggestions** (the latter clears conductor instrument overrides too).
+4. If tags still are not detected, click **Copy detected MIDI metadata report** and inspect the FF03, FF04, FF01/marker, Program Change and APPLIED fields. The report includes local file paths: review before sharing it.
+5. In an ensemble, assign each part to a Bard, then press **SET PARTY INSTRUMENTS**. This still uses our existing reliable FFXIV native Ensemble Ready Check for START.
+
+The bundled `Samples/Windbound-MIDI-FF01-Marker-and-GM-Detection.mid` demonstrates Text `#+12 #Lute`, Marker `#-12 #Violin` and a named Violin track with a conflicting Piano program.
+
+**Note:** A `.mid` file cannot automatically convey instrument and octave markings unless those markings are genuinely embedded in its metadata. Tags only in a shared filename are intentionally not applied to every track of a multi-part octet. General MIDI programs are suggestions when no explicit tag exists. Optimisation may fold notes back into C3–C6, so an applied shift isn't always an audible whole octave for every note.
+
+## Verification
+
+Run `Tests/Run-v0.22.2-Tests.ps1` on Windows with .NET 10, then build the project with `Build-Plugin.ps1` and test in FFXIV. The source/ZIP package was statically checked in the packaging environment, but could not be compiled or tested with a live game client here.
+
+---
+
+# v0.22.1 CS8510 compiler fix
+
+This revision removes the redundant invalid-program arm in `MidiInstrumentInference.MapGeneralMidi`. All 128 valid General MIDI instrument mappings, MIDI track tags like `#+12 #Lute`, automated conductor assignments and existing features are preserved. See `CHANGELOG-v0.22.1.md`.
+
+# Windbound Bard v0.22 — MIDI track instruments & octave tags
+
+**Based on v0.21 (English/French edition). Existing one-click/native ensemble, group STOP/unequip, live MIDI Piano, Soulweaver and Smart Playlist code are untouched.**
+
+## Read instruments directly from MIDI
+
+The MIDI reader now preserves the per-track/channel General MIDI **Program Change (Cn)** data, MIDI track names (FF 03), instrument names (FF 04) and channel-10 percussion note information. When a file is loaded and conductor track assignments are present, the assigned Bard's suggested FFXIV instrument is determined automatically. Explicit `#Lute`, `#Piano`, `#Violin` etc. tags beat General MIDI programs, which are mapped approximately onto FFXIV's 28 Performance instruments.
+
+For each player assigned several lanes, Windbound picks the recognised instrument with the highest assigned **note count** and warns about conflicts. An explicit manual instrument selection always wins. Existing leader **SET PARTY INSTRUMENTS** sends the calculated choices to followers and equips them, using the already-working native/party protocol. **SET PARTY TRACKS** remains a separate action and FFXIV native Ensemble START is unchanged.
+
+Use **Instruments → MIDI Instruments & Octave Tags** to inspect detected programs, suggestions and conflicts. Use **Use MIDI instrument suggestions** to clear old manual instrument choices on the *current file* when you want the MIDI tags to take precedence again.
+
+## Octave tags (`#+12 #Lute`, `#-12 #Piano`)
+
+A track's **FF 03 name**, or FF 04 instrument-name metadata, can contain `#+12`, `#-12`, `#+24`, `#-24`, `#+36`, `#-36`, `#+48`, `#-48` or `#0`. These are semitone shifts, in full octaves only. `#+12 #Lute` means equip **Lute** for the Bard assigned to that part, and shift that **track/channel's pitches** up twelve semitones. A single-track solo MIDI can also contain filename tags. Filename tags are deliberately ignored for multi-part octet files to avoid changing every part.
+
+Tags act as initial defaults **without editing the original MIDI**. The existing C3–C6 range optimiser/repair still applies. Manual octave edits made with the buttons on v0.22 are saved and win over later file reloads, while legacy auto-optimiser saves won't suppress a new `#+12` tag. Use **Restore MIDI octave tags** to clear manual octave override flags for the current file.
+
+The same track metadata is read independently from matching MIDI bytes on every follower PC (including Linux). No extra cross-PC clock or instrument-name messages are required: the conductor's existing SET commands carry the chosen FFXIV instrument IDs.
+
+## Validation
+
+Run `Tests/Run-v0.22-Tests.ps1` with Windows PowerShell and .NET 10. Unit tests build real Standard MIDI File fixtures and check GM Program Change capture, priority of `#Lute` over GM Piano, FF04 names, percussion mapping, multiple-track party conflicts, per-track octave shift and manual override rules.
+
+**Not compiled/game-tested in the packaging environment**; the tests and in-game two-Bard/octet validation must be run before release.
+
+---
+
+# Windbound Bard v0.21 — French / English Interface 🇫🇷
+
+**Dalamud API 15 · .NET 10 · built on v0.20 Live MIDI Piano and Native Stow**
+
+## How to change language
+
+Open `/windbound`. At the top of the main player use **Interface language / Langue de l'interface** and select **English** or **Français**. Changes take effect immediately in the main player and compact Performance HUD, and the language is saved in Windbound's configuration. No game restart is required. English remains the default for existing and new installations.
+
+The French localization covers the main tabs, controls, status messages, tooltips and help text for **Solo, native FFXIV Ensemble, conductor instruments/tracks/files, Smart Playlists, Soulweaver Studio, Guitar Tones, 37-key FFXIV Optimiser, Live MIDI Piano, and Performance HUD**. The French resource is kept as an editable JSON catalogue (`Assets/i18n/fr-FR.json`), with an embedded C# version for offline use in FFXIV. Unrecognised technical messages fall back to English rather than inventing an error translation. Some exception messages originating in the game, Windows or third-party drivers can remain in their original language.
+
+The localization system keeps ImGui's `##` internal IDs identical in both languages. It **does not translate user MIDI file names, track/channel data, command identifiers, TCP/party protocol messages or stored source paths**. Changing language does not alter instrument assignments or concert settings.
+
+## Verification
+
+Run `Tests/Run-v0.21-Tests.ps1` with the .NET 10 SDK to test localisation, stable widget IDs, dynamic status translations, switching languages and preserving MIDI file names. Build the full plugin with `Build-Plugin.ps1`, and test English and French in the game's UI. Static validation and archive integrity have been checked in this environment; a Windows/Dalamud compile and live FFXIV test have not been performed here.
+
+---
+
+# Nunu's Windbound Bard v0.20 — Live USB MIDI Piano (Solo)
+
+## Play a real synthesizer or MIDI piano in FFXIV
+
+Windbound v0.20 adds **live MIDI-IN** to its Solo Performance tools. Connect a MIDI keyboard to Windows (USB or through a MIDI interface), open `/windbound` → `Live MIDI Piano`, press **Refresh MIDI devices**, select the device and **Connect keyboard**. Press **Equip FFXIV Piano** (or choose another instrument manually), use FFXIV's expanded **37-key Performance layout**, and tick **ARM live notes to FFXIV**. Then play on the actual keyboard! No MIDI file is required.
+
+The new tab includes octave transpose ±12, octave folding into C3–C6, channel selection, sustain-pedal CC64, a **PANIC All Notes Off** control and hardware diagnostics. Console command `/windbound midipanic` is an emergency release if a key gets stuck. The full HUD displays "Live MIDI" when a controller is connected and output is armed. Your existing **Songs & Playback ARM** checkbox is shared: it is deliberately OFF each plugin launch.
+
+Windbound sends direct FFXIV Performance callbacks from the game thread, not simulated keyboard input, so you can chat or alt-tab while playing. Live keys are intentionally suspended during MIDI-file playback or Ensemble mode. The same note engine and MIDI optimiser used for saved songs remain unchanged. Direct FFXIV Performance cannot express physical-key velocity; it plays the notes with the game's own sound.
+
+**Platform:** hardware capture is implemented using Windows `winmm.dll`, with no NuGet dependency. A Wine/Proton setup can sometimes expose MIDI ports through winmm but this is not guaranteed; native Linux ALSA MIDI-IN isn't implemented yet. If your controller isn't listed, confirm it appears in Windows' MIDI devices and isn't held by another program.
+
+**Also included:** the previously prepared **native group STOP instrument stow** change from v0.19.1, which sends the game's instrument=0 action after releasing notes rather than just closing the 37-key window. Group stow is game-version dependent; test with two clients before an octet.
+
+Run `Tests/Run-v0.20-Tests.ps1` for pure note-router and existing ensemble tests, then build the plugin with `Build-Plugin.ps1` on your Windows/.NET 10 Dalamud development machine. No live FFXIV/USB testing was possible in the packaging environment.
+
+---
+
+# Nunu’s Windbound Bard v0.19 — Conductor-controlled octets 🎼
+
+**New:** Select a performer for each MIDI track/channel, then press **SET PARTY TRACKS**. Every participating FFXIV party member running Windbound v0.19 automatically applies the conductor's assigned parts. The conductor can **Set Party Instruments** separately, and START still uses native FFXIV Ensemble Ready Check with Auto-Accept enabled by default.
+
+**New STOP:** The conductor's **STOP ENSEMBLE + UNEQUIP ALL**, the main STOP button, or `/windbound stop` asks every Bard (including the conductor) to release notes, then close the FFXIV Performance keyboard and unequip the instrument. An unsupported native close is reported; no false success.
+
+**Quick test:** On two clients, select Conductor/Follower and Native FFXIV Ensemble, open the same MIDI, assign track 1 to the conductor and track 2 to the follower, then click SET PARTY TRACKS. Verify `Tracks: READY (1/1)` on the conductor and the correct parts on the follower. Then click SET PARTY INSTRUMENTS, start with native FFXIV Ready Check, and press STOP ENSEMBLE + UNEQUIP ALL. If this works, scale to an octet. Solo playback, Soulweaver, HUD and Smart Playlists remain present.
+
+See `CHANGELOG-v0.19.md` for exact behaviour, limitations and test instructions. Build using `Build-Plugin.ps1`; a full Windows SDK/in-game test is still required.
+
+---
+
+# Nunu's Windbound Bard v0.18.2 — Party Instrument Sync Hotfix
+
+**If Edea does not switch when the conductor clicks SET PARTY INSTRUMENTS:** install this build on both clients, ensure Edea chooses Follower with native Game Ensemble and Follow leader enabled, and expand **Party command receiver diagnostics** in the Ensemble panel. The report identifies whether the command arrived, was rejected, or failed in the instrument switcher. See `CHANGELOG-v0.18.2.md` for troubleshooting and validation.
+
+---
+
+# Nunu's Windbound Bard v0.18 — Conductor File + Instrument Sync 🖤🎻
+
+**Dalamud API 15 · .NET 10 · FFXIV Windows / Linux**
+
+New in v0.18: a MidiBard-style **conductor SET instrument button**, **automatic follower MIDI selection and track maps**, and **Auto-Accept Ready Check ON by default for new installations**. Music itself still starts **only** on FFXIV's native Ensemble START event; there is no separate chat-based start timer.
+
+## Two-minute setup (Nunu + Edea + Veits)
+
+1. Install **v0.18 on every FFXIV account**, including additional clients on the same computer. Join the same **FFXIV party**; the Windbound Conductor must be the actual FFXIV party leader.
+2. `/windbound` → **Ensemble** → choose **Conductor** on the leader and **Follower** on everybody else. **Use FFXIV native Ensemble** is on for first-time installers. Auto-Accept Ready Check is ON by default. Everyone enables **ARM output** and opens the *expanded 37-key* in-game Bard Performance keyboard.
+3. Conductor selects a MIDI from **Songs & Playback**. Windbound broadcasts its hash and (if available) conductor party-track assignments. Followers automatically switch to the identical local MIDI, regardless of local folder names or playlist order. See MIDI `READY x/y` in Ensemble. If missing, use **SYNC SELECTED MIDI TO PARTY** after installing the exact file locally on that client.
+4. Conductor chooses an instrument for each Bard in **CONDUCTOR FILE + INSTRUMENT SYNC**, then clicks **SET PARTY INSTRUMENTS — auto-switch everyone**. Wait for the Instruments `READY x/y` status. No follower clicks or in-game Ready Check confirmations needed for each song.
+5. Conductor presses **START ENSEMBLE — FFXIV Ready Check**. Windbound automatically confirms the native Ready Check on ready clients, and the game delivers synchronized START to all. To change the song later, pick the next MIDI on the conductor and repeat.
+
+If a client isn't ready, the conductor sees a failure or timeout instead of beginning an incomplete ensemble. Party-chat commands are visible to party members and send only file hashes, per-player instrument codes and part mappings, **not MIDI bytes**. The exact MIDI must exist locally. To disable the leader's automatic file/instrument control, untick **Automatically follow the party leader's MIDI and instrument choices**; to disable Ready Check auto-confirmation, untick its separate checkbox.
+
+### Validation
+
+The v0.18 package contains the full Visual Studio project, samples, `Tests/Run-v0.18-Tests.ps1`, and `CHANGELOG-v0.18.md`. Core note performance and Soulweaver remain unchanged from v0.17. **No real Windows compilation or FFXIV game session was possible here**. Test both accounts with the bundled 37-note calibration MIDI before a full concert.
+
+---
+
+# Nunu's Windbound Bard v0.17 — Native Ensemble Reliability Edition
+
+**Dalamud API 15 · .NET 10 · FFXIV Performance MIDI player**
+
+This release replaces the previous unreliable party-chat/UTC-timed ensemble START with a **single, native FFXIV Ensemble Ready Check + game START workflow**. The sequence is deliberately modelled on [MidiBard 2's documented ensemble behaviour](https://github.com/reckhou/MidiBard2/tree/v3-api15-stable). The code is independently written against FFXIVClientStructs and Dalamud; it is not a copy of MidiBard's AGPL implementation.
+
+### What changed
+
+1. The **conductor clicks START ENSEMBLE** once, which queues opening the FFXIV metronome, starts the game's Ready Check, and submits the conductor's confirmation.
+2. All participating, ARMed clients with the same MIDI loaded **automatically confirm the native receiving Ready Check** through the in-game Performance callback (not via Windows keystrokes). Auto-accept is on when Native Ensemble mode is selected and can be disabled per Bard.
+3. **Playback begins ONLY after FFXIV emits its native ensemble-start signal**. Both Windows and Linux clients use their **own local timestamp of that game signal**; no attempt to compare OS clocks, party chat delivery times or shared memory across PCs.
+4. **Every native UI callback is now issued on the FFXIV framework update thread**, never directly from the ImGui Draw thread. The listener runs even while the Windbound window is hidden or FFXIV has been alt-tabbed.
+5. Upgrading from v0.16 explicitly turns off the legacy timed party-chat OneClick START setting. It retains the source MIDI, stored MIDI arrangements, per-track octaves, chosen instruments, guitar tones, saved Solo/Ensemble playlists, Soulweaver Studio, Compact HUD and Smart Playlist Manager. Legacy local/TCP transport classes remain in the code but are not used while native mode is on.
+
+### First duet / octet test
+
+1. Install the **same v0.17 build** on every FFXIV client. Do not play the same MIDI through MidiBard 2 simultaneously with Windbound; that would send duplicate notes.
+2. Join the same FFXIV party. Choose **Conductor** on the leader and **Follower** on all other performers.
+3. On every client, enable **Use FFXIV native Ensemble (MidiBard-style; same PC or cross-PC)**. Leave **Automatically accept FFXIV Ensemble Ready Check** ON.
+4. Load the **same MIDI file** on each client, select different **track checkboxes** locally and prepare each Bard's desired **instrument**. Remote track assignment and instrument switching via chat are not part of the start handshake in this reliability build; prepare these before the Ready Check.
+5. Open FFXIV Performance using the **full 37-note C3–C6 layout** and tick **ARM** on every performer with assigned notes. If conducting silently, enter Performance mode but MIDI output need not be ARMed.
+6. Press **START ENSEMBLE — FFXIV Ready Check** on the conductor. Do **not** click Play on individual followers. Once the game has gathered all native confirmations, it sends an ensemble-start signal to each client and Windbound starts their prepared parts.
+7. Use the **Copy native diagnostics** button on both the conductor and a follower if there is a problem. Check that every client reports a non-zero native START count, and whether the follower's auto-confirm attempt counter has increased. These are callback attempts, not proof the game accepted them.
+
+### Expected limitations
+
+- All participants must have the appropriate MIDI file and local track assignments; **this mode does not transfer files over party chat**.
+- **Automatic guitar/party instrument choices from the retired chat-timed OneClick path are not transmitted by this native start mode.** You can still choose instruments in Windbound before starting, and all related per-song settings remain saved.
+- Native readiness, metronome callbacks and start hooks are **game-version-sensitive**. If the listener cannot find the signature, the UI reports it rather than launching a half-synchronised performance.
+- The game's own confirmation and START event decide timing; Windbound does **not** claim frame-perfect sync or that all notes are audibly emitted. Other participants who haven't configured Windbound may still need to accept the game's Ready Check manually.
+- Dalamud and automated music performance are third-party modifications; use at your own discretion with respect to FFXIV's terms.
+
+### Build / verify
+
+Open `NunuWindboundBard.sln` in Visual Studio on Windows, with .NET 10 and a configured Dalamud API 15 development environment. Build `src/NunuWindboundBard/NunuWindboundBard.csproj` for x64. `Build-Plugin.ps1` builds a Debug development assembly.
+
+The new `Tests/Run-v0.17-Tests.ps1` performs structural checks and runs the existing native ensemble start-gate smoke tests where .NET is available. `Tests/Check-v0.17-Native-Ensemble.py` performs structural checks on Windows or Linux with Python 3. These **do not replace an actual FFXIV in-game ensemble test**.
+
+This archive is a **Visual Studio source release**, not a compiled plug-and-play Dalamud plugin. It has been source-checked but not compiled or exercised in a live FFXIV client here.

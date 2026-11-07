@@ -22,7 +22,7 @@ public sealed class SongFlowCoordinator
         _ => "None"
     };
 
-    public void QueueNext() => pending = new(SongFlowActionKind.Next);
+    public void QueueNext(bool manual = true) => pending = new(SongFlowActionKind.Next, "", manual);
     public void QueueSelection(string path, bool startAfterLoad)
         => pending = new(SongFlowActionKind.SelectSong, path, startAfterLoad);
     public void QueueStartLoaded()

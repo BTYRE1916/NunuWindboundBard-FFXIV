@@ -5,8 +5,26 @@ namespace NunuWindboundBard.Core;
 
 public sealed record MidiNote(long Tick, double TimeMs, int Pitch, int Velocity, int Track, int Channel, double DurationMs = 160);
 public sealed record MidiTrack(int Index, string Name, int NoteCount, bool IsPercussion);
+public sealed record MidiDrumPitch(int Pitch, int Count);
+/// <summary>MIDI metadata per track/channel, including Program Change (0xCn)
+/// weighted by actual note-on events, FF 03 track title and FF 04 instrument name.
+/// Standard MIDI format 0 can put multiple instrument channels in one track.</summary>
+public sealed record MidiLaneInstrument(int Track, int Channel, string TrackName,
+    string InstrumentName, int? Program, int DistinctPrograms, int NoteCount,
+    bool IsPercussion, IReadOnlyList<MidiDrumPitch> DrumPitches)
+{
+    // Some DAWs put #Lute / #+12 in FF01 text, FF06 marker or FF07 cue events,
+    // rather than in the FF03 track-name or FF04 instrument-name metadata.
+    // Keep these labels separately: they belong to the same track/channel,
+    // but should not alter the track's displayed name.
+    public string TagMetadata { get; init; } = "";
+}
 public sealed record MidiSong(string FileName, IReadOnlyList<MidiNote> Notes,
-    IReadOnlyList<MidiTrack> Tracks, double DurationMs, double InitialBpm);
+    IReadOnlyList<MidiTrack> Tracks, double DurationMs, double InitialBpm)
+{
+    // Additive metadata keeps old readers/tests/source consumers compatible.
+    public IReadOnlyList<MidiLaneInstrument> LaneInstruments { get; init; } = Array.Empty<MidiLaneInstrument>();
+}
 
 /// <summary>
 /// Small dependency-free Standard MIDI File (SMF 0/1, PPQ) reader.
@@ -42,6 +60,11 @@ public static class MidiFileReader
         List<RawNote> rawNotes = new();
         List<TempoChange> tempoChanges = new();
         List<MidiTrack> tracks = new();
+        List<MidiLaneInstrument> laneInstruments = new();
+        // Cross-track program events are a common SMF format-1 export pattern:
+        // an orchestration/conductor track can declare a channel's GM program,
+        // while the actual notes live in a different track.
+        Dictionary<int, HashSet<int>> globalPrograms = new();
         int tempoOrder = 0;
 
         while (tracks.Count < declaredTracks && stream.Position + 8 <= stream.Length)
@@ -58,6 +81,12 @@ public static class MidiFileReader
 
             int index = tracks.Count;
             string name = $"Track {index + 1:00}";
+            string instrumentName = "";
+            var tagLabels = new List<string>();
+            var channelPrograms = new Dictionary<int, int>();
+            var programVotes = new Dictionary<(int Channel, int Program), int>();
+            var channelNotes = new Dictionary<int, int>();
+            var drumPitches = new Dictionary<(int Channel, int Pitch), int>();
             long ticks = 0;
             int runningStatus = 0;
             int noteCount = 0;
@@ -87,12 +116,17 @@ public static class MidiFileReader
                     int meta = reader.ReadByte();
                     long length = ReadVlq(reader, chunkEnd);
                     RequireRemaining(stream, chunkEnd, length);
-                    if (meta == 0x03 && length > 0)
+                    if (meta is 0x01 or 0x03 or 0x04 or 0x06 or 0x07 && length > 0)
                     {
-                        byte[] nameBytes = reader.ReadBytes((int)Math.Min(length, 2048));
-                        name = Encoding.UTF8.GetString(nameBytes).Trim('\0', ' ', '\t');
-                        stream.Position += length - nameBytes.Length;
-                        if (string.IsNullOrWhiteSpace(name)) name = $"Track {index + 1:00}";
+                        // Text, Track Name, Instrument Name, Marker, Cue Point.
+                        // Track tags in the first 2 KiB are sufficient and bounded.
+                        byte[] bytes = reader.ReadBytes((int)Math.Min(length, 2048));
+                        string value = Encoding.UTF8.GetString(bytes).Trim('\0', ' ', '\t');
+                        stream.Position += length - bytes.Length;
+                        if (meta == 0x03 && !string.IsNullOrWhiteSpace(value)) name = value;
+                        if (meta == 0x04 && !string.IsNullOrWhiteSpace(value)) instrumentName = value;
+                        if (value.Contains('#') && tagLabels.Count < 24 && !tagLabels.Contains(value))
+                            tagLabels.Add(value);
                     }
                     else if (meta == 0x51 && length == 3)
                     {
@@ -121,11 +155,29 @@ public static class MidiFileReader
                     int channel = status & 0x0F;
                     int d1 = firstData >= 0 ? firstData : reader.ReadByte();
                     int d2 = type == 0xC0 || type == 0xD0 ? 0 : reader.ReadByte();
-                    if (type == 0x90 && d2 > 0)
+                    if (type == 0xC0) // MIDI Program Change selects a GM program per channel.
+                    {
+                        channelPrograms[channel] = d1;
+                        if (!globalPrograms.TryGetValue(channel, out var programsOnChannel))
+                            globalPrograms[channel] = programsOnChannel = new HashSet<int>();
+                        programsOnChannel.Add(d1);
+                    }
+                    else if (type == 0x90 && d2 > 0)
                     {
                         rawNotes.Add(new RawNote(ticks, d1, d2, index, channel, true));
                         noteCount++;
-                        if (channel == 9) drumCount++;
+                        channelNotes[channel] = channelNotes.GetValueOrDefault(channel) + 1;
+                        if (channelPrograms.TryGetValue(channel, out int gmProgram))
+                        {
+                            var programKey = (channel, gmProgram);
+                            programVotes[programKey] = programVotes.GetValueOrDefault(programKey) + 1;
+                        }
+                        if (channel == 9)
+                        {
+                            drumCount++;
+                            var drumKey = (channel, d1);
+                            drumPitches[drumKey] = drumPitches.GetValueOrDefault(drumKey) + 1;
+                        }
                     }
                     else if (type == 0x80 || (type == 0x90 && d2 == 0))
                     {
@@ -136,7 +188,32 @@ public static class MidiFileReader
             }
             stream.Position = chunkEnd;
             tracks.Add(new MidiTrack(index, name, noteCount, noteCount > 0 && drumCount == noteCount));
+            foreach (var (channel, count) in channelNotes.OrderBy(pair => pair.Key))
+            {
+                var programs = programVotes.Where(v => v.Key.Channel == channel)
+                    .OrderByDescending(v => v.Value).ThenBy(v => v.Key.Program).ToArray();
+                var drums = drumPitches.Where(v => v.Key.Channel == channel)
+                    .OrderByDescending(v => v.Value).ThenBy(v => v.Key.Pitch)
+                    .Select(v => new MidiDrumPitch(v.Key.Pitch, v.Value)).ToArray();
+                int? chosenProgram = null;
+                if (programs.Length > 0) chosenProgram = programs[0].Key.Program;
+                else if (channelPrograms.TryGetValue(channel, out int finalProgram)) chosenProgram = finalProgram;
+                laneInstruments.Add(new MidiLaneInstrument(index, channel, name, instrumentName,
+                    chosenProgram, programs.Length, count, channel == 9, drums)
+                {
+                    TagMetadata = string.Join(" | ", tagLabels)
+                });
+            }
         }
+        // Only inherit a program from another track when it is UNAMBIGUOUS for
+        // that MIDI channel. Multiple declared programs cannot be safely
+        // attributed to a lane without a time-resolved arrangement.
+        laneInstruments = laneInstruments.Select(lane =>
+            lane.Program is null && !lane.IsPercussion &&
+            globalPrograms.TryGetValue(lane.Channel, out var programsForChannel) &&
+            programsForChannel.Count == 1
+                ? lane with { Program = programsForChannel.First() }
+                : lane).ToList();
         if (tracks.Count != declaredTracks) throw new InvalidDataException("MIDI track data is missing.");
         if (rawNotes.Count == 0) throw new InvalidDataException("This MIDI contains no note-on events.");
         if (rawNotes.Count > 500_000) throw new InvalidDataException("This MIDI has too many notes for this player.");
@@ -195,7 +272,10 @@ public static class MidiFileReader
             }
         }
         double duration = notes.Max(n => n.TimeMs + n.DurationMs) + 180;
-        return new MidiSong(Path.GetFileName(path), notes, tracks, duration, 60_000_000d / initialMpqn);
+        return new MidiSong(Path.GetFileName(path), notes, tracks, duration, 60_000_000d / initialMpqn)
+        {
+            LaneInstruments = laneInstruments
+        };
     }
 
     private static string ReadTag(BinaryReader reader)
