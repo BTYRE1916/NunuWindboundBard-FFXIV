@@ -311,7 +311,7 @@ public sealed partial class MainWindow
         stageStatus = "Conductor stopped stage positioning.";
     }
 
-    public void PollStageFormations(string why1)
+    public void PollStageFormations()
     {
         bool safe = StageSafe(out _);
         if (Plugin.Objects.LocalPlayer is { } local)
@@ -355,7 +355,7 @@ public sealed partial class MainWindow
             Vector3 target = StageFormationMath.Destination(member, session.Preset.Anchor, session.Preset.AnchorHeading);
             if (!StageSafe(out _) || !stageNavigator.TryStart(here, target, out string why))
             {
-                stageStatus = "Conductor cannot move: " + why1;
+                stageStatus = "Conductor cannot move: " + why;
                 recallingStage = null;
                 return;
             }
@@ -433,9 +433,19 @@ public sealed partial class MainWindow
             {
                 foreach (var preset in cfg.StageFormations ?? new())
                     if (ImGui.Selectable(preset.Name + "##stage" + preset.Id, selectedStageId == preset.Id))
-                    { selectedStageId = preset.Id; cfg.SelectedStageFormationId = preset.Id; cfg.Save(); }
+                    {
+                        selectedStageId = preset.Id;
+                        cfg.SelectedStageFormationId = preset.Id;
+                        cfg.Save();
+                        // Selecting a preset in the old dropdown also refreshes
+                        // the new canvas, preventing accidental edits to an old draft.
+                        LoadVisualStage();
+                    }
                 ImGui.EndCombo();
             }
+            // Visual editor can create/modify party positions without first positioning
+            // every character manually. Save Current Positions above remains available.
+            DrawVisualStageDesigner();
             if (ImGui.Button(Loc.T("MOVE PARTY INTO SAVED FORMATION"))) RecallStageFormation();
             ImGui.SameLine();
             if (ImGui.Button(Loc.T("STOP STAGE MOVEMENT"))) StopStageFormation();

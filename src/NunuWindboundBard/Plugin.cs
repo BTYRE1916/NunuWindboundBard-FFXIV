@@ -38,8 +38,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly PerformanceHudWindow hud;
     private volatile bool performing;
     private volatile bool expandedKeyboard;
-    private object why;
-
     internal bool IsPerforming => performing;
     internal bool IsExpandedKeyboard => expandedKeyboard;
 
@@ -352,7 +350,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.30 loaded: optional saved stage formations through vnavmesh; party conductor and MIDI engine unchanged.");
+        Log.Information("Windbound Bard v0.31 loaded: optional saved stage formations through vnavmesh; party conductor and MIDI engine unchanged.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -376,7 +374,7 @@ public sealed class Plugin : IDalamudPlugin
             (Config.EnsembleMode == (int)EnsembleRole.Follower ||
              Config.EnsembleMode == (int)EnsembleRole.Conductor);
         main.PollGamePartyChat();
-        main.PollStageFormations(why); // optional stage navigation, never a musical START
+        main.PollStageFormations(); // optional stage navigation, never a musical START
         main.PollNativeConductorSync();
         main.PollNativePartyArming(); // ARM/ACK after file/track preparation; no notes generated
         main.PollConcertDirector();

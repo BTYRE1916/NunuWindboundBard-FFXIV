@@ -251,16 +251,11 @@ public static class GamePartyCueProtocol
     {
         location = default;
         angle = 0;
-        if (!IsHex(nonce, 16) || !ValidTerritory(territory, out zone) ||
-            !float.TryParse(x, NumberStyles.Float, CultureInfo.InvariantCulture, out float px) ||
-            !float.TryParse(y, NumberStyles.Float, CultureInfo.InvariantCulture, out float py) ||
-            !float.TryParse(z, NumberStyles.Float, CultureInfo.InvariantCulture, out float pz) ||
-            !float.TryParse(heading, NumberStyles.Float, CultureInfo.InvariantCulture, out angle))
-        {
-            zone = 0;
-            return false;
-        }
-
+        if (!IsHex(nonce,16) || !ValidTerritory(territory,out zone) ||
+            !float.TryParse(x,NumberStyles.Float,CultureInfo.InvariantCulture,out float px) ||
+            !float.TryParse(y,NumberStyles.Float,CultureInfo.InvariantCulture,out float py) ||
+            !float.TryParse(z,NumberStyles.Float,CultureInfo.InvariantCulture,out float pz) ||
+            !float.TryParse(heading,NumberStyles.Float,CultureInfo.InvariantCulture,out angle)) return false;
         location = new Vector3(px,py,pz);
         return ValidCoords(location) && float.IsFinite(angle) && MathF.Abs(angle)<=6.4f;
     }

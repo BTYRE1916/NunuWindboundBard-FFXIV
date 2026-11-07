@@ -1,3 +1,28 @@
+# Nunu's Windbound Bard v0.31 — Visual Stage Designer 🖤🎻
+
+**Dalamud API 15 · .NET 10 · Stage formations, octet conductor, MIDI player**
+
+## New: drag the dots, then MOVE the Bards
+
+Open `/windbound` → **Stage Formations** on the FFXIV party leader's **Conductor** client. Instead of walking all Bards into place manually, Windbound now draws a **square, top-down stage** with a numbered dot for each character.
+
+1. Put the conductor at the approximate **centre of the actual stage** (ideally facing towards the audience). All Bards should be nearby in the same housing ward/instance and FFXIV party.
+2. In **Stage Formations**, a **Visual Stage Designer** appears automatically for the active party. Create a fresh layout, or choose a saved preset and click **Load saved formation into diagram**.
+3. Choose **Line, Arc, Circle or Two Rows** as a starting layout. Drag the coloured dots to your preferred stage spots. Click a dot and use **Assign Bard to selected spot** if you want another Bard at that position; existing assignments are swapped safely.
+4. Adjust the stage-width scale and optional 0.5m snap. Use **Re-anchor stage at my position** if the venue location changed or you need the conductor's current location as the centre.
+5. Press **SET POSITIONS & MOVE PARTY**. Windbound **saves your diagram** and sends the selected destinations to participating Bards, which walk there using **vnavmesh**. You can also save without moving anyone using **Save Current Diagram** or **Save As New Preset**.
+6. Review the movement statuses below, and use **Stop Stage Movement** to cancel. The MIDI player never starts because of moving a formation.
+
+On each Follower, enable **Allow my party leader to save my position and move me on stage** and install/enable **vnavmesh**. Followers must leave Performance and combat before movement is allowed. The editor supports same-PC multibox ensembles and parties on separate computers, subject to FFXIV world/party proximity and the game's existing party-chat transport.
+
+**Important**: This uses the saved conductor anchor and heading for the dot coordinate system; it is not a literal map of collision/obstacles. Navmesh determines how to walk, and may reject unreachable dots. Automatic facing is not implemented yet; the heading slider is a guide.
+
+v0.30's **Save Current Party Positions** and **Move Party Into Saved Formation** remain available. All Concert Director, one-click ARM, native ensemble, Smart Playlist, Soulweaver, French localisation and audio-preview features are preserved.
+
+See `CHANGELOG-v0.31.md` and `Tests/Run-v0.31-Tests.ps1`. Source-only checks were performed here; compile with .NET 10 and test in-game before using during a live concert.
+
+---
+
 # Nunu's Windbound Bard v0.30 — Saved Stage Formations 🖤🎻
 
 This update adds a new **Stage Formations** tab to v0.29, inspired by the formation features described in Bard Toolbox. It does not copy Bard Toolbox's source or affect Windbound's existing MIDI playback, Smart Playlists, Soulweaver, Concert Director, native Ensemble Ready Check, party-track allocation, ARM or SoundFont Preview.
