@@ -780,4 +780,9 @@ public sealed partial class MainWindow
         nativeTracksSyncStatus = message;
         CancelNativePartyArming(message);
     }
+
+    internal void PollStageFormations(object why)
+    {
+        throw new NotImplementedException();
+    }
 }

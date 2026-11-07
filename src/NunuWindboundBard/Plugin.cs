@@ -38,6 +38,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly PerformanceHudWindow hud;
     private volatile bool performing;
     private volatile bool expandedKeyboard;
+    private object why;
+
     internal bool IsPerforming => performing;
     internal bool IsExpandedKeyboard => expandedKeyboard;
 
