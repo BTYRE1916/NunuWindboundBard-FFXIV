@@ -311,7 +311,7 @@ public sealed partial class MainWindow
         stageStatus = "Conductor stopped stage positioning.";
     }
 
-    public void PollStageFormations()
+    public void PollStageFormations(string why1)
     {
         bool safe = StageSafe(out _);
         if (Plugin.Objects.LocalPlayer is { } local)
@@ -355,7 +355,7 @@ public sealed partial class MainWindow
             Vector3 target = StageFormationMath.Destination(member, session.Preset.Anchor, session.Preset.AnchorHeading);
             if (!StageSafe(out _) || !stageNavigator.TryStart(here, target, out string why))
             {
-                stageStatus = "Conductor cannot move: " + why;
+                stageStatus = $"Conductor cannot move: {why1}";
                 recallingStage = null;
                 return;
             }
