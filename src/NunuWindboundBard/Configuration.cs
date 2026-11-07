@@ -8,7 +8,11 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
+<<<<<<< HEAD
     public int Version { get; set; } = 30;
+=======
+    public int Version { get; set; } = 29;
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
     // v0.27 local-only SoundFont audio preview; no party/FFXIV MIDI output.
     public string PreviewSoundFontPath { get; set; } = "";
     public float PreviewVolume { get; set; } = .65f;
@@ -39,8 +43,11 @@ public sealed class Configuration : IPluginConfiguration
     public bool NativeLeaderSyncEnabled { get; set; } = true;
     // v0.25: never automatically launch the next piece: only PREPARE it.
     public bool ConcertAutoPrepareNext { get; set; } = false;
+<<<<<<< HEAD
     // v0.28: named local-only concert snapshot backups. No live ARM or networking secrets.
     public List<ConcertSnapshot> ConcertSnapshots { get; set; } = new();
+=======
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
     public Dictionary<string, ConcertSongCue> ConcertSongCuesByKey { get; set; } = new();
     // Legacy UTC party chat start saved only for config compatibility; disabled in v0.17.
     public bool GameEnsembleOneClick { get; set; } = false;

@@ -3,10 +3,17 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+<<<<<<< HEAD
     <Version>0.28.0.0</Version>
     <Author>Real Nunu</Author>
     <Name>Nunu's Windbound Bard</Name>
     <Punchline>Concert Snapshots &amp; Restore, local SoundFont preview and native ensembles.</Punchline>
+=======
+    <Version>0.27.1.0</Version>
+    <Author>Real Nunu</Author>
+    <Name>Nunu's Windbound Bard</Name>
+    <Punchline>Local SoundFont MIDI audio preview, Concert Director, native ensembles and Soulweaver.</Punchline>
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
     <Description>Native FFXIV Ensemble Ready Check with automatic client confirmation and game-synchronised START inspired by MidiBard 2. Includes Soulweaver Studio, chat-safe chords, optional party instrument and playlist setup, compact Performance HUD, native instrument switching, C3-C6 optimiser, smart Solo/Ensemble playlists and full-featured concert tools.</Description>
     <Tags>bard;midi;performance;music</Tags>
     <PlatformTarget>x64</PlatformTarget>

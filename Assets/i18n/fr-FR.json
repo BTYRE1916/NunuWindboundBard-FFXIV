@@ -770,6 +770,7 @@
   "source tracks": "pistes source",
   "the matching MIDI, select assigned parts and play without per-song confirmations.": "le MIDI correspondant, sélectionnent leurs parties et jouent sans confirmation par morceau.",
   "★ Unfavourite": "★ Retirer des favoris",
+<<<<<<< HEAD
   "☆ Favourite": "☆ Ajouter aux favoris",
   "Concert Snapshots": "Instantanés de concert",
   "CONCERT SNAPSHOTS & RESTORE": "INSTANTANÉS ET RESTAURATION DE CONCERT",
@@ -800,4 +801,7 @@
   "Export concert snapshot": "Exporter l’instantané de concert",
   "Import concert snapshot": "Importer l’instantané de concert",
   "None": "Aucun"
+=======
+  "☆ Favourite": "☆ Ajouter aux favoris"
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
 }

@@ -15,6 +15,7 @@ public static class Loc
     private static string selectedLanguage = "en";
     private static readonly Dictionary<string, string> French = new(StringComparer.Ordinal)
     {
+<<<<<<< HEAD
         ["Concert Snapshots"] = "Instantanés de concert",
         ["CONCERT SNAPSHOTS & RESTORE"] = "INSTANTANÉS ET RESTAURATION DE CONCERT",
         ["Save entire concert setups as named snapshots. Restore a snapshot to a NEW Solo/Ensemble playlist. No MIDI files are copied or altered."] = "Enregistrez votre configuration de concert sous un nom. Restaurez-la dans une NOUVELLE liste Solo/Ensemble. Aucun fichier MIDI n’est modifié ni copié.",
@@ -44,6 +45,8 @@ public static class Loc
         ["Export concert snapshot"] = "Exporter l’instantané de concert",
         ["Import concert snapshot"] = "Importer l’instantané de concert",
         ["None"] = "Aucun",
+=======
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
         ["Audio Preview"] = "Aperçu audio",
         ["LOCAL MIDI AUDIO PREVIEW — SOUNDFONT"] = "APERÇU AUDIO MIDI LOCAL — SOUNDFONT",
         ["Hear MIDI through your own speakers before playing in FFXIV. This preview sends NO game notes, instruments, Ready Checks or party commands."] = "Écoutez le MIDI sur vos haut-parleurs avant de jouer dans FFXIV. Cet aperçu n’envoie AUCUNE note, instrument, confirmation ni commande de groupe au jeu.",

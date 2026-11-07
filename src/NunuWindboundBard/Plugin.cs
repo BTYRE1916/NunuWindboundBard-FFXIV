@@ -274,6 +274,7 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 29;
             Config.Save();
         }
+<<<<<<< HEAD
         if (Config.Version < 30)
         {
             // Add only the snapshot library after ALL previous migrations.
@@ -282,6 +283,8 @@ public sealed class Plugin : IDalamudPlugin
             Config.Save();
         }
         Config.ConcertSnapshots ??= new();
+=======
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
         Config.EnsembleLineupsByPlaylistId ??= new();
         Config.ManualOctaveLaneOverridesByFile ??= new(StringComparer.OrdinalIgnoreCase);
         AudioPreview.SetVolume(Config.PreviewVolume);
@@ -331,7 +334,11 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
+<<<<<<< HEAD
         Log.Information("Windbound Bard v0.28 loaded: named Concert Snapshots & Restore, no change to native MIDI engine.");
+=======
+        Log.Information("Windbound Bard v0.27 loaded: English / French UI, MIDI and ensemble engine unchanged.");
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
     }
 
     private void OnFrameworkUpdate(IFramework _)

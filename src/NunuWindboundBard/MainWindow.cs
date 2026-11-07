@@ -117,7 +117,10 @@ public sealed partial class MainWindow : Window, IDisposable
             if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Ensemble"))) { DrawEnsemble(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("FFXIV Optimiser"))) { DrawOptimizer(); ImGui.EndTabItem(); }
+<<<<<<< HEAD
             if (ImGui.BeginTabItem(Loc.T("Concert Snapshots"))) { DrawConcertSnapshots(); ImGui.EndTabItem(); }
+=======
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
             if (ImGui.BeginTabItem(Loc.T("MIDI Inspector"))) { DrawArrangementInspector(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Soulweaver Studio"))) { DrawSoulweaver(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Instruments"))) { DrawInstruments(); ImGui.EndTabItem(); }
@@ -717,10 +720,17 @@ public sealed partial class MainWindow : Window, IDisposable
             // Auto Next calls Load and then StartSong in one framework tick, so an
             // idle rewind must complete immediately (no deferred reset).
             plugin.Player.RewindToStart();
+<<<<<<< HEAD
             if (!suppressSnapshotSync && cfg.MultiDeviceEnabled && plugin.Network.IsHosting)
                 TryShareNetworkSession();
             lastMidiLoadDiagnostics = $"Successfully loaded {Path.GetFileName(full)} ({candidate.Tracks.Count} MIDI tracks).";
             if (!suppressSnapshotSync) OnNativeConductorSongLoaded(); // Snapshot restore is local-only.
+=======
+            if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting)
+                TryShareNetworkSession();
+            lastMidiLoadDiagnostics = $"Successfully loaded {Path.GetFileName(full)} ({candidate.Tracks.Count} MIDI tracks).";
+            OnNativeConductorSongLoaded(); // Never launches music; file selection metadata only.
+>>>>>>> c3cd58348fd8c9dd07d48576c40182b2027e2ef5
             return true;
         }
         catch (Exception error)
