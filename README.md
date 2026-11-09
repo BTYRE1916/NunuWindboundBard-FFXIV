@@ -1,4 +1,5 @@
-<img width="1448" height="1086" alt="8237f53d-7866-4ee4-b605-8013148b8d8c" src="https://github.com/user-attachments/assets/885bc4fe-faaf-4b79-a5bc-0571d2d9b22b" />
+<img width="1536" height="1024" alt="3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0" src="https://github.com/user-attachments/assets/cd754780-825e-422b-8cc8-896efc6bbc10" />
+
 
 
 ## 📖 Windbound Bard User Manual
