@@ -452,12 +452,13 @@ Method B: Design a formation using dots
 8. Save the diagram without moving anyone, or click SET POSITIONS & MOVE PARTY to save and request movement.
 9. Check acknowledgements, distances and failed path reports before preparing MIDI playback.
 Stage layout example
+
                     ┌──────────── STAGE (TOP VIEW) ────────────┐
-                    │       [4]   [5]   [6]   [7]             │
+                    │       [4]   [5]   [6]   [7]              │
                     │   [2]                          [8]       │
                     │                [1]    [3]                │
                     └──────────────────────────────────────────┘
-                  AUDIENCE
+                                     AUDIENCE
 This diagram is illustrative; the real layout is a draggable square inside Windbound. A dot is a relative target, not a guarantee that vnavmesh will find a walkable route.
 Safe operation
 - Same housing ward matters. Different wards can have identical local coordinates; Windbound also checks that the party leader is actually nearby.
