@@ -1,4 +1,5 @@
-WindboundBardFFXIV-Complete-Manual.html
+<img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/9cbe6190-5326-4c2e-af40-7dc852ab6d2d" />
+
 
 Nunu’s Windbound Bard FFXIV — Complete User Manual
 Version 0.32.0.0 · Wiki reference · Updated November 2026 · Based on the inspected Visual Studio source ZIP.
