@@ -1,3 +1,5 @@
+WindboundBardFFXIV-Complete-Manual.html
+
 Nunu’s Windbound Bard FFXIV — Complete User Manual
 Version 0.32.0.0 · Wiki reference · Updated November 2026 · Based on the inspected Visual Studio source ZIP.
 
@@ -450,11 +452,11 @@ Method B: Design a formation using dots
 8. Save the diagram without moving anyone, or click SET POSITIONS & MOVE PARTY to save and request movement.
 9. Check acknowledgements, distances and failed path reports before preparing MIDI playback.
 Stage layout example
-   ┌──────────── STAGE (TOP VIEW) ────────────┐
-   │       [4]   [5]   [6]   [7]             │
-   │   [2]                          [8]       │
-   │                [1]    [3]                │
-   └──────────────────────────────────────────┘
+                    ┌──────────── STAGE (TOP VIEW) ────────────┐
+                    │       [4]   [5]   [6]   [7]             │
+                    │   [2]                          [8]       │
+                    │                [1]    [3]                │
+                    └──────────────────────────────────────────┘
                   AUDIENCE
 This diagram is illustrative; the real layout is a draggable square inside Windbound. A dot is a relative target, not a guarantee that vnavmesh will find a walkable route.
 Safe operation
