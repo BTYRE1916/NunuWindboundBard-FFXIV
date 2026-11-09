@@ -8,6 +8,6 @@ Read our complete user manual covering installation,
 MIDI playback, ensemble performances, Concert Director,
 Stage Formations, SoundFont previews and troubleshooting.
 
-[📖 Open the Windbound Bard User Manual]([https://en.wikipedia.org/wiki/User:NunuWindboundBard-FFXIV](https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/wiki/NunuWindboundBard%E2%80%90FFXIV%E2%80%90Wiki))
+[📖 Open the Windbound Bard User Manual](https://en.wikipedia.org/wiki/User:NunuWindboundBard-FFXIV](https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/wiki/NunuWindboundBard%E2%80%90FFXIV%E2%80%90Wiki))
   
 RepoURL: https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
