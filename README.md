@@ -1,18 +1,9 @@
 
-<p align="center">
-  <img src="Assets/3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0.png"
-       alt="Nunu's Windbound Bard"
-       width="100%">
-</p>
+![Nunu's Windbound Bard](Assets/3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0.png)
 
-<h1 align="center">🎶 Nunu's Windbound Bard FFXIV 🎶</h1>
+## 🎶 Welcome to Windbound Bard
 
-<p align="center">
-  A complete MIDI performance and ensemble experience
-  for Final Fantasy XIV.
-</p>
-
-
+Bring your music to life in Final Fantasy XIV!
 
 ## 📖 Windbound Bard User Manual
 
