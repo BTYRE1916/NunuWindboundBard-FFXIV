@@ -1,8 +1,8 @@
-# Windbound Bard v0.37.2 — Band Portraits Tab 🖤🎶
+# Windbound Bard v0.37.3 — Portrait Crop Fix 🖤🎶
 
 **The Band Portraits tab is now second in the main WindboundBard menu and works in Solo, Conductor, and Follower modes.** It no longer hides inside the Ensemble track-assignment section. You can capture your own character's in-game Adventurer Plate picture without joining a party, and capture other current party members with their Adventurer Plates open. Captured thumbnails remain available in track/instrument assignment rows on this client only.
 
-**Full Visual Studio source project, not a compiled plugin or an upstream GitHub release.** Build via `NunuWindboundBard.sln`. See [START-HERE-v0.37.2.md](START-HERE-v0.37.2.md) for setup, capture steps and testing limitations. Includes the earlier v0.37.1 instrument-switching fix and v0.36.1 icon alignment.
+**Full Visual Studio source project, not a compiled plugin or an upstream GitHub release.** Build via `NunuWindboundBard.sln`. See [START-HERE-v0.37.3.md](START-HERE-v0.37.3.md) for setup, capture steps and testing limitations. Includes the earlier v0.37.1 instrument-switching fix and v0.36.1 icon alignment.
 
 ---
 

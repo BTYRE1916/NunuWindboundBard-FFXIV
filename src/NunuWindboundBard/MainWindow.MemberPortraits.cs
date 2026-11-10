@@ -241,7 +241,8 @@ public sealed partial class MainWindow
         {
             ImGui.TextUnformatted("Capture for: " + portraitTargetName);
             ImGui.TextWrapped("Only use this if their Adventurer Plate is visible in FFXIV. " +
-                "Drag a SQUARE over the character's portrait in the screenshot, then save. " +
+                "Drag a SQUARE directly on the screenshot to select the portrait. " +
+                "The image itself is a crop surface; move this window by its title bar. " +
                 "Full screenshots are never written to disk.");
             if (portraitSnapshotTask is not null)
                 ImGui.TextDisabled("Taking a game-only snapshot...");
@@ -251,18 +252,29 @@ public sealed partial class MainWindow
                 float factor = MathF.Min(usableWidth / screenshot.Width,
                     380f / screenshot.Height);
                 Vector2 size = new(screenshot.Width * factor, screenshot.Height * factor);
-                ImGui.Image(screenshot.Handle, size);
+                // ImGui.Image only paints an image; it does not claim a mouse-drag ActiveId.
+                // Dragging over a non-interactive image can therefore move the ImGui
+                // window rather than adjust the portrait crop. InvisibleButton owns
+                // the full image rectangle, preventing accidental window movement.
+                // The capture window itself remains movable by its TITLE BAR.
+                ImGui.InvisibleButton("##WindboundPortraitCropSurface", size);
                 Vector2 imgMin = ImGui.GetItemRectMin();
                 Vector2 imgMax = ImGui.GetItemRectMax();
+                var cropDraw = ImGui.GetWindowDrawList();
+                cropDraw.AddImage(screenshot.Handle, imgMin, imgMax);
                 Vector2 mouse = ImGui.GetMousePos();
                 bool hovered = ImGui.IsItemHovered();
-                if (hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                bool active = ImGui.IsItemActive();
+                // Only begin when the interactive image surface owns this press.
+                if (hovered && active && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
                     portraitDragStart = Vector2.Clamp(mouse, imgMin, imgMax);
                     portraitDragging = true;
                     portraitSelectionExists = false;
                 }
-                if (portraitDragging && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+                // Keep dragging if the cursor crosses the edge of the preview;
+                // the coordinates are clamped to the image bounds below.
+                if (portraitDragging && active && ImGui.IsMouseDown(ImGuiMouseButton.Left))
                 {
                     Vector2 end = Vector2.Clamp(mouse, imgMin, imgMax);
                     SetSquarePortraitCrop(portraitDragStart, end, imgMin, size);
@@ -278,11 +290,10 @@ public sealed partial class MainWindow
                     Vector2 a = imgMin + portraitUvMin * size;
                     Vector2 b = imgMin + portraitUvMax * size;
                     uint color = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .43f, .78f, 1f));
-                    var draw = ImGui.GetWindowDrawList();
-                    draw.AddLine(a, new Vector2(b.X, a.Y), color, 3f);
-                    draw.AddLine(new Vector2(b.X, a.Y), b, color, 3f);
-                    draw.AddLine(b, new Vector2(a.X, b.Y), color, 3f);
-                    draw.AddLine(new Vector2(a.X, b.Y), a, color, 3f);
+                    cropDraw.AddLine(a, new Vector2(b.X, a.Y), color, 3f);
+                    cropDraw.AddLine(new Vector2(b.X, a.Y), b, color, 3f);
+                    cropDraw.AddLine(b, new Vector2(a.X, b.Y), color, 3f);
+                    cropDraw.AddLine(new Vector2(a.X, b.Y), a, color, 3f);
                 }
             }
             ImGui.Separator();
@@ -361,6 +372,7 @@ public sealed partial class MainWindow
         portraitSnapshot?.Dispose();
         portraitSnapshot = null;
         portraitSelectionExists = false;
+        portraitDragging = false;
         if (portraitSnapshotTask is { } pending)
         {
             portraitSnapshotTask = null;
