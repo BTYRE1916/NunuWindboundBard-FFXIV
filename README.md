@@ -1,7 +1,11 @@
-<img width="1536" height="1024" alt="3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0" src="https://github.com/user-attachments/assets/f3aae68a-ba31-4193-804e-73658f7f2b36" />
+# Windbound Bard v0.36.1 — Performance Instrument Icon Alignment Fix 🎻
 
-[** Nunu's Windbound Bard Midi Suite Website URL**](https://btyre1916.github.io/NunuWindboundBard-FFXIV/)
-[** The WIKI **](https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/wiki)
+**Complete Visual Studio source ZIP** for the 28 Bard Performance icons. The v0.36 icon lookup had an off-by-one error: icon 750 (generic Performance) was displayed beside Harp. This release maps Harp to 751, Piano to 752, through Electric Guitar Special at 778. All UI selectors use the shared catalog; no instrument action IDs or MIDI behavior are changed.
+
+**Build:** Open `NunuWindboundBard.sln`, select x64 and rebuild. See [START-HERE-v0.36.1-Icon-Alignment.md](START-HERE-v0.36.1-Icon-Alignment.md) for testing and compatibility notes.
+
+---
+
 # Windbound Bard v0.35 — Solo Stage & Automatic Facing 🖤🎹
 
 **Full Visual Studio source ZIP:** The v0.35 changes are already merged into this copy. Open `NunuWindboundBard.sln` and read **[START-HERE-v0.35.md](START-HERE-v0.35.md)** for no-party stage movement, facing controls, build instructions and testing limitations. The older release notes below are kept for history.

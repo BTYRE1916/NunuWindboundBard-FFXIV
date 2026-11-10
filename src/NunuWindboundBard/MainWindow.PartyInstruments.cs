@@ -111,6 +111,7 @@ public sealed partial class MainWindow
                 ((cfg.PartyInstrumentsByFile.TryGetValue(loaded, out var overrides) &&
                   overrides.ContainsKey(contentIdKey)) ||
                  (member.IsLocal && cfg.InstrumentsByFile.ContainsKey(loaded)));
+            if (DrawMemberPortraitThumbnail(member.ContentId, 30f)) ImGui.SameLine(0f, 6f);
             ImGui.TextUnformatted(Loc.T((member.IsLocal ? "[Me] " : "") + member.Name +
                 (manuallyAssigned ? " [manual]" : value > 0 ? " [MIDI]" : " [unassigned]")));
             ImGui.SameLine(Math.Max(190f, ImGui.GetContentRegionAvail().X * .46f));

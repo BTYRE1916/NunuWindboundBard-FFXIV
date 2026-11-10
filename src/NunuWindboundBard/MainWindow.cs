@@ -79,12 +79,16 @@ public sealed partial class MainWindow : Window, IDisposable
     public void Dispose()
     {
         plugin.AudioPreview.Stop();
+        DisposeMemberPortraitCapture();
         fileDialogs.Reset();
     }
     public void DrawFileDialogs() => fileDialogs.Draw();
 
     public override void Draw()
     {
+        // Process asynchronous portrait capture/save completion regardless of
+        // which Windbound tab is currently visible.
+        PollMemberPortraitTasks();
         ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), Loc.T("NUNU'S WINDBOUND BARD   /windbound"));
         ImGui.SameLine();
         ImGui.TextDisabled(Loc.T("FFXIV • C3–C6 • Dalamud 15 • Native Ensemble + Soulweaver"));
@@ -1456,6 +1460,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (role == EnsembleRole.Solo) return;
         ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), Loc.T("PARTY-ROSTER TRACK ASSIGNMENTS"));
         var choices = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
+        DrawMemberPortraitManager(choices);
         if (role == EnsembleRole.Conductor)
         {
             if (song is null)
@@ -1472,8 +1477,9 @@ public sealed partial class MainWindow : Window, IDisposable
                 string name = song.Tracks.FirstOrDefault(t => t.Index == lane.Key.Track)?.Name ?? $"Track {lane.Key.Track + 1}";
                 int count = laneNoteCounts.GetValueOrDefault(lane.Key);
                 ImGui.TextUnformatted(Loc.T($"T{lane.Key.Track + 1} / Ch{lane.Key.Channel + 1}: {name} ({count:N0} notes)"));
-                ImGui.SetNextItemWidth(Math.Min(330, Math.Max(190, ImGui.GetContentRegionAvail().X)));
                 ulong selected = partyAssignments.GetValueOrDefault(lane.Key);
+                if (DrawMemberPortraitThumbnail(selected, 27f)) ImGui.SameLine(0f, 5f);
+                ImGui.SetNextItemWidth(Math.Min(330, Math.Max(190, ImGui.GetContentRegionAvail().X)));
                 string label = selected == 0 ? "Unassigned / silent" :
                     choices.FirstOrDefault(x => x.ContentId == selected)?.Name ?? "Player no longer in party";
                 if (ImGui.BeginCombo($"##PartyForTrack{lane.Key.Track}_{lane.Key.Channel}", Loc.T(label)))
@@ -1481,8 +1487,8 @@ public sealed partial class MainWindow : Window, IDisposable
                     if (ImGui.Selectable(Loc.T("Unassigned / silent"), selected == 0)) SetPartyAssignment(lane.Key, 0);
                     foreach (var member in choices)
                     {
-                        if (ImGui.Selectable(Loc.T((member.IsLocal ? "[Me] " : "") + member.Name +
-                            $"##Party{lane.Key.Track}_{lane.Key.Channel}_{member.ContentId}"), selected == member.ContentId))
+                        if (MemberPortraitSelectable(member, $"Party{lane.Key.Track}_{lane.Key.Channel}_{member.ContentId}",
+                            selected == member.ContentId))
                             SetPartyAssignment(lane.Key, member.ContentId);
                     }
                     ImGui.EndCombo();
@@ -1544,10 +1550,22 @@ public sealed partial class MainWindow : Window, IDisposable
                 lastPartyPollTicks = 0;
             }
             var me = choices.FirstOrDefault(x => x.IsLocal);
+            if (me is not null && DrawMemberPortraitThumbnail(me.ContentId, 32f)) ImGui.SameLine();
             ImGui.TextUnformatted(Loc.T("My party character: " + (me?.Name ?? "Not resolved")));
             ImGui.TextDisabled(Loc.T(cfg.GameEnsembleEnabled
                 ? "Native mode: the leader's MIDI selection can load your matching file and assigned tracks automatically."
                 : "The conductor's assigned parts override your manual track checkboxes before the cue."));
+            if (ImGui.TreeNode(Loc.T("Band members and assigned tracks##wbFollowerBandPortraits")))
+            {
+                foreach (var player in choices)
+                {
+                    if (DrawMemberPortraitThumbnail(player.ContentId, 30f)) ImGui.SameLine(0f, 6f);
+                    int assigned = partyAssignments.Count(x => x.Value == player.ContentId);
+                    ImGui.TextUnformatted(player.Name + (player.IsLocal ? " [Me]" : "") +
+                        (song is null ? "" : $"  —  {assigned} lane(s)"));
+                }
+                ImGui.TreePop();
+            }
         }
         ImGui.TextWrapped(Loc.T(assignmentStatus));
     }

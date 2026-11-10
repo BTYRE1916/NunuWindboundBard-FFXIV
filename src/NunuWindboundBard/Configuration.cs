@@ -8,7 +8,7 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 34;
+    public int Version { get; set; } = 35;
     // v0.27 local-only SoundFont audio preview; no party/FFXIV MIDI output.
     public string PreviewSoundFontPath { get; set; } = "";
     public float PreviewVolume { get; set; } = .65f;
@@ -46,6 +46,9 @@ public sealed class Configuration : IPluginConfiguration
     // Experimental visual stage UI is opt-in until verified on live clients.
     // Original saved-formation controls remain available when it is disabled.
     public bool VisualStageDesignerEnabled { get; set; } = false;
+    // Local snapshots captured from FFXIV's Adventurer Plate viewer. File names only;
+    // images are stored beside this client's configuration, never sent via party chat.
+    public Dictionary<string, string> MemberPortraitFileByContentId { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public List<StageFormationPreset> StageFormations { get; set; } = new();
     public string SelectedStageFormationId { get; set; } = "";
     // v0.29: accept ARM/DISARM requests from the verified party leader when

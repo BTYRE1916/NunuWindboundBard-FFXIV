@@ -48,11 +48,12 @@ public static class InstrumentCatalog
         new BardInstrument(28, "Electric Guitar — Special"),
     };
 
-    // FFXIV's Performance instrument action icons live in ui/icon/000000/000750-000779.
-    // The playable Perform action IDs in this catalogue are contiguous 1-28.
-    // Always validate against the installed game after a major FFXIV UI update.
-    // 0 means Keep Current and deliberately has no icon.
-    public static uint GameIconId(int id) => id is >= 1 and <= 28 ? (uint)(749 + id) : 0;
+    // 750 is the generic Performance icon, NOT the Harp. The playable
+    // instrument artwork begins at 751: Harp=751, Piano=752, ...,
+    // Electric Guitar (Special)=778. The UI must use the instrument's ID,
+    // not the combo row index (which includes Keep Current at ID 0).
+    // Return no icon for Keep Current / invalid IDs.
+    public static uint GameIconId(int id) => id is >= 1 and <= 28 ? (uint)(750 + id) : 0;
 
     public static BardInstrument? Find(int id) => All.FirstOrDefault(i => i.Id == id);
     public static bool Valid(int id) => id == 0 || Find(id) != null;

@@ -16,6 +16,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICondition Conditions { get; private set; } = null!;
     [PluginService] internal static IGameConfig GameConfig { get; private set; } = null!;
     [PluginService] internal static ITextureProvider Textures { get; private set; } = null!;
+    [PluginService] internal static ITextureReadbackProvider TextureReadback { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
@@ -317,7 +318,16 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 34;
             Config.Save();
         }
+        if (Config.Version < 35)
+        {
+            // Local-only Adventurer Plate thumbnail cache. No network portrait sync
+            // or changes to stage, music, instrument, or ensemble configuration.
+            Config.MemberPortraitFileByContentId ??= new(StringComparer.OrdinalIgnoreCase);
+            Config.Version = 35;
+            Config.Save();
+        }
         Config.StageFormations ??= new();
+        Config.MemberPortraitFileByContentId ??= new(StringComparer.OrdinalIgnoreCase);
         Config.ConcertSnapshots ??= new();
         Config.EnsembleLineupsByPlaylistId ??= new();
         Config.ManualOctaveLaneOverridesByFile ??= new(StringComparer.OrdinalIgnoreCase);

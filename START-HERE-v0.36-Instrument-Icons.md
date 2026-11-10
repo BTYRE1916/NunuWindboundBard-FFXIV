@@ -28,8 +28,8 @@ when publishing v0.36. This ZIP is **not** a binary release.
 
 ## Notes for testing
 
-- The game's instrument icons are in the `750..779` asset range; the patch maps 1..28
-  to 750..777. Visually verify mapping on the current game update, since Square Enix can
+- The game's instrument icons are in the `750..779` asset range; v0.36.1
+  fixes the off-by-one mistake so 1..28 map to 751..778 (750 is a generic Performance icon). Visually verify mapping on the current game update, since Square Enix can
   reorganise game data; icons are not bundled. Adjust `InstrumentCatalog.GameIconId`
   if the live game reveals a different order.
 - Confirm `Keep current instrument` (ID 0) still has no icon and still does not switch.
