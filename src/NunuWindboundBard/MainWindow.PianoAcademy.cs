@@ -63,7 +63,11 @@ public sealed partial class MainWindow
 
     private void DrawPianoAcademy()
     {
-        ImGui.TextColored(new Vector4(.95f,.57f,.83f,1f), "WINDBOUND PIANO ACADEMY — FALLING-NOTE TUTOR");
+        if (cfg.DarkStageThemeEnabled)
+            DrawStageWorkspaceTitle("PIANO ACADEMY  /  PRACTICE DECK",
+                "88-key learning lane, live MIDI keys and your personal accuracy score");
+        else
+            ImGui.TextColored(new Vector4(.95f,.57f,.83f,1f), "WINDBOUND PIANO ACADEMY — FALLING-NOTE TUTOR");
         ImGui.TextWrapped("Practise the ORIGINAL full-range MIDI with your real synthesizer. " +
             "This tutor never sends notes to FFXIV or party chat. Your piano plays its own sound.");
         ImGui.TextDisabled("Load a song in Songs & Playback, or browse here. Format 0/1 MIDI, all A0-C8 keys supported.");
@@ -118,19 +122,27 @@ public sealed partial class MainWindow
         { academy.Speed = speed; cfg.PianoAcademySpeed = speed; cfg.Save(); }
 
         ImGui.Separator();
-        if (ImGui.Button(academy.Running ? "PAUSE LESSON##academy" : "PLAY / RESUME LESSON##academy"))
+        if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PushAction(WindboundStageStyle.Accent(cfg.StageUiAccent));
+        try
         {
-            if (plugin.Player.IsPlaying) academyStatus = "Stop FFXIV MIDI playback before starting a piano lesson.";
-            else { academy.Play(); academyStatus = "Lesson running. Play the falling notes on your synth piano."; }
+            if (ImGui.Button(academy.Running ? "PAUSE LESSON##academy" : "PLAY / RESUME LESSON##academy",
+                    new Vector2(174f, 33f)))
+            {
+                if (plugin.Player.IsPlaying) academyStatus = "Stop FFXIV MIDI playback before starting a piano lesson.";
+                else { academy.Play(); academyStatus = "Lesson running. Play the falling notes on your synth piano."; }
+            }
         }
+        finally { if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PopAction(); }
         ImGui.SameLine();
-        if (ImGui.Button("RESTART##academy"))
+        if (ImGui.Button("RESTART##academy", new Vector2(100f, 33f)))
         {
             if (plugin.Player.IsPlaying) academyStatus = "Stop FFXIV MIDI playback before restarting the lesson.";
             else { academy.Rewind(); academy.Play(); }
         }
         ImGui.SameLine();
-        if (ImGui.Button("STOP##academy")) academy.Stop();
+        if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PushAction(WindboundStageStyle.Danger);
+        try { if (ImGui.Button("STOP##academy", new Vector2(83f, 33f))) academy.Stop(); }
+        finally { if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PopAction(); }
         float progress = (float)Math.Clamp(academy.PositionMs / Math.Max(1, academy.DurationMs), 0, 1);
         ImGui.ProgressBar(progress, new Vector2(-1, 0), $"{academy.PositionMs/1000:0.0}s / {academy.DurationMs/1000:0.0}s");
 
@@ -187,7 +199,17 @@ public sealed partial class MainWindow
         if (ImGui.Button(academyFloating ? "CLOSE LARGE PRACTICE VIEW##academy" : "OPEN LARGE PRACTICE VIEW##academy"))
             academyFloating = !academyFloating;
 
-        ImGui.TextUnformatted($"Hits: {academy.Hits}   Missed: {academy.Misses}   Wrong keys: {academy.WrongKeys}   Accuracy: {academy.AccuracyPercent:0.0}%");
+        if (cfg.DarkStageThemeEnabled)
+        {
+            WindboundStageStyle.Chip($"HITS  {academy.Hits}", WindboundStageStyle.Good);
+            ImGui.SameLine();
+            WindboundStageStyle.Chip($"MISSED  {academy.Misses}", WindboundStageStyle.Warning);
+            if (ImGui.GetContentRegionAvail().X > 165) ImGui.SameLine();
+            WindboundStageStyle.Chip($"ACCURACY  {academy.AccuracyPercent:0.0}%", WindboundStageStyle.Cyan);
+            ImGui.TextDisabled($"Wrong notes: {academy.WrongKeys}");
+        }
+        else
+            ImGui.TextUnformatted($"Hits: {academy.Hits}   Missed: {academy.Misses}   Wrong keys: {academy.WrongKeys}   Accuracy: {academy.AccuracyPercent:0.0}%");
         if (academy.Mode == PianoPracticeMode.WaitForNotes && academy.ExpectedPitches.Count > 0)
             ImGui.TextWrapped("Next chord: " + string.Join("  ", academy.ExpectedPitches.Select(NoteMapper.GetNoteName)));
         if (academy.Finished) ImGui.TextColored(new Vector4(.56f,.92f,.67f,1f), "Lesson complete! Brilliant work!");
@@ -208,36 +230,43 @@ public sealed partial class MainWindow
     public void DrawAcademyFloatingWindow()
     {
         if (!academyFloating) return;
-        ImGui.SetNextWindowSize(new Vector2(1000, 560), ImGuiCond.FirstUseEver);
-        bool visible = ImGui.Begin("Windbound Piano Academy — Practice View###WindboundPianoAcademy",
-            ref academyFloating, ImGuiWindowFlags.NoCollapse);
+        bool styled = cfg.DarkStageThemeEnabled;
+        if (styled) WindboundStageStyle.Push(cfg.StageUiAccent);
         try
         {
-            if (!visible) return;
-            ImGui.TextColored(new Vector4(.95f,.57f,.83f,1f), "PIANO ACADEMY — LARGE FALLING-NOTE PRACTICE VIEW");
-            ImGui.TextDisabled(academyMonitor && plugin.LiveMidi.Connected
-                ? $"Hardware MIDI connected: {plugin.LiveMidi.ConnectedName} (local-only)"
-                : "Connect a MIDI keyboard in the Piano Academy tab; this window never sends FFXIV notes.");
-            if (academySource is null || !academy.HasMidi)
-            { ImGui.TextWrapped("Load a MIDI on the Piano Academy tab first."); return; }
-            ImGui.TextUnformatted($"{Path.GetFileName(loaded)} | {academy.PositionMs/1000:0.0}s / {academy.DurationMs/1000:0.0}s | " +
-                $"Hits {academy.Hits} | Missed {academy.Misses} | Accuracy {academy.AccuracyPercent:0.0}%");
-            if (ImGui.Button(academy.Running ? "Pause##floatacad" : "Play / Resume##floatacad"))
+            ImGui.SetNextWindowSize(new Vector2(1000, 560), ImGuiCond.FirstUseEver);
+            bool visible = ImGui.Begin("Windbound Piano Academy — Practice View###WindboundPianoAcademy",
+                ref academyFloating, ImGuiWindowFlags.NoCollapse);
+            try
             {
-                if (academy.Running) academy.Pause();
-                else if (!plugin.Player.IsPlaying) academy.Play();
+                if (!visible) return;
+                if (styled) DrawStageWorkspaceTitle("PIANO ACADEMY / LIVE PRACTICE", "Original MIDI notes, real hardware input and a full-range keyboard");
+                else ImGui.TextColored(new Vector4(.95f,.57f,.83f,1f), "PIANO ACADEMY — LARGE FALLING-NOTE PRACTICE VIEW");
+                ImGui.TextDisabled(academyMonitor && plugin.LiveMidi.Connected
+                    ? $"Hardware MIDI connected: {plugin.LiveMidi.ConnectedName} (local-only)"
+                    : "Connect a MIDI keyboard in the Piano Academy tab; this window never sends FFXIV notes.");
+                if (academySource is null || !academy.HasMidi)
+                { ImGui.TextWrapped("Load a MIDI on the Piano Academy tab first."); return; }
+                ImGui.TextUnformatted($"{Path.GetFileName(loaded)} | {academy.PositionMs/1000:0.0}s / {academy.DurationMs/1000:0.0}s | " +
+                    $"Hits {academy.Hits} | Missed {academy.Misses} | Accuracy {academy.AccuracyPercent:0.0}%");
+                if (ImGui.Button(academy.Running ? "Pause##floatacad" : "Play / Resume##floatacad"))
+                {
+                    if (academy.Running) academy.Pause();
+                    else if (!plugin.Player.IsPlaying) academy.Play();
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Restart##floatacad") && !plugin.Player.IsPlaying)
+                { academy.Rewind(); academy.Play(); }
+                ImGui.SameLine();
+                if (ImGui.Button("Stop##floatacad")) academy.Stop();
+                ImGui.SameLine();
+                if (academy.Mode == PianoPracticeMode.WaitForNotes && academy.ExpectedPitches.Count > 0)
+                    ImGui.TextUnformatted("Play: " + string.Join(" + ", academy.ExpectedPitches.Select(NoteMapper.GetNoteName)));
+                DrawAcademyPianoRoll(academyKeyboardStart, academyKeyboardKeys);
             }
-            ImGui.SameLine();
-            if (ImGui.Button("Restart##floatacad") && !plugin.Player.IsPlaying)
-            { academy.Rewind(); academy.Play(); }
-            ImGui.SameLine();
-            if (ImGui.Button("Stop##floatacad")) academy.Stop();
-            ImGui.SameLine();
-            if (academy.Mode == PianoPracticeMode.WaitForNotes && academy.ExpectedPitches.Count > 0)
-                ImGui.TextUnformatted("Play: " + string.Join(" + ", academy.ExpectedPitches.Select(NoteMapper.GetNoteName)));
-            DrawAcademyPianoRoll(academyKeyboardStart, academyKeyboardKeys);
+            finally { ImGui.End(); }
         }
-        finally { ImGui.End(); }
+        finally { if (styled) WindboundStageStyle.Pop(); }
     }
 
     private static bool AcademyBlack(int pitch) => pitch % 12 is 1 or 3 or 6 or 8 or 10;
@@ -255,7 +284,7 @@ public sealed partial class MainWindow
         int lastPitch = Math.Min(108, firstPitch + count - 1);
         int whites = Enumerable.Range(firstPitch, lastPitch - firstPitch + 1).Count(p => !AcademyBlack(p));
         float width = whites * whiteWidth + 18f;
-        ImGui.TextDisabled("Pink = lower notes  |  Blue = upper notes  |  Green = pressed  |  Golden line = play-now");
+        ImGui.TextDisabled("Pink = lower hand  |  Cyan = upper hand  |  Mint = key pressed  |  Gold = now");
         // Horizontal scrollbar is important for the full 88 keys on smaller displays.
         ImGui.BeginChild("##WindboundAcademyScroll", new Vector2(0, 352), true, ImGuiWindowFlags.HorizontalScrollbar);
         Vector2 top = ImGui.GetCursorScreenPos();
@@ -282,10 +311,18 @@ public sealed partial class MainWindow
             float y1 = Math.Max(top.Y+1, center-duration);
             float y2 = Math.Min(lineY-1, center);
             if (y2 < y1) continue;
-            uint colour = note.Missed ? 0xFF555566 : note.Hit ? 0xFF50CF92 :
-                note.Pitch < cfg.PianoAcademySplitPitch ? 0xFFE878B2 : 0xFFFFBE64;
+            uint colour = note.Missed ? 0xFF666474 : note.Hit ? 0xFF77DC9C :
+                note.Pitch < cfg.PianoAcademySplitPitch
+                    ? ImGui.ColorConvertFloat4ToU32(new Vector4(.98f,.38f,.71f,1f))
+                    : ImGui.ColorConvertFloat4ToU32(new Vector4(.38f,.82f,1f,1f));
             float half = AcademyBlack(note.Pitch) ? 6f : 8f;
-            draw.AddRectFilled(new Vector2(x-half,y1), new Vector2(x+half,y2), colour, 3);
+            if (cfg.DarkStageThemeEnabled)
+                draw.AddRectFilled(new Vector2(x-half-2f, y1), new Vector2(x+half+2f,y2),
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(.61f,.53f,.85f,.32f)), 5f);
+            draw.AddRectFilled(new Vector2(x-half,y1), new Vector2(x+half,y2), colour, 3f);
+            if (cfg.DarkStageThemeEnabled && y2 - y1 > 10f)
+                draw.AddLine(new Vector2(x-half+2f, y1+2f), new Vector2(x+half-2f, y1+2f),
+                    0xAAD8E9FF, 1.2f);
         }
         draw.AddLine(new Vector2(top.X,lineY),new Vector2(top.X+width,lineY),0xFFFFD789,3f);
         // White keys first, then black keys overlaid for a real piano layout.

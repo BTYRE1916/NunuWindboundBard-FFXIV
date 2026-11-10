@@ -89,65 +89,21 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // Process asynchronous portrait capture/save completion regardless of
-        // which Windbound tab is currently visible.
+        // Portrait capture can finish on any tab. The visual theme is a scoped
+        // ImGui presentation change: no MIDI or game services are called here.
         PollMemberPortraitTasks();
-        ImGui.TextColored(new Vector4(1f, .51f, .80f, 1f), Loc.T("NUNU'S WINDBOUND BARD   /windbound"));
-        ImGui.SameLine();
-        ImGui.TextDisabled(Loc.T("FFXIV • C3–C6 • Dalamud 15 • Native Ensemble + Soulweaver"));
-        if (ImGui.SmallButton(Loc.T(plugin.IsHudVisible ? "Hide Performance HUD##windbound" : "Show Performance HUD##windbound")))
-            plugin.SetHudVisible(!plugin.IsHudVisible);
-        ImGui.SameLine();
-        ImGui.TextDisabled(Loc.T("/windbound hud  |  independent per-client HUD"));
-        // Language changes immediately; place the selector on its own row so it
-        // remains accessible even with Dalamud UI scaling and narrow windows.
-        ImGui.TextUnformatted(Loc.T("Interface language:"));
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(145);
-        string selectedLanguageName = cfg.Language switch
+        bool styled = cfg.DarkStageThemeEnabled;
+        if (styled) WindboundStageStyle.Push(cfg.StageUiAccent);
+        try
         {
-            "fr" => "Français",
-            "de" => "Deutsch",
-            _ => "English"
-        };
-        if (ImGui.BeginCombo("##windboundLocale", selectedLanguageName))
-        {
-            if (ImGui.Selectable("English##lang-en", cfg.Language == "en")) SetLanguage("en");
-            if (ImGui.Selectable("Français##lang-fr", cfg.Language == "fr")) SetLanguage("fr");
-            if (ImGui.Selectable("Deutsch##lang-de", cfg.Language == "de")) SetLanguage("de");
-            ImGui.EndCombo();
+            DrawWindboundChrome();
+            DrawWindboundWorkspaces();
         }
-        ImGui.Separator();
-        ImGui.TextWrapped(Loc.T(status));
-        ImGui.TextWrapped(Loc.T(plugin.Player.Status));
-        if (!string.IsNullOrWhiteSpace(plugin.Player.GuitarWarning))
-            ImGui.TextColored(new Vector4(1f, .75f, .38f, 1f), Loc.T(plugin.Player.GuitarWarning));
-        ImGui.TextColored(plugin.IsGameOutputSafe() ? new Vector4(.49f, .95f, .55f, 1f) : new Vector4(1f, .75f, .38f, 1f),
-            Loc.T(plugin.IsGameOutputSafe() ? "Performance: FULL 37-KEY READY" :
-            plugin.IsPerforming ? "Open expanded 37-note Performance keyboard for direct output" : "Performance mode not detected (preview still works)"));
-
-        if (ImGui.BeginTabBar("WindboundTabs"))
+        finally
         {
-            if (ImGui.BeginTabItem(Loc.T("Songs & Playback"))) { DrawPlayer(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Band Portraits"))) { DrawBandPortraitsTab(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Piano Academy"))) { DrawPianoAcademy(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Showmaster"))) { DrawShowmaster(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Ensemble"))) { DrawEnsemble(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Stage Formations"))) { DrawStageFormations(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("FFXIV Optimiser"))) { DrawOptimizer(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Concert Snapshots"))) { DrawConcertSnapshots(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("MIDI Inspector"))) { DrawArrangementInspector(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Soulweaver Studio"))) { DrawSoulweaver(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Instruments"))) { DrawInstruments(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Live MIDI Piano"))) { DrawLiveMidiInput(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Guitar Tones"))) { DrawGuitarTones(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("Direct Output & Test"))) { DrawKeyMapping(); ImGui.EndTabItem(); }
-            if (ImGui.BeginTabItem(Loc.T("About / Setup"))) { DrawHelp(); ImGui.EndTabItem(); }
-            ImGui.EndTabBar();
+            if (styled) WindboundStageStyle.Pop();
         }
-        // Floating Adventurer Plate capture editor is visible even after changing
-        // tabs. It must not depend on Ensemble role or MIDI being loaded.
+        // The capture editor must remain independent of the current workspace.
         DrawMemberPortraitCaptureWindow();
     }
 
@@ -239,14 +195,24 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         ImGui.TextDisabled(Loc.T(outputArmed ? "Armed: direct game callbacks. Alt-tab and chat are NOT keyboard output targets." : "Safe preview mode: no keys sent to the game."));
 
-        if (ImGui.Button(Loc.T(cfg.GameEnsembleEnabled && cfg.EnsembleMode != (int)EnsembleRole.Solo
-                ? "START ENSEMBLE (native)" : "Play"))) StartSong();
+        if (cfg.DarkStageThemeEnabled)
+            ImGui.TextColored(WindboundStageStyle.Accent(cfg.StageUiAccent), Loc.T("PLAYBACK  /  TRANSPORT"));
+        if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PushAction(WindboundStageStyle.Good);
+        try
+        {
+            if (ImGui.Button(Loc.T(cfg.GameEnsembleEnabled && cfg.EnsembleMode != (int)EnsembleRole.Solo
+                    ? "START ENSEMBLE (native)" : "Play"), new Vector2(164f, 35f))) StartSong();
+        }
+        finally { if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PopAction(); }
         ImGui.SameLine();
-        if (ImGui.Button(Loc.T(plugin.Player.IsPaused ? "Resume" : "Pause"))) plugin.Player.TogglePause();
+        if (ImGui.Button(Loc.T(plugin.Player.IsPaused ? "Resume" : "Pause"), new Vector2(80f, 35f)))
+            plugin.Player.TogglePause();
         ImGui.SameLine();
-        if (ImGui.Button(Loc.T("STOP"))) StopPlayback();
+        if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PushAction(WindboundStageStyle.Danger);
+        try { if (ImGui.Button(Loc.T("STOP"), new Vector2(75f, 35f))) StopPlayback(); }
+        finally { if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PopAction(); }
         ImGui.SameLine();
-        if (ImGui.Button(Loc.T("Next"))) NextSong();
+        if (ImGui.Button(Loc.T("Next"), new Vector2(70f, 35f))) NextSong();
         // Explicit local recovery: never starts music, issues party PLAY or
         // overwrites saved playlists. Safe if a prior test/cue was left active.
         if (ImGui.SmallButton(Loc.T("EMERGENCY: Reset stuck playback##windboundRecover")))

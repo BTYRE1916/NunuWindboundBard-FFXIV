@@ -75,6 +75,23 @@ public sealed class PerformanceHudWindow : Window
 
     public override void Draw()
     {
+        bool styled = cfg.DarkStageThemeEnabled;
+        if (styled) WindboundStageStyle.Push(cfg.StageUiAccent);
+        try { DrawStageHudContents(); }
+        finally { if (styled) WindboundStageStyle.Pop(); }
+    }
+
+    private void DrawStageHudContents()
+    {
+        if (cfg.DarkStageThemeEnabled)
+        {
+            Vector2 pos = ImGui.GetCursorScreenPos();
+            Vector2 size = new Vector2(Math.Max(200f, ImGui.GetContentRegionAvail().X), 4f);
+            ImGui.Dummy(size);
+            ImGui.GetWindowDrawList().AddRectFilled(pos, pos + size,
+                ImGui.ColorConvertFloat4ToU32(WindboundStageStyle.Accent(cfg.StageUiAccent)), 2f);
+            ImGui.Spacing();
+        }
         string playerName = Plugin.Objects.LocalPlayer?.Name.TextValue ?? "Bard";
         ImGui.TextColored(Rose, Loc.T("WINDBOUND"));
         ImGui.SameLine();

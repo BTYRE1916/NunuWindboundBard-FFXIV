@@ -335,6 +335,16 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 36;
             Config.Save();
         }
+        if (Config.Version < 37)
+        {
+            // A presentation-only upgrade; never alter playback, ensemble
+            // approvals, keyboard routing or member configuration.
+            Config.DarkStageThemeEnabled = true;
+            Config.StageUiMotionEnabled = true;
+            Config.StageUiAccent = 0;
+            Config.Version = 37;
+            Config.Save();
+        }
         Config.StageFormations ??= new();
         Config.MemberPortraitFileByContentId ??= new(StringComparer.OrdinalIgnoreCase);
         Config.ConcertSnapshots ??= new();
@@ -387,7 +397,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.38.1 loaded: Piano Academy + Showmaster; existing MIDI playback and ensembles retained.");
+        Log.Information("Windbound Bard v0.39 loaded: Dark Stage UI, Piano Academy + Showmaster; MIDI and ensembles retained.");
     }
 
     private void OnFrameworkUpdate(IFramework _)

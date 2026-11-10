@@ -8,7 +8,11 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 36;
+    public int Version { get; set; } = 37;
+    // v0.39 local-only optional visual chrome; nothing here changes song timing.
+    public bool DarkStageThemeEnabled { get; set; } = true;
+    public bool StageUiMotionEnabled { get; set; } = true;
+    public int StageUiAccent { get; set; } = 0; // 0 Soul Rose, 1 Void Violet, 2 Aether Cyan
     // v0.27 local-only SoundFont audio preview; no party/FFXIV MIDI output.
     public string PreviewSoundFontPath { get; set; } = "";
     public float PreviewVolume { get; set; } = .65f;

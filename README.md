@@ -1,3 +1,11 @@
+> **v0.39 — Dark Stage UI:** The plugin now has six grouped workspaces,
+> a concert header, status chips, custom accents and Showmaster/Piano Academy
+> display polish. For installation and test instructions see
+> [START-HERE-v0.39.md](START-HERE-v0.39.md) and
+> [CHANGELOG-v0.39.md](CHANGELOG-v0.39.md).
+>
+> **Note:** This is a source-only experimental UI build pending a live Dalamud test.
+
 
 ## v0.38.1 — Full Showmaster Emote Library
 

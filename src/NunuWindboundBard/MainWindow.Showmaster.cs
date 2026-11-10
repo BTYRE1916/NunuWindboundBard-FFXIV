@@ -289,25 +289,40 @@ public sealed partial class MainWindow
 
     private void DrawShowmaster()
     {
-        ImGui.TextColored(new Vector4(.97f,.55f,.77f,1f), "WINDBOUND SHOWMASTER — FULL FFXIV EMOTE LIBRARY");
+        if (cfg.DarkStageThemeEnabled)
+            DrawStageWorkspaceTitle("SHOWMASTER  /  BACKSTAGE DESK",
+                "Choreographed bows, audience interaction and band-wide intermissions");
+        else
+            ImGui.TextColored(new Vector4(.97f,.55f,.77f,1f), "WINDBOUND SHOWMASTER — FULL FFXIV EMOTE LIBRARY");
         ImGui.TextWrapped("Plan a stage routine using the current conductor's unlocked FFXIV emotes. " +
             "Party members perform only emotes unlocked on their own character; the conductor cannot transfer unlocks.");
         ImGui.TextDisabled("Between songs only. Instruments must be stowed. No emotes run during MIDI playback.");
-        if (ImGui.Button("STOW MY INSTRUMENT##showmaster"))
+        if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PushAction(WindboundStageStyle.Cyan);
+        try
         {
-            try
+            if (ImGui.Button("STOW MY INSTRUMENT##showmaster", new Vector2(184f, 35f)))
             {
-                if (plugin.Player.IsPlaying) throw new InvalidOperationException("Stop the MIDI first.");
-                plugin.Instruments.RequestUnequip();
-                showStatus = "Stowing instrument via native game action...";
+                try
+                {
+                    if (plugin.Player.IsPlaying) throw new InvalidOperationException("Stop the MIDI first.");
+                    plugin.Instruments.RequestUnequip();
+                    showStatus = "Stowing instrument via native game action...";
+                }
+                catch (Exception ex) { showStatus = ex.Message; }
             }
-            catch (Exception ex) { showStatus = ex.Message; }
         }
+        finally { if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PopAction(); }
         ImGui.SameLine();
-        if (ImGui.Button("STOP SHOW ROUTINE##showmaster")) StopShowmaster();
+        if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PushAction(WindboundStageStyle.Danger);
+        try { if (ImGui.Button("STOP SHOW ROUTINE##showmaster", new Vector2(181f, 35f))) StopShowmaster(); }
+        finally { if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PopAction(); }
         bool canRun = ShowmasterSafe(out var blocked);
-        ImGui.TextColored(canRun ? new Vector4(.5f,.95f,.65f,1f) :
-            new Vector4(1f,.72f,.4f,1f), canRun ? "Intermission: READY" : blocked);
+        if (cfg.DarkStageThemeEnabled)
+            WindboundStageStyle.Chip(canRun ? "INTERMISSION READY" : "STAGE BUSY",
+                canRun ? WindboundStageStyle.Good : WindboundStageStyle.Warning, canRun ? "Ready for a routine." : blocked);
+        else
+            ImGui.TextColored(canRun ? new Vector4(.5f,.95f,.65f,1f) :
+                new Vector4(1f,.72f,.4f,1f), canRun ? "Intermission: READY" : blocked);
 
         if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower)
         {
@@ -331,7 +346,13 @@ public sealed partial class MainWindow
         var available = loaded ? showCatalog.Unlocked.Where(e =>
             string.IsNullOrEmpty(showEmoteSearch) || e.Name.Contains(showEmoteSearch, StringComparison.OrdinalIgnoreCase) ||
             e.Command.Contains(showEmoteSearch, StringComparison.OrdinalIgnoreCase)).ToArray() : Array.Empty<ShowmasterEmoteEntry>();
-        ImGui.TextDisabled($"{available.Length} unlocked emotes matching this search.");
+        if (cfg.DarkStageThemeEnabled)
+        {
+            WindboundStageStyle.Chip($"{available.Length} UNLOCKED EMOTES", WindboundStageStyle.Cyan);
+            ImGui.SameLine();
+            WindboundStageStyle.Chip($"{ShowRoutines().Count} SAVED ROUTINES", WindboundStageStyle.Rose);
+        }
+        else ImGui.TextDisabled($"{available.Length} unlocked emotes matching this search.");
 
         ImGui.Separator();
         var routines = ShowRoutines();
@@ -341,13 +362,19 @@ public sealed partial class MainWindow
             ImGui.PushID($"show{routine.Id}");
             if (ImGui.RadioButton($"{routine.Name}##pick", routine.Id == showSelectedId)) showSelectedId = routine.Id;
             ImGui.SameLine();
-            if (ImGui.SmallButton("Run local")) StartLocalShowmaster(routine);
+            if (ImGui.Button("Run local", new Vector2(98f, 29f))) StartLocalShowmaster(routine);
             if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor)
             {
                 ImGui.SameLine();
-                if (ImGui.SmallButton("GROUP SHOW")) StartGroupShowmaster(routine);
+                if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PushAction(WindboundStageStyle.Accent(cfg.StageUiAccent));
+                try
+                {
+                    if (ImGui.Button("GROUP SHOW", new Vector2(125f, 29f))) StartGroupShowmaster(routine);
+                }
+                finally { if (cfg.DarkStageThemeEnabled) WindboundStageStyle.PopAction(); }
             }
             ImGui.PopID();
+            if (cfg.DarkStageThemeEnabled) ImGui.Separator();
         }
         if (ImGui.Button("Create custom routine##showmaster"))
         {
@@ -448,6 +475,8 @@ public sealed partial class MainWindow
         if (showmaster.Active)
             ImGui.ProgressBar(showmaster.TotalSteps == 0 ? 0 : (float)showmaster.CompletedSteps / showmaster.TotalSteps,
                 new Vector2(-1,0), $"{showmaster.CompletedSteps}/{showmaster.TotalSteps}");
+        if (cfg.DarkStageThemeEnabled && showmaster.Active)
+            WindboundStageStyle.Chip($"SHOW RUNNING  {showmaster.CompletedSteps}/{showmaster.TotalSteps}", WindboundStageStyle.Rose);
         ImGui.TextWrapped(showStatus);
         ImGui.TextDisabled(showmaster.Status);
         ImGui.TextDisabled("Conductor's library defines routines; each follower uses their own unlocks. " +
