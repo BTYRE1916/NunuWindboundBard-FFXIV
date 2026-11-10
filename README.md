@@ -1,4 +1,16 @@
-<img width="1536" height="1024" alt="3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0" src="https://github.com/user-attachments/assets/cd754780-825e-422b-8cc8-896efc6bbc10" />
+
+<p align="center">
+  <img src="Assets/3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0.png"
+       alt="Nunu's Windbound Bard"
+       width="100%">
+</p>
+
+<h1 align="center">🎶 Nunu's Windbound Bard FFXIV 🎶</h1>
+
+<p align="center">
+  A complete MIDI performance and ensemble experience
+  for Final Fantasy XIV.
+</p>
 
 
 
