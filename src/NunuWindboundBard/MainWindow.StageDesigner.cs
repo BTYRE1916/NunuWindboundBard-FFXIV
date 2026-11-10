@@ -162,6 +162,8 @@ public sealed partial class MainWindow
         if (ImGui.SmallButton(Loc.T("Arc##visualShapeArc"))) draft.ApplyTemplate(VisualStageTemplate.Arc);
         ImGui.SameLine();
         if (ImGui.SmallButton(Loc.T("Circle##visualShapeCircle"))) draft.ApplyTemplate(VisualStageTemplate.Circle);
+        if (ImGui.SmallButton(Loc.T("ALL FACE AUDIENCE##visualFaceAll")))
+            for (int i = 0; i < draft.Members.Count; i++) draft.SetHeading(i, 0f);
 
         DrawVisualStageCanvas(draft);
         if (stageVisualSelectedSpot >= 0 && stageVisualSelectedSpot < draft.Members.Count)
@@ -184,7 +186,7 @@ public sealed partial class MainWindow
             if (ImGui.SliderFloat(Loc.T("Facing guide (degrees)##visualStageFacing"),
                 ref headingDegrees, -180f, 180f, "%.0f°"))
                 draft.SetHeading(stageVisualSelectedSpot, headingDegrees * MathF.PI / 180f);
-            ImGui.TextDisabled(Loc.T("Facing is a visual guide only; vnavmesh walks to the selected dot."));
+            ImGui.TextDisabled(Loc.T("Facing is applied on arrival if the performer has opted in."));
         }
 
         if (ImGui.TreeNode(Loc.T("Show all performer spots##visualSpotList")))
@@ -271,6 +273,8 @@ public sealed partial class MainWindow
                 draw.AddRectFilled(xy - new Vector2(17f, 17f), xy + new Vector2(17f, 17f), border, 17f);
             float radius = selected ? 12.5f : 11f;
             draw.AddRectFilled(xy - new Vector2(radius, radius), xy + new Vector2(radius, radius), colour, radius);
+            Vector2 aim = new(MathF.Sin(member.HeadingOffset), MathF.Cos(member.HeadingOffset));
+            draw.AddLine(xy, xy + aim * 21f, border, 3f);
             draw.AddText(xy + new Vector2(i + 1 >= 10 ? -8f : -4f, -7f),
                 ImGui.ColorConvertFloat4ToU32(new Vector4(.04f,.05f,.1f,1f)), (i + 1).ToString());
             string label = member.Name.Length <= 11 ? member.Name : member.Name[..10] + "…";

@@ -14,6 +14,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager Commands { get; private set; } = null!;
     [PluginService] internal static ICondition Conditions { get; private set; } = null!;
+    [PluginService] internal static IGameConfig GameConfig { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
@@ -305,6 +306,14 @@ public sealed class Plugin : IDalamudPlugin
             // while retaining all existing saved stage designs and MIDI settings.
             Config.VisualStageDesignerEnabled = false;
             Config.Version = 33;
+            Config.Save();
+        }
+        if (Config.Version < 34)
+        {
+            // Enable automatic facing only for already-authorized stage movement.
+            // No extra party permissions and no movement on login.
+            Config.AutoFaceAfterStageMovement = true;
+            Config.Version = 34;
             Config.Save();
         }
         Config.StageFormations ??= new();

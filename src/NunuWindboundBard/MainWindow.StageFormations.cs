@@ -41,9 +41,13 @@ public sealed partial class MainWindow
         public long StartedQpc;
         public long LastSendQpc;
         public bool LeaderMoveIssued;
+        public bool LeaderFaceIssued;
     }
 
     private readonly StageFormationNavigator stageNavigator = new(Plugin.PluginInterface);
+    private readonly StageFacingController stageFacing = new();
+    private float? stageFollowerTargetHeading;
+    private bool stageFollowerFaceIssued;
     private string stageName = "My Octet Stage";
     private string selectedStageId = "";
     private string stageStatus = "Save a formation after positioning your Bards on stage.";
@@ -211,8 +215,9 @@ public sealed partial class MainWindow
         try
         {
             if (!StageLeader(out var why) || !StageSafe(out why)) throw new InvalidOperationException(why);
-            if (capturingStage is not null || recallingStage is not null)
-                throw new InvalidOperationException("Another formation request is already active. Stop it first.");
+            if (capturingStage is not null || recallingStage is not null || soloStageWalking ||
+                soloStageFacingPending || stageFacing.Active || stageNavigator.Active)
+                throw new InvalidOperationException("Another stage action is already active. Stop it first.");
             var preset = SelectedStage() ?? throw new InvalidOperationException("Select a saved stage formation first.");
             StageFormationMath.Validate(preset);
             if (preset.TerritoryId != StageTerritory) throw new InvalidOperationException("Your character is not in the saved stage's territory.");
@@ -250,6 +255,8 @@ public sealed partial class MainWindow
         if (stageMovementNonce == cue.Nonce && (stageNavigator.Active || stageMoveReported)) return;
         stageMovementNonce = cue.Nonce;
         stageMoveReported = false;
+        stageFollowerTargetHeading = null;
+        stageFollowerFaceIssued = false;
         if (!cfg.AllowLeaderStageMovement)
         { QueueStageReply(cue.Nonce, false, "NOOPT"); return; }
         if (!string.Equals(cue.RosterTag, StageRosterTag(roster), StringComparison.OrdinalIgnoreCase) ||
@@ -257,13 +264,16 @@ public sealed partial class MainWindow
         { QueueStageReply(cue.Nonce, false, "ZONE"); return; }
         if (!StageLeaderIsNearby()) { QueueStageReply(cue.Nonce, false, "DISTANT"); return; }
         if (!StageSafe(out _)) { QueueStageReply(cue.Nonce, false, "BUSY"); return; }
-        if (stageNavigator.Active) { QueueStageReply(cue.Nonce, false, "MOVING"); return; }
+        if (stageNavigator.Active || stageFacing.Active || soloStageWalking || soloStageFacingPending)
+        { QueueStageReply(cue.Nonce, false, "MOVING"); return; }
         stageMoveReported = false;
         var (here, _) = StageLocalPose();
         if (!stageNavigator.TryStart(here, cue.FormationPosition, out string reason))
         { stageStatus = reason; QueueStageReply(cue.Nonce, false, "NAVFAIL"); return; }
-        stageStatus = reason + " Desired facing: " + (cue.FormationHeading * 180f / MathF.PI).ToString("0") + "°.";
-        if (stageNavigator.Arrived) QueueStageReply(cue.Nonce, true, "");
+        stageFollowerTargetHeading = cue.FormationHeading;
+        stageStatus = reason + " After arrival: face " +
+            (cue.FormationHeading * 180f / MathF.PI).ToString("0") + "°.";
+        // The ACK is delayed until the saved rotation has been confirmed.
     }
 
     private void QueueStageReply(string nonce, bool arrived, string reason)
@@ -292,6 +302,11 @@ public sealed partial class MainWindow
         if (!string.IsNullOrEmpty(nonce) && StageLeader(out _))
             plugin.PartyChat.TryBroadcast(GamePartyCueProtocol.FormationStop(nonce), out _);
         stageNavigator.Stop();
+        stageFacing.Cancel();
+        soloStageWalking = false;
+        soloStageFacingPending = false;
+        stageFollowerTargetHeading = null;
+        stageFollowerFaceIssued = false;
         capturingStage = null;
         recallingStage = null;
         stageMovementReply = null;
@@ -305,6 +320,9 @@ public sealed partial class MainWindow
     {
         if (!string.Equals(stageMovementNonce, cue.Nonce, StringComparison.OrdinalIgnoreCase)) return;
         stageNavigator.Stop("Conductor cancelled stage movement.");
+        stageFacing.Cancel();
+        stageFollowerTargetHeading = null;
+        stageFollowerFaceIssued = false;
         stageMovementReply = null;
         stageMovementNonce = "";
         stageMoveReported = false;
@@ -315,7 +333,11 @@ public sealed partial class MainWindow
     {
         bool safe = StageSafe(out _);
         if (Plugin.Objects.LocalPlayer is { } local)
+        {
             stageNavigator.Poll(local.Position, safe);
+            stageFacing.Poll(local.Position, local.Rotation, safe);
+        }
+        PollSoloStage(safe);
         if (stageCaptureReply is { } reply && Stopwatch.GetTimestamp() >= reply.DueQpc)
         {
             stageCaptureReply = null;
@@ -329,8 +351,34 @@ public sealed partial class MainWindow
         if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower &&
             !stageMoveReported && !string.IsNullOrEmpty(stageMovementNonce) && !stageNavigator.Active)
         {
-            QueueStageReply(stageMovementNonce, stageNavigator.Arrived, stageNavigator.Arrived ? "" : "NAVFAIL");
-            stageStatus = stageNavigator.Status;
+            if (!stageNavigator.Arrived)
+            {
+                QueueStageReply(stageMovementNonce, false, "NAVFAIL");
+                stageStatus = stageNavigator.Status;
+            }
+            else if (!cfg.AutoFaceAfterStageMovement)
+            {
+                QueueStageReply(stageMovementNonce, true, "");
+                stageStatus = "Arrived at stage spot; auto-facing disabled for this performer.";
+            }
+            else if (!stageFollowerFaceIssued)
+            {
+                stageFollowerFaceIssued = true;
+                if (stageFollowerTargetHeading is { } heading)
+                    stageFacing.Start(heading);
+                else
+                    QueueStageReply(stageMovementNonce, false, "FACEFAIL");
+            }
+            else if (stageFacing.Arrived)
+            {
+                QueueStageReply(stageMovementNonce, true, "");
+                stageStatus = "Reached stage spot and facing saved direction.";
+            }
+            else if (stageFacing.Failed)
+            {
+                QueueStageReply(stageMovementNonce, false, "FACEFAIL");
+                stageStatus = stageFacing.Status;
+            }
         }
         if (stageMovementReply is { } ack && Stopwatch.GetTimestamp() >= ack.DueQpc)
         {
@@ -361,7 +409,7 @@ public sealed partial class MainWindow
                 recallingStage = null;
                 return;
             }
-            if (stageNavigator.Arrived) session.Arrived.Add(member.ContentId);
+            // Save the leader's arrival ACK until both walking and facing complete.
         }
         if (session.Pending.Count > 0 &&
             (session.LastSendQpc == 0 || StageElapsed(session.LastSendQpc) > .9))
@@ -381,7 +429,22 @@ public sealed partial class MainWindow
             }
         }
         ulong leaderId = PartyRoster.GetLocalContentId(Plugin.Objects, Plugin.Party);
-        if (!stageNavigator.Active && stageNavigator.Arrived) session.Arrived.Add(leaderId);
+        if (!stageNavigator.Active && stageNavigator.Arrived && !session.Arrived.Contains(leaderId) &&
+            !session.Errors.ContainsKey(leaderId))
+        {
+            if (!cfg.AutoFaceAfterStageMovement)
+                session.Arrived.Add(leaderId);
+            else if (!session.LeaderFaceIssued)
+            {
+                session.LeaderFaceIssued = true;
+                var leaderSpot = session.Preset.Members.First(m => m.ContentId == leaderId);
+                stageFacing.Start(StageFormationMath.DesiredHeading(leaderSpot, session.Preset.AnchorHeading));
+            }
+            else if (stageFacing.Arrived)
+                session.Arrived.Add(leaderId);
+            else if (stageFacing.Failed)
+                session.Errors[leaderId] = "FACEFAIL";
+        }
         if (session.Errors.Count > 0)
         {
             stageStatus = "Stage movement problems: " + string.Join(", ", session.Errors.Select(x =>
@@ -391,8 +454,15 @@ public sealed partial class MainWindow
         if (session.Pending.Count == 0 && session.Arrived.Count == session.Roster.Count)
         {
             recallingStage = null;
-            stageStatus = $"Formation '{session.Preset.Name}' reached by {session.Roster.Count} Bards! " +
-                "Facing is shown as a guide and is not automatically forced.";
+            stageStatus = $"Formation '{session.Preset.Name}' completed: " +
+                $"{session.Roster.Count} Bards positioned (and faced where enabled).";
+        }
+        else if (session.Pending.Count == 0 &&
+                 session.Arrived.Count + session.Errors.Count >= session.Roster.Count && session.Errors.Count > 0)
+        {
+            stageStatus = "Formation incomplete: " + string.Join(", ", session.Errors.Select(x =>
+                session.Roster.FirstOrDefault(p => p.ContentId == x.Key)?.Name + " (" + x.Value + ")"));
+            recallingStage = null;
         }
         else if (StageElapsed(session.StartedQpc) > 80)
         {
@@ -407,7 +477,8 @@ public sealed partial class MainWindow
         ImGui.TextColored(new Vector4(.96f,.59f,.83f,1f),Loc.T("STAGE FORMATIONS — SAVE & RECALL"));
         ImGui.TextWrapped(Loc.T("Save each Bard's position, then walk the party back to those spots on stage. " +
             "Requires vnavmesh on every client. Only your party leader can send stage commands."));
-        ImGui.TextDisabled(Loc.T("Movement is walking only, limited to nearby spots; doesn't teleport, play music or force facing."));
+        ImGui.TextDisabled(Loc.T("Walking only, near the saved stage. No teleport and no automatic music start."));
+        DrawSoloStage();
         ImGui.TextColored(stageNavigator.IsAvailable ? new Vector4(.45f,.93f,.65f,1f) : new Vector4(1f,.68f,.39f,1f),
             Loc.T(stageNavigator.IsAvailable ? "vnavmesh installed (local client)" : "vnavmesh not installed on this client"));
         if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower)
@@ -415,7 +486,10 @@ public sealed partial class MainWindow
             bool permit = cfg.AllowLeaderStageMovement;
             if (ImGui.Checkbox(Loc.T("Allow my party leader to save my position and move me on stage##stageConsent"), ref permit))
             { cfg.AllowLeaderStageMovement = permit; cfg.Save(); }
-            ImGui.TextDisabled(Loc.T("One-time opt-in. Disable it any time; no movement occurs on login or song load."));
+            bool face = cfg.AutoFaceAfterStageMovement;
+            if (ImGui.Checkbox(Loc.T("Automatically face saved direction after walking##stageAutoFace"), ref face))
+            { cfg.AutoFaceAfterStageMovement = face; cfg.Save(); }
+            ImGui.TextDisabled(Loc.T("Explicit opt-in for movement; no movement occurs on login or song load."));
             if (ImGui.Button(Loc.T("STOP MY STAGE MOVEMENT")))
             {
                 if (!string.IsNullOrEmpty(stageMovementNonce))
@@ -430,6 +504,9 @@ public sealed partial class MainWindow
             ImGui.InputText(Loc.T("Formation name##stageName"), ref stageName, 64);
             if (ImGui.Button(Loc.T("SAVE CURRENT PARTY POSITIONS"))) SaveStageFormation();
             ImGui.TextDisabled(Loc.T("Position everyone manually once, then Save. All party members must opt in."));
+            bool face = cfg.AutoFaceAfterStageMovement;
+            if (ImGui.Checkbox(Loc.T("Face my conductor when stage movement ends##stageLeaderAutoFace"), ref face))
+            { cfg.AutoFaceAfterStageMovement = face; cfg.Save(); }
             if (ImGui.BeginCombo(Loc.T("Saved formations##stageLibrary"),
                 SelectedStage()?.Name ?? Loc.T("Choose a saved formation")))
             {
@@ -496,7 +573,7 @@ public sealed partial class MainWindow
         }
         ImGui.Separator();
         ImGui.TextWrapped(Loc.T(stageStatus));
-        ImGui.TextDisabled(Loc.T("This saves relative positions and a facing guide. Automatic facing is not yet implemented."));
+        ImGui.TextDisabled(Loc.T("Saved facing directions are applied after walking on clients with auto-facing enabled."));
     }
 
     /// <summary>Stage navigation is optional and must never strand the player
@@ -504,6 +581,11 @@ public sealed partial class MainWindow
     internal void RecoverStageAfterFailure(string detail)
     {
         stageNavigator.Stop("Stage feature reset after an error: " + detail);
+        stageFacing.Cancel();
+        soloStageWalking = false;
+        soloStageFacingPending = false;
+        stageFollowerTargetHeading = null;
+        stageFollowerFaceIssued = false;
         capturingStage = null;
         recallingStage = null;
         stageCaptureReply = null;
@@ -517,7 +599,8 @@ public sealed partial class MainWindow
     /// <summary>Start music cannot leave a path-walking operation running.</summary>
     private void StopStageMovementBeforeMusic()
     {
-        if (stageNavigator.Active || recallingStage is not null ||
+        if (stageNavigator.Active || stageFacing.Active || soloStageWalking ||
+            soloStageFacingPending || recallingStage is not null ||
             !string.IsNullOrEmpty(stageMovementNonce))
         {
             try { StopStageFormation(); }
@@ -531,5 +614,11 @@ public sealed partial class MainWindow
         }
     }
 
-    internal void StopStageMovementOnUnload() => stageNavigator.Stop("Plugin unloaded; stage movement stopped.");
+    internal void StopStageMovementOnUnload()
+    {
+        stageNavigator.Stop("Plugin unloaded; stage movement stopped.");
+        stageFacing.Cancel();
+        soloStageWalking = false;
+        soloStageFacingPending = false;
+    }
 }
