@@ -8,7 +8,7 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 35;
+    public int Version { get; set; } = 36;
     // v0.27 local-only SoundFont audio preview; no party/FFXIV MIDI output.
     public string PreviewSoundFontPath { get; set; } = "";
     public float PreviewVolume { get; set; } = .65f;
@@ -17,6 +17,12 @@ public sealed class Configuration : IPluginConfiguration
     public string Language { get; set; } = "en";
     // v0.20 live hardware MIDI keyboard input in Solo mode. Device opt-in is saved,
     // but FFXIV output ARM is never persisted across plugin restarts.
+    // v0.38 Piano Academy: independent local full-range piano practice.
+    public int PianoAcademySplitPitch { get; set; } = 60;
+    public float PianoAcademySpeed { get; set; } = 1f;
+    // v0.38 Showmaster: disabled on followers until they explicitly opt in.
+    public bool AllowLeaderShowmaster { get; set; } = false;
+    public List<ShowmasterRoutine> ShowmasterRoutines { get; set; } = ShowmasterCodec.Defaults();
     public bool LiveMidiInputEnabled { get; set; } = false;
     public string LiveMidiInputDeviceName { get; set; } = "";
     public int LiveMidiTranspose { get; set; } = 0;

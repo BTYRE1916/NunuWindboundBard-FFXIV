@@ -23,6 +23,10 @@ public sealed class LiveMidiInputService : IDisposable
     private int previousDriverErrors;
     private bool disposed;
 
+    // Optional raw MIDI monitor for Piano Academy. Runs ONLY on Framework.Update;
+    // never delivers callbacks from the winmm driver thread.
+    public Action<uint>? PracticeMidiReceived { get; set; }
+    public bool PracticeMonitoring { get; set; }
     public IReadOnlyList<WinMmMidiInput.Port> Ports => ports;
     public bool Connected => input.Connected;
     public string ConnectedName => input.ConnectedName;
@@ -126,14 +130,23 @@ public sealed class LiveMidiInputService : IDisposable
             panicRequested = false;
         }
 
-        bool allowed = enabled && solo && armed && performanceReady && input.Connected &&
+        bool allowed = !PracticeMonitoring && enabled && solo && armed && performanceReady && input.Connected &&
                        !scheduledMidiBusy && !instrumentBusy;
         if (!allowed)
         {
             if (outputWasAllowed) ReleaseAll(performanceReady);
             outputWasAllowed = false;
             // Don't replay stale MIDI notes upon re-arming or re-entering Performance.
-            input.Drain();
+            if (PracticeMonitoring && input.Connected)
+            {
+                int sampled = 0;
+                while (sampled++ < 512 && input.TryDequeue(out uint raw))
+                {
+                    try { PracticeMidiReceived?.Invoke(raw); }
+                    catch (Exception ex) { Status = "Piano Academy MIDI observer error: " + ex.Message; }
+                }
+            }
+            else input.Drain();
             return;
         }
         outputWasAllowed = true;

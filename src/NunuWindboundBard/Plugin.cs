@@ -326,6 +326,13 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 35;
             Config.Save();
         }
+        if (Config.Version < 36)
+        {
+            Config.ShowmasterRoutines ??= ShowmasterCodec.Defaults();
+            Config.AllowLeaderShowmaster = false;
+            Config.Version = 36;
+            Config.Save();
+        }
         Config.StageFormations ??= new();
         Config.MemberPortraitFileByContentId ??= new(StringComparer.OrdinalIgnoreCase);
         Config.ConcertSnapshots ??= new();
@@ -378,7 +385,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.31.2 loaded: C# definite-assignment hotfix; playback recovery and optional stage designer retained.");
+        Log.Information("Windbound Bard v0.38.0 loaded: Piano Academy + Showmaster; existing MIDI playback and ensembles retained.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -401,6 +408,7 @@ public sealed class Plugin : IDalamudPlugin
         PartyChat.ReceiveEnabled = Config.GameEnsembleEnabled &&
             (Config.EnsembleMode == (int)EnsembleRole.Follower ||
              Config.EnsembleMode == (int)EnsembleRole.Conductor);
+        // Showmaster party cues share the existing verified leader-only receiver.
         try { main.PollGamePartyChat(); }
         catch (Exception error)
         {
@@ -417,6 +425,12 @@ public sealed class Plugin : IDalamudPlugin
         main.PollNativeReadyChecks();
         main.PollGameEnsemble();
         main.PollOneClickInstrumentPreparation();
+        // Both new modules run independently of live FFXIV MIDI note playback.
+        // Never let rehearsal or a broken emote prevent a game note-off tick.
+        try { main.PollPianoAcademy(); }
+        catch (Exception error) { Log.Error("Piano Academy update failed: " + error); }
+        try { main.PollShowmaster(); }
+        catch (Exception error) { Log.Error("Showmaster update failed: " + error); }
         // Flush live controller note-offs before the MIDI-file scheduler so
         // switching into file playback never releases the file's fresh notes.
         LiveMidi.ProcessFrameworkUpdate(Config.LiveMidiInputEnabled,
@@ -447,6 +461,8 @@ public sealed class Plugin : IDalamudPlugin
         windows.Draw();
         // Draw outside the Windbound main ImGui window so pickers remain independent.
         main.DrawFileDialogs();
+        // Independent floating rehearsal view remains visible when the main UI is closed.
+        main.DrawAcademyFloatingWindow();
     }
 
     private void OnCommand(string command, string args)

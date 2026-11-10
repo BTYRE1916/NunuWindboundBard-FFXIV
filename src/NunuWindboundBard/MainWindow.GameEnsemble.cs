@@ -176,6 +176,10 @@ public sealed partial class MainWindow
                 continue;
             }
             if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower) continue;
+            if (cue.Kind == GamePartyCueKind.ShowmasterStart)
+            { ReceiveShowmasterStart(cue); continue; }
+            if (cue.Kind == GamePartyCueKind.ShowmasterStop)
+            { ReceiveShowmasterStop(cue); continue; }
             if (cue.Kind == GamePartyCueKind.FormationCapture)
             { ReceiveStageCapture(cue); continue; }
             if (cue.Kind == GamePartyCueKind.FormationMove)

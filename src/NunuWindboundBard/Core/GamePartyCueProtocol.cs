@@ -12,13 +12,14 @@ public enum GamePartyCueKind { Song, Stop, Start, Prepare, Ready, Failed,
     NativeSetTracks, NativeTracksReady, NativeTracksFailed, NativeStopUnequip,
     StageProbe, StageReport, NativeArmAll, NativeArmReady, NativeArmFailed,
     FormationCapture, FormationPosition, FormationMove, FormationArrived,
-    FormationFailed, FormationStop }
+    FormationFailed, FormationStop, ShowmasterStart, ShowmasterStop }
 public readonly record struct GamePartyCue(GamePartyCueKind Kind, int PlaylistIndex, string Hash,
     long StartUnixMs = 0, int SpeedThousand = 0, string Nonce = "",
     string RosterTag = "", string PackedAssignments = "", string PackedInstruments = "",
     int StageFlags = 0, int StageInstrument = 0, int StageLanes = 0,
     int TargetSlot = 0, bool ArmRequested = false, int ArmReplyCode = 0,
-    uint FormationTerritory = 0, Vector3 FormationPosition = default, float FormationHeading = 0);
+    uint FormationTerritory = 0, Vector3 FormationPosition = default, float FormationHeading = 0,
+    string ShowmasterSteps = "");
 
 /// <summary>
 /// A deliberately compact, strictly validated FFXIV party-chat protocol.
@@ -212,6 +213,22 @@ public static class GamePartyCueProtocol
         return $"{Prefix} armfail {nonce.ToUpperInvariant()} {reason.ToUpperInvariant()}";
     }
 
+    /// <summary>Conductor-triggered, opt-in emote choreography. Payload only contains
+    /// a strict fixed emote codebook, never arbitrary scripts or text commands.</summary>
+    public static string ShowmasterStart(string nonce, string rosterTag, long startUnixMs, string steps)
+    {
+        if (!IsHex(nonce, 16) || !IsHex(rosterTag, 8) ||
+            startUnixMs is < 1577836800000L or > 4102444800000L ||
+            !ShowmasterCodec.TryDecode(steps, out _))
+            throw new ArgumentException("Invalid intermission choreography cue.");
+        string cmd = $"{Prefix} show {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {startUnixMs} {steps}";
+        if (cmd.Length > MaxChatCharacters) throw new ArgumentException("Show cue too long.");
+        return cmd;
+    }
+    public static string ShowmasterStop(string nonce) =>
+        IsHex(nonce,16) ? $"{Prefix} showstop {nonce.ToUpperInvariant()}" :
+        throw new ArgumentException("Invalid show-stop nonce.");
+
     // v0.30: positioning is a SEPARATE, opt-in stage utility, never a music START.
     // Coordinates are visible to members of the in-game party. A full performer
     // formation is saved locally on the conductor only; no private data is sent.
@@ -299,6 +316,22 @@ public static class GamePartyCueProtocol
         if (string.IsNullOrWhiteSpace(text) || text.Length > 150) return false;
         string[] p = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (p.Length < 2 || !p[0].Equals(Prefix, StringComparison.OrdinalIgnoreCase)) return false;
+        if (p.Length == 6 && p[1].Equals("show", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||
+                !long.TryParse(p[4], NumberStyles.None, CultureInfo.InvariantCulture, out long start) ||
+                start is < 1577836800000L or > 4102444800000L ||
+                !ShowmasterCodec.TryDecode(p[5], out _)) return false;
+            cue = new GamePartyCue(GamePartyCueKind.ShowmasterStart, -1, "",
+                StartUnixMs: start, Nonce: p[2].ToUpperInvariant(),
+                RosterTag: p[3].ToUpperInvariant(), ShowmasterSteps: p[5]);
+            return true;
+        }
+        if (p.Length == 3 && p[1].Equals("showstop", StringComparison.OrdinalIgnoreCase) && IsHex(p[2],16))
+        {
+            cue = new GamePartyCue(GamePartyCueKind.ShowmasterStop,-1,"",Nonce:p[2].ToUpperInvariant());
+            return true;
+        }
         if (p.Length == 5 && p[1].Equals("fcap", StringComparison.OrdinalIgnoreCase))
         {
             if (!IsHex(p[2],16) || !IsHex(p[3],8) || !ValidTerritory(p[4],out uint zone)) return false;

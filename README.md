@@ -1,3 +1,5 @@
+> **v0.38 preview source (unverified in-game):** New **Piano Academy** tab offers falling notes, full-range 88-key keyboard lessons, a detachable practice window and live USB piano input. **Showmaster** adds between-song emote macro buttons, custom timed routines and opt-in group choreography. See [START-HERE-v0.38.md](START-HERE-v0.38.md). Keep a backup of the prior working build.
+
 # Windbound Bard v0.37.3 — Portrait Crop Fix 🖤🎶
 
 **The Band Portraits tab is now second in the main WindboundBard menu and works in Solo, Conductor, and Follower modes.** It no longer hides inside the Ensemble track-assignment section. You can capture your own character's in-game Adventurer Plate picture without joining a party, and capture other current party members with their Adventurer Plates open. Captured thumbnails remain available in track/instrument assignment rows on this client only.

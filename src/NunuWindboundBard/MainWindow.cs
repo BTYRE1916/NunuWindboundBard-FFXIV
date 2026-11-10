@@ -66,6 +66,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         this.plugin = plugin;
         cfg = plugin.Config;
+        plugin.LiveMidi.PracticeMidiReceived = OnAcademyMidi;
         fileInput = cfg.LastFile;
         soundFontInput = cfg.PreviewSoundFontPath ?? "";
         networkHost = cfg.MultiDeviceHostAddress;
@@ -79,6 +80,8 @@ public sealed partial class MainWindow : Window, IDisposable
     public void Dispose()
     {
         plugin.AudioPreview.Stop();
+        plugin.LiveMidi.PracticeMidiReceived = null;
+        plugin.LiveMidi.PracticeMonitoring = false;
         DisposeMemberPortraitCapture();
         fileDialogs.Reset();
     }
@@ -127,6 +130,8 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             if (ImGui.BeginTabItem(Loc.T("Songs & Playback"))) { DrawPlayer(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Band Portraits"))) { DrawBandPortraitsTab(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Piano Academy"))) { DrawPianoAcademy(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Showmaster"))) { DrawShowmaster(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Ensemble"))) { DrawEnsemble(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Stage Formations"))) { DrawStageFormations(); ImGui.EndTabItem(); }
