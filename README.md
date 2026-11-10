@@ -1,6 +1,7 @@
 <img width="1536" height="1024" alt="3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0" src="https://github.com/user-attachments/assets/f3aae68a-ba31-4193-804e-73658f7f2b36" />
 
 [** Nunu's Windbound Bard Midi Suite Website URL**](https://btyre1916.github.io/NunuWindboundBard-FFXIV/)
+[** The WIKI **](https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/wiki)
 # Windbound Bard v0.35 — Solo Stage & Automatic Facing 🖤🎹
 
 **Full Visual Studio source ZIP:** The v0.35 changes are already merged into this copy. Open `NunuWindboundBard.sln` and read **[START-HERE-v0.35.md](START-HERE-v0.35.md)** for no-party stage movement, facing controls, build instructions and testing limitations. The older release notes below are kept for history.
