@@ -126,6 +126,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (ImGui.BeginTabBar("WindboundTabs"))
         {
             if (ImGui.BeginTabItem(Loc.T("Songs & Playback"))) { DrawPlayer(); ImGui.EndTabItem(); }
+            if (ImGui.BeginTabItem(Loc.T("Band Portraits"))) { DrawBandPortraitsTab(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Ensemble"))) { DrawEnsemble(); ImGui.EndTabItem(); }
             if (ImGui.BeginTabItem(Loc.T("Stage Formations"))) { DrawStageFormations(); ImGui.EndTabItem(); }
@@ -140,6 +141,9 @@ public sealed partial class MainWindow : Window, IDisposable
             if (ImGui.BeginTabItem(Loc.T("About / Setup"))) { DrawHelp(); ImGui.EndTabItem(); }
             ImGui.EndTabBar();
         }
+        // Floating Adventurer Plate capture editor is visible even after changing
+        // tabs. It must not depend on Ensemble role or MIDI being loaded.
+        DrawMemberPortraitCaptureWindow();
     }
 
     private void SetLanguage(string language)
@@ -1460,7 +1464,9 @@ public sealed partial class MainWindow : Window, IDisposable
         if (role == EnsembleRole.Solo) return;
         ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), Loc.T("PARTY-ROSTER TRACK ASSIGNMENTS"));
         var choices = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
-        DrawMemberPortraitManager(choices);
+        // Portraits are now managed in the dedicated Band Portraits tab,
+        // available even while Solo is selected. Track thumbnails remain here.
+        ImGui.TextDisabled(Loc.T("Manage member pictures in the Band Portraits tab."));
         if (role == EnsembleRole.Conductor)
         {
             if (song is null)

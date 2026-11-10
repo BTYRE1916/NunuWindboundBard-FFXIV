@@ -1,3 +1,11 @@
+# Windbound Bard v0.37.2 — Band Portraits Tab 🖤🎶
+
+**The Band Portraits tab is now second in the main WindboundBard menu and works in Solo, Conductor, and Follower modes.** It no longer hides inside the Ensemble track-assignment section. You can capture your own character's in-game Adventurer Plate picture without joining a party, and capture other current party members with their Adventurer Plates open. Captured thumbnails remain available in track/instrument assignment rows on this client only.
+
+**Full Visual Studio source project, not a compiled plugin or an upstream GitHub release.** Build via `NunuWindboundBard.sln`. See [START-HERE-v0.37.2.md](START-HERE-v0.37.2.md) for setup, capture steps and testing limitations. Includes the earlier v0.37.1 instrument-switching fix and v0.36.1 icon alignment.
+
+---
+
 # Windbound Bard v0.36.1 — Performance Instrument Icon Alignment Fix 🎻
 
 **Complete Visual Studio source ZIP** for the 28 Bard Performance icons. The v0.36 icon lookup had an off-by-one error: icon 750 (generic Performance) was displayed beside Harp. This release maps Harp to 751, Piano to 752, through Electric Guitar Special at 778. All UI selectors use the shared catalog; no instrument action IDs or MIDI behavior are changed.

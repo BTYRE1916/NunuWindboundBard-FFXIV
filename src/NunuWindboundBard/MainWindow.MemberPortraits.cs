@@ -76,18 +76,48 @@ public sealed partial class MainWindow
         return clicked;
     }
 
+    /// <summary>
+    /// Dedicated portrait page: deliberately independent of EnsembleRole and the
+    /// current MIDI. PartyRoster.GetChoices includes the local player even when
+    /// not in a party, so a Solo Bard can capture their own Adventurer Plate.
+    /// </summary>
+    private void DrawBandPortraitsTab()
+    {
+        ImGui.TextColored(new Vector4(.96f, .58f, .83f, 1f),
+            Loc.T("BAND PORTRAITS — ADVENTURER PLATES"));
+        ImGui.TextWrapped(Loc.T("Capture genuine in-game Adventurer Plate pictures for yourself " +
+            "and your band. This page works in Solo, Conductor and Follower modes; " +
+            "it does not require a MIDI to be loaded."));
+        ImGui.Separator();
+
+        var roster = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
+        if (roster.Count == 0)
+        {
+            ImGui.TextDisabled(Loc.T("Log in to show your character. Party members appear here when you join a party."));
+            ImGui.TextWrapped(Loc.T(portraitStatus));
+            return;
+        }
+        DrawMemberPortraitManager(roster);
+        int saved = cfg.MemberPortraitFileByContentId?.Count ?? 0;
+        ImGui.TextDisabled(Loc.T($"Saved on this client: {saved} portrait(s). Pictures never travel through party chat."));
+    }
+
     private void DrawMemberPortraitManager(IReadOnlyList<PartyChoice> roster)
     {
-        if (ImGui.TreeNode(Loc.T("In-game member portraits (Adventurer Plates)##wbBandPortraits")))
+        ImGui.TextWrapped(Loc.T("1. Open the character's Adventurer Plate in FFXIV. " +
+            "2. Press CAPTURE beside the matching name below. " +
+            "3. Drag a square over the portrait in the preview, then SAVE. " +
+            "Only the cropped thumbnail is saved locally; repeat on each client's PC if desired."));
+        ImGui.Spacing();
+        // A bounded list prevents 8–15 performers pushing the capture guidance
+        // and status line off the bottom of the plugin window.
+        float listHeight = Math.Clamp(roster.Count * 47f + 10f, 70f, 390f);
+        if (ImGui.BeginChild("##WindboundBandPortraitRoster", new Vector2(0f, listHeight), true))
         {
-            ImGui.TextWrapped(Loc.T("Uses each player's real Adventurer Plate picture. " +
-                "To register someone: open their Adventurer Plate from FFXIV's party list, then click CAPTURE " +
-                "next to their name here. Drag a square around their portrait in the preview and SAVE. " +
-                "You need to do this once per member on EACH client; portraits aren't sent in party chat."));
             foreach (var member in roster)
             {
                 ImGui.PushID("WBPortrait" + member.ContentId);
-                if (DrawMemberPortraitThumbnail(member.ContentId, 30f)) ImGui.SameLine(0f, 5f);
+                if (DrawMemberPortraitThumbnail(member.ContentId, 32f)) ImGui.SameLine(0f, 6f);
                 ImGui.TextUnformatted((member.IsLocal ? "[Me] " : "") + member.Name);
                 ImGui.SameLine();
                 if (ImGui.SmallButton("CAPTURE##WBPortrait")) BeginMemberPortraitCapture(member);
@@ -98,12 +128,14 @@ public sealed partial class MainWindow
                     ImGui.SameLine();
                     if (ImGui.SmallButton("Remove##WBPortrait")) RemoveMemberPortrait(member.ContentId);
                 }
+                ImGui.Separator();
                 ImGui.PopID();
             }
-            ImGui.TextWrapped(Loc.T(portraitStatus));
-            ImGui.TreePop();
         }
-        DrawMemberPortraitCaptureWindow();
+        ImGui.EndChild();
+        ImGui.TextWrapped(Loc.T(portraitStatus));
+        ImGui.TextDisabled(Loc.T("Only party members and your own character appear in this list. " +
+            "Existing captured portraits are reused automatically when members rejoin."));
     }
 
     private void BeginMemberPortraitCapture(PartyChoice member)
