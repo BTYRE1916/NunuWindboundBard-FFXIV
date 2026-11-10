@@ -1044,7 +1044,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         ImGui.Separator();
         ImGui.TextWrapped(Loc.T("Electric guitars: choose Overdriven, Clean, Muted, Power Chords or Special above. Guitar Tones can still override tone per MIDI part while the song plays."));
-        ImGui.TextWrapped(Loc.T("Automatic switching: when a different instrument is already active, Windbound requests a native Performance-window close, waits for FFXIV to exit Performance, then equips your chosen instrument through the game-owned hotbar dispatcher. No keyboard injection. If FFXIV rejects the native close on your game build, Windbound reports the reason and can continue after manual exit. Test after FFXIV updates."));
+        ImGui.TextWrapped(Loc.T("Automatic switching: Windbound stows the previous instrument with FFXIV's native Performance action (0), confirms that Performance mode has fully ended, then equips the next instrument. Electric guitar tones can switch directly. If native stow is unavailable, the UI will explain how to finish manually. No keyboard injection. Test after FFXIV updates."));
     }
 
     private void DrawTracksOnMainPage()

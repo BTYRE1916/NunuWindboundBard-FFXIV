@@ -11,9 +11,9 @@ namespace NunuWindboundBard.Core;
 
 /// <summary>
 /// Instrument selection uses FFXIV's native PerformanceInstrument hotbar action.
-/// STOP unequip uses the game's separate native Performance action with instrument 0,
-/// the distinction that matters when closing the 37-keyboard window leaves a
-/// character holding an instrument. No simulated keyboard input is sent.
+/// Both ordinary instrument changes and STOP stow the old instrument using the
+/// game's native Performance action with instrument 0. Dismissing the keyboard
+/// window alone does NOT reliably unequip the character. No simulated input.
 /// Both native actions must run on FFXIV's framework update thread, and are
 /// game-version-sensitive: missing signatures fail closed with diagnostics.
 /// </summary>
@@ -38,6 +38,14 @@ public sealed unsafe class InstrumentSwitcher
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate void NativePerformAction(nint performanceInfo, uint instrumentId, int unused);
 
+    // Give game-owned state transitions and different instrument models time to
+    // unload. Limited retries handle a first dispatch during teardown.
+    private const int MaxExitAttempts = 2;
+    private const int MaxSelectionAttempts = 2;
+    private const long ExitWaitMs = 3100;
+    private const long ExitSettleMs = 650;
+    private const long SelectionWaitMs = 2700;
+
     private readonly IObjectTable objects;
     private readonly ICondition conditions;
     private readonly NativePerformAction? performAction;
@@ -54,6 +62,7 @@ public sealed unsafe class InstrumentSwitcher
     private long exitConfirmedAt;
     private bool exitCallbackAccepted;
     private int exitAttemptCount;
+    private int selectionAttemptCount;
     private string exitRoute = "Not attempted";
 
     public InstrumentSwitcher(IObjectTable objects, ICondition conditions, ISigScanner scanner)
@@ -140,6 +149,7 @@ public sealed unsafe class InstrumentSwitcher
         exitRoute = "Not attempted";
         exitCallbackAccepted = false;
         exitAttemptCount = 0;
+        selectionAttemptCount = 0;
         lastGuitarChoice = -1;
         LastNativeReturn = -1;
         LastRoute = "Pending";
@@ -153,7 +163,9 @@ public sealed unsafe class InstrumentSwitcher
             Status = $"Already equipped: {InstrumentCatalog.Display(id)}.";
             return;
         }
-        else phase = initialInstrument != 0 ? Phase.RequestExit : Phase.SendSelection;
+        // CurrentId can read as zero while the Performing condition is still
+        // unwinding. Never equip the new model until BOTH report fully exited.
+        else phase = IsActuallyUnequipped ? Phase.SendSelection : Phase.RequestExit;
 
         Status = initialInstrument != 0 && phase == Phase.RequestExit
             ? $"Closing {InstrumentCatalog.Display(initialInstrument)} before selecting {InstrumentCatalog.Display(id)}..."
@@ -202,7 +214,7 @@ public sealed unsafe class InstrumentSwitcher
                 Fail("Instrument switching stopped because the player logged out or changed character.");
                 return;
             }
-            if (elapsed.ElapsedMilliseconds > (phase == Phase.WaitForManualExit ? 45000 : 14000))
+            if (elapsed.ElapsedMilliseconds > (phase == Phase.WaitForManualExit ? 45000 : 24000))
             {
                 Fail("Instrument switch timed out. " + Diagnostics);
                 return;
@@ -274,89 +286,155 @@ public sealed unsafe class InstrumentSwitcher
                     }
                     break;
                 case Phase.RequestExit:
-                    if (current == 0)
+                    if (IsActuallyUnequipped)
                     {
                         MarkExitConfirmed();
                         break;
                     }
-                    if (exitAttemptCount >= 2)
+                    if (current == 0)
                     {
-                        phase = Phase.WaitForManualExit;
-                        Status = "Automatic close was attempted twice; FFXIV still has another instrument active. Close Performance once and Windbound will finish the switch.";
+                        // Game character mode changed before Dalamud's condition
+                        // cleared. Wait; don't send a new instrument too early.
+                        exitRoute = "Waiting for FFXIV Performing flag to clear";
+                        exitRequestedAt = elapsed.ElapsedMilliseconds;
+                        phase = Phase.WaitForExit;
+                        Status = "FFXIV is still leaving Performance. Waiting before selecting the next instrument...";
                         break;
                     }
-                    // Ask FFXIV's own Performance addon to close with its callback,
-                    // equivalent to closing that window through the game UI.
-                    // No synthetic Esc, window-focus manipulation or chat input.
-                    exitAttemptCount++;
-                    exitCallbackAccepted = TryClosePerformanceAddon(out exitRoute);
-                    exitRequestedAt = elapsed.ElapsedMilliseconds;
-                    if (!exitCallbackAccepted)
+                    if (exitAttemptCount >= MaxExitAttempts)
                     {
-                        // If the addon is absent/incompatible, do NOT try random
-                        // memory offsets or force the character out of Performance.
                         phase = Phase.WaitForManualExit;
-                        Status = $"Automatic close unavailable ({exitRoute}). Close Performance once; Windbound will finish the switch. No simulated keys were sent.";
+                        Status = "FFXIV did not stow the old instrument after " +
+                            MaxExitAttempts + " requests. Manually stow it once; Windbound will continue automatically. " + Diagnostics;
+                        break;
+                    }
+
+                    // IMPORTANT: Closing PerformanceModeWide/PerformanceMode only
+                    // dismisses the keyboard; the character can keep the old model.
+                    // Use the same native instrument=0 route as STOP instead.
+                    exitAttemptCount++;
+                    exitRequestedAt = elapsed.ElapsedMilliseconds;
+                    if (CanNativeUnequip)
+                    {
+                        performAction!(nativePerformanceInfo, 0u, 0);
+                        exitRoute = "Native Performance action (instrument=0)";
+                        exitCallbackAccepted = true; // dispatched, not proof of unequip
+                        phase = Phase.WaitForExit;
+                        Status = $"Stowing {InstrumentCatalog.Display(current)} using FFXIV's native action " +
+                            $"({exitAttemptCount}/{MaxExitAttempts}). Waiting for the old instrument to disappear...";
                     }
                     else
                     {
-                        phase = Phase.WaitForExit;
-                        Status = $"Asked FFXIV to close {InstrumentCatalog.Display(current)} ({exitRoute}). Waiting for Performance to end...";
-                    }
-                    break;
-                case Phase.WaitForExit:
-                    if (current == 0)
-                    {
-                        MarkExitConfirmed();
-                    }
-                    else if (elapsed.ElapsedMilliseconds - exitRequestedAt > 2900)
-                    {
-                        // Closing the UI is not sufficient on every game version.
-                        // Fall back to the existing manual exit instead of repeatedly
-                        // closing or making unsupported native calls.
-                        phase = Phase.WaitForManualExit;
-                        Status = $"FFXIV did not exit Performance after the close callback ({exitRoute}). Close it manually once; Windbound will select {InstrumentCatalog.Display(selected)} afterward.";
-                    }
-                    break;
-                case Phase.WaitAfterExit:
-                    if (current != 0)
-                    {
-                        Fail("Another instrument became active while waiting for the switch. " + Diagnostics);
-                    }
-                    else if (elapsed.ElapsedMilliseconds - exitConfirmedAt >= 250)
-                    {
-                        phase = Phase.SendSelection;
-                        Status = $"Previous instrument closed. Selecting {InstrumentCatalog.Display(selected)}...";
-                    }
-                    break;
-                case Phase.SendSelection:
-                    // Dispatch through the same native PerformanceInstrument hotbar action
-                    // category used by FFXIV's own UI. We do not type or focus the game.
-                    SendNativeInstrumentAction(selected);
-                    requestAt = elapsed.ElapsedMilliseconds;
-                    phase = Phase.WaitForSelection;
-                    Status = $"Game action sent for {InstrumentCatalog.Display(selected)} ({LastRoute}). Waiting for the game to equip it...";
-                    break;
-                case Phase.WaitForSelection:
-                    if (elapsed.ElapsedMilliseconds - requestAt > 2300)
-                    {
-                        if (current != 0 && current != selected)
+                        // Compatibility fallback on builds where the signature is
+                        // unavailable. This may only dismiss the UI; verify and
+                        // ask for manual stow rather than claim success.
+                        exitCallbackAccepted = TryClosePerformanceAddon(out exitRoute);
+                        if (!exitCallbackAccepted)
                         {
-                            // The game can reject the selection if the prior session
-                            // was still unwinding. Retry the automatic close only
-                            // once more, then fall back safely if FFXIV resists.
-                            phase = Phase.RequestExit;
-                            Status = $"FFXIV kept {InstrumentCatalog.Display(current)} active. Retrying with a confirmed Performance close...";
+                            phase = Phase.WaitForManualExit;
+                            Status = "Native stow is unavailable (" + nativeUnequipAvailability +
+                                "); Performance UI fallback failed (" + exitRoute +
+                                "). Manually stow the instrument to continue.";
                         }
                         else
                         {
-                            Fail("FFXIV did not activate the selected Performance action. " + Diagnostics +
-                                ". Check that Bard Performance is unlocked and instrument actions are available.");
+                            phase = Phase.WaitForExit;
+                            Status = "Fallback Performance window close sent. " +
+                                "Waiting for FFXIV to confirm the old instrument is actually stowed...";
+                        }
+                    }
+                    break;
+                case Phase.WaitForExit:
+                    if (IsActuallyUnequipped)
+                    {
+                        MarkExitConfirmed();
+                    }
+                    else if (elapsed.ElapsedMilliseconds - exitRequestedAt > ExitWaitMs)
+                    {
+                        if (current != 0 && exitAttemptCount < MaxExitAttempts)
+                        {
+                            phase = Phase.RequestExit;
+                            Status = "The old instrument is still equipped. " +
+                                "Retrying FFXIV's native stow action once...";
+                        }
+                        else
+                        {
+                            phase = Phase.WaitForManualExit;
+                            Status = "FFXIV hasn't fully exited the previous Performance session " +
+                                $"({exitRoute}). Stow manually if needed; Windbound will resume after confirmation.";
+                        }
+                    }
+                    break;
+                case Phase.WaitAfterExit:
+                    if (!IsActuallyUnequipped)
+                    {
+                        // A delayed state update from the game restored the old
+                        // mode. Never start the next instrument over an active one.
+                        if (current != 0)
+                        {
+                            phase = Phase.RequestExit;
+                            Status = "Old Performance instrument became active again; verifying stow.";
+                        }
+                        else
+                        {
+                            phase = Phase.WaitForExit;
+                            exitRequestedAt = elapsed.ElapsedMilliseconds;
+                            Status = "Waiting for the Performance flag to finish clearing...";
+                        }
+                    }
+                    else if (elapsed.ElapsedMilliseconds - exitConfirmedAt >= ExitSettleMs)
+                    {
+                        phase = Phase.SendSelection;
+                        Status = $"Previous instrument stowed. Equipping {InstrumentCatalog.Display(selected)}...";
+                    }
+                    break;
+                case Phase.SendSelection:
+                    if (!IsActuallyUnequipped)
+                    {
+                        phase = Phase.RequestExit;
+                        Status = "Performance is still active; delaying the new instrument until fully stowed.";
+                        break;
+                    }
+                    if (selectionAttemptCount >= MaxSelectionAttempts)
+                    {
+                        Fail("FFXIV did not equip the requested instrument after two attempts. " + Diagnostics);
+                        break;
+                    }
+                    // Dispatch through the same native PerformanceInstrument hotbar
+                    // action category used by FFXIV's own UI. Never simulate keys.
+                    SendNativeInstrumentAction(selected);
+                    selectionAttemptCount++;
+                    requestAt = elapsed.ElapsedMilliseconds;
+                    phase = Phase.WaitForSelection;
+                    Status = $"Game action sent for {InstrumentCatalog.Display(selected)} " +
+                        $"({LastRoute}, attempt {selectionAttemptCount}/{MaxSelectionAttempts}). Waiting for equip confirmation...";
+                    break;
+                case Phase.WaitForSelection:
+                    if (elapsed.ElapsedMilliseconds - requestAt > SelectionWaitMs)
+                    {
+                        if (current != 0 && current != selected)
+                        {
+                            // The previous instrument returned while a replacement
+                            // action was pending. Stow before trying anything else.
+                            phase = Phase.RequestExit;
+                            Status = $"FFXIV still has {InstrumentCatalog.Display(current)} equipped. " +
+                                "Stowing it before trying the new model...";
+                        }
+                        else if (IsActuallyUnequipped && selectionAttemptCount < MaxSelectionAttempts)
+                        {
+                            phase = Phase.SendSelection;
+                            Status = "The game did not equip on the first action. " +
+                                "Retrying after the confirmed exit...";
+                        }
+                        else
+                        {
+                            Fail("FFXIV did not activate the selected Performance instrument. " + Diagnostics +
+                                ". Check that Bard Performance is unlocked and the instrument action is available.");
                         }
                     }
                     break;
                 case Phase.WaitForManualExit:
-                    if (current == 0)
+                    if (IsActuallyUnequipped)
                         MarkExitConfirmed();
                     break;
                 case Phase.ApplyGuitarTone:
@@ -397,23 +475,26 @@ public sealed unsafe class InstrumentSwitcher
 
     public string Diagnostics => $"Phase={phase}; unequip native available={CanNativeUnequip}; " +
                                  $"FFXIV Performing flag={conditions[ConditionFlag.Performing]}; " +
-                                 $"exit attempts={exitAttemptCount}; exit route={exitRoute}; exit callback accepted={exitCallbackAccepted} " +
+                                 $"exit attempts={exitAttemptCount}/{MaxExitAttempts}; " +
+                                 $"selection attempts={selectionAttemptCount}/{MaxSelectionAttempts}; " +
+                                 $"exit route={exitRoute}; exit callback accepted={exitCallbackAccepted} " +
                                  $"(not proof of exit); game action={LastRoute}; raw native return={LastNativeReturn} " +
                                  $"(not a success indicator); requested={InstrumentCatalog.Display(selected)}; current={CurrentName}.";
 
     private void MarkExitConfirmed()
     {
+        // Only reachable after character mode AND Performing flag are cleared.
         exitConfirmedAt = elapsed.ElapsedMilliseconds;
         phase = Phase.WaitAfterExit;
         Status = $"FFXIV confirms old Performance mode exited. Preparing {InstrumentCatalog.Display(selected)}...";
     }
 
     /// <summary>
-    /// Ask the currently open Performance UI to perform its native Close with
-    /// fireCallback=true, just as the game's UI does. This is different from
-    /// simply hiding a window: the close callback can notify the game to end
-    /// Performance. We still verify Character.Mode becomes non-Performance.
-    /// This is game-version-sensitive and must run on FFXIV's framework thread.
+    /// Compatibility fallback only. Addon Close(true) is not sufficient proof
+    /// of unequipping: it may hide the Performance keyboard while the character
+    /// is still holding the previous instrument. The caller MUST verify both
+    /// character mode and the Performing flag before changing instruments.
+    /// This is game-version-sensitive and runs on FFXIV's framework thread.
     /// </summary>
     private static bool TryClosePerformanceAddon(out string route)
     {
