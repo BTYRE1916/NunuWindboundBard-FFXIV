@@ -13,3 +13,5 @@ Stage Formations, SoundFont previews and troubleshooting.
 [📖 Open the Windbound Bard User Manual](https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/wiki)
   
 RepoURL: https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
+
+https://btyre1916.github.io/NunuWindboundBard-FFXIV/index.html
