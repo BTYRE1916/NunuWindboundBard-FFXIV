@@ -15,6 +15,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICommandManager Commands { get; private set; } = null!;
     [PluginService] internal static ICondition Conditions { get; private set; } = null!;
     [PluginService] internal static IGameConfig GameConfig { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider Textures { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;

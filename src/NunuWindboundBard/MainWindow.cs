@@ -991,15 +991,18 @@ public sealed partial class MainWindow : Window, IDisposable
             cfg.Save();
             choice = GetInstrumentChoice();
         }
-        ImGui.SetNextItemWidth(Math.Max(230, ImGui.GetContentRegionAvail().X * .75f));
+        if (DrawInstrumentPreviewIcon(choice)) ImGui.SameLine(0f, 6f);
+        ImGui.SetNextItemWidth(Math.Max(210, ImGui.GetContentRegionAvail().X * .72f));
         if (ImGui.BeginCombo(Loc.T("Instrument for this song"), Loc.T(InstrumentCatalog.Display(choice))))
         {
-            if (ImGui.Selectable(Loc.T("Keep current instrument##inst0"), choice == 0)) SetInstrumentChoice(0);
+            if (InstrumentIconSelectable(0, "Keep current instrument", "inst0", choice == 0))
+                SetInstrumentChoice(0);
             ImGui.Separator();
             foreach (var instrument in InstrumentCatalog.All)
             {
                 bool selected = choice == instrument.Id;
-                if (ImGui.Selectable(Loc.T($"{instrument.DisplayName}##ins{instrument.Id}"), selected))
+                if (InstrumentIconSelectable(instrument.Id, instrument.DisplayName,
+                    "ins" + instrument.Id, selected))
                     SetInstrumentChoice(instrument.Id);
                 if (selected) ImGui.SetItemDefaultFocus();
             }

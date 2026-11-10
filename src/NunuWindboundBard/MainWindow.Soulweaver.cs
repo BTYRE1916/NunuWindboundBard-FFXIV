@@ -118,12 +118,14 @@ public sealed partial class MainWindow
                 ? $"  |  {NoteMapper.GetNoteName(part.LowestPitch)}–{NoteMapper.GetNoteName(part.HighestPitch)}" : "  |  No notes for this part")));
             int id = preset.InstrumentByPart.TryGetValue(i, out int selectedId) && InstrumentCatalog.Valid(selectedId) && selectedId > 0
                 ? selectedId : part.SuggestedInstrumentId;
+            if (DrawInstrumentPreviewIcon(id)) ImGui.SameLine(0f, 5f);
             ImGui.SetNextItemWidth(Math.Min(320, Math.Max(190, ImGui.GetContentRegionAvail().X * .7f)));
             if (ImGui.BeginCombo(Loc.T($"Instrument##SoulInstrument{i}"), Loc.T(InstrumentCatalog.Display(id))))
             {
                 foreach (var instrument in InstrumentCatalog.All)
                 {
-                    if (ImGui.Selectable(Loc.T($"{instrument.DisplayName}##SoulInstrumentChoice{i}_{instrument.Id}"), id == instrument.Id))
+                    if (InstrumentIconSelectable(instrument.Id, instrument.DisplayName,
+                        $"SoulInstrumentChoice{i}_{instrument.Id}", id == instrument.Id))
                     {
                         preset.InstrumentByPart[i] = instrument.Id; cfg.Save();
                     }

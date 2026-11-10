@@ -114,14 +114,16 @@ public sealed partial class MainWindow
             ImGui.TextUnformatted(Loc.T((member.IsLocal ? "[Me] " : "") + member.Name +
                 (manuallyAssigned ? " [manual]" : value > 0 ? " [MIDI]" : " [unassigned]")));
             ImGui.SameLine(Math.Max(190f, ImGui.GetContentRegionAvail().X * .46f));
+            if (DrawInstrumentPreviewIcon(value)) ImGui.SameLine(0f, 5f);
             ImGui.SetNextItemWidth(-1);
             if (ImGui.BeginCombo("##InstFor" + member.ContentId, Loc.T(InstrumentCatalog.Display(value))))
             {
-                if (ImGui.Selectable(Loc.T("Keep current##0-" + member.ContentId), value == 0))
+                if (InstrumentIconSelectable(0, "Keep current", "0-" + member.ContentId, value == 0))
                     SetPartyInstrumentChoice(member.ContentId, 0);
                 foreach (var item in InstrumentCatalog.All)
-                    if (ImGui.Selectable(Loc.T(item.DisplayName + "##" + member.ContentId + "-" + item.Id),
-                        value == item.Id)) SetPartyInstrumentChoice(member.ContentId, item.Id);
+                    if (InstrumentIconSelectable(item.Id, item.DisplayName,
+                        member.ContentId + "-" + item.Id, value == item.Id))
+                        SetPartyInstrumentChoice(member.ContentId, item.Id);
                 ImGui.EndCombo();
             }
         }

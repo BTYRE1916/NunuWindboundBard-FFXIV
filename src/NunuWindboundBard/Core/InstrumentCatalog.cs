@@ -48,6 +48,12 @@ public static class InstrumentCatalog
         new BardInstrument(28, "Electric Guitar — Special"),
     };
 
+    // FFXIV's Performance instrument action icons live in ui/icon/000000/000750-000779.
+    // The playable Perform action IDs in this catalogue are contiguous 1-28.
+    // Always validate against the installed game after a major FFXIV UI update.
+    // 0 means Keep Current and deliberately has no icon.
+    public static uint GameIconId(int id) => id is >= 1 and <= 28 ? (uint)(749 + id) : 0;
+
     public static BardInstrument? Find(int id) => All.FirstOrDefault(i => i.Id == id);
     public static bool Valid(int id) => id == 0 || Find(id) != null;
     public static string Display(int id) => id == 0 ? "Keep current instrument" :
