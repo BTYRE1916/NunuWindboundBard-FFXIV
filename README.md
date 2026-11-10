@@ -14,4 +14,4 @@ Stage Formations, SoundFont previews and troubleshooting.
   
 RepoURL: https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json
 
-https://btyre1916.github.io/NunuWindboundBard-FFXIV/index.html
+Made with a bards Heart Luv Nunu <3
