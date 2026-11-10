@@ -17,7 +17,8 @@ for name,parts in need.items():
   assert part in code, f'{name} missing {part}'
 for forbidden in ['PerformanceOutput.', 'Plugin.PartyChat', 'NativePerformAction']:
  assert forbidden not in (src/'MainWindow.PianoAcademy.cs').read_text(), f'unsafe Academy reference {forbidden}'
-assert '"/" + emote + " motion"' in (src/'Core/ShowmasterEmoteSender.cs').read_text()
+assert 'ShowmasterEmoteCatalog.SafeCommand' in (src/'Core/ShowmasterEmoteSender.cs').read_text()
+assert '" motion"' in (src/'Core/ShowmasterEmoteSender.cs').read_text()
 assert 'ShowmasterCodec.IsAllowed(emote)' in (src/'Core/ShowmasterEmoteSender.cs').read_text()
 assert 'CanNativeUnequip' in (src/'Core/InstrumentSwitcher.cs').read_text()
 assert (root/'NunuWindboundBard.sln').exists()

@@ -12,14 +12,15 @@ public enum GamePartyCueKind { Song, Stop, Start, Prepare, Ready, Failed,
     NativeSetTracks, NativeTracksReady, NativeTracksFailed, NativeStopUnequip,
     StageProbe, StageReport, NativeArmAll, NativeArmReady, NativeArmFailed,
     FormationCapture, FormationPosition, FormationMove, FormationArrived,
-    FormationFailed, FormationStop, ShowmasterStart, ShowmasterStop }
+    FormationFailed, FormationStop, ShowmasterStart, ShowmasterStop,
+    ShowmasterStartV2, ShowmasterCheck, ShowmasterAvailabilityReply }
 public readonly record struct GamePartyCue(GamePartyCueKind Kind, int PlaylistIndex, string Hash,
     long StartUnixMs = 0, int SpeedThousand = 0, string Nonce = "",
     string RosterTag = "", string PackedAssignments = "", string PackedInstruments = "",
     int StageFlags = 0, int StageInstrument = 0, int StageLanes = 0,
     int TargetSlot = 0, bool ArmRequested = false, int ArmReplyCode = 0,
     uint FormationTerritory = 0, Vector3 FormationPosition = default, float FormationHeading = 0,
-    string ShowmasterSteps = "");
+    string ShowmasterSteps = "", int ShowmasterMask = 0);
 
 /// <summary>
 /// A deliberately compact, strictly validated FFXIV party-chat protocol.
@@ -225,6 +226,36 @@ public static class GamePartyCueProtocol
         if (cmd.Length > MaxChatCharacters) throw new ArgumentException("Show cue too long.");
         return cmd;
     }
+    /// <summary>Actual FFXIV emote IDs, limited to the 12-step 130-char party cue.</summary>
+    public static string ShowmasterStartV2(string nonce, string rosterTag, long startUnixMs, string steps)
+    {
+        if (!IsHex(nonce, 16) || !IsHex(rosterTag, 8) ||
+            startUnixMs is < 1577836800000L or > 4102444800000L ||
+            !ShowmasterCodec.TryDecodeV2(steps, out _))
+            throw new ArgumentException("Invalid Emote-sheet Showmaster cue.");
+        string cmd = $"{Prefix} show2 {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {startUnixMs} {steps}";
+        if (cmd.Length > MaxChatCharacters) throw new ArgumentException("Showmaster cue exceeds the party-chat length limit.");
+        return cmd;
+    }
+
+    /// <summary>Ask opted-in party members only whether they own this routine's emotes.</summary>
+    public static string ShowmasterCheck(string nonce, string rosterTag, string steps)
+    {
+        if (!IsHex(nonce, 16) || !IsHex(rosterTag, 8) ||
+            !ShowmasterCodec.TryDecodeV2(steps, out _))
+            throw new ArgumentException("Invalid Showmaster capability request.");
+        string cmd = $"{Prefix} schk {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {steps}";
+        if (cmd.Length > MaxChatCharacters) throw new ArgumentException("Showmaster check cue is too long.");
+        return cmd;
+    }
+
+    public static string ShowmasterAvailability(string nonce, int mask)
+    {
+        if (!IsHex(nonce, 16) || mask is < 0 or > 0xFFF)
+            throw new ArgumentException("Invalid Showmaster capability reply.");
+        return $"{Prefix} sok {nonce.ToUpperInvariant()} {mask:X3}";
+    }
+
     public static string ShowmasterStop(string nonce) =>
         IsHex(nonce,16) ? $"{Prefix} showstop {nonce.ToUpperInvariant()}" :
         throw new ArgumentException("Invalid show-stop nonce.");
@@ -316,6 +347,35 @@ public static class GamePartyCueProtocol
         if (string.IsNullOrWhiteSpace(text) || text.Length > 150) return false;
         string[] p = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (p.Length < 2 || !p[0].Equals(Prefix, StringComparison.OrdinalIgnoreCase)) return false;
+        if (p.Length == 6 && p[1].Equals("show2", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||
+                !long.TryParse(p[4], NumberStyles.None, CultureInfo.InvariantCulture, out long start) ||
+                start is < 1577836800000L or > 4102444800000L ||
+                !ShowmasterCodec.TryDecodeV2(p[5], out _)) return false;
+            cue = new GamePartyCue(GamePartyCueKind.ShowmasterStartV2, -1, "",
+                StartUnixMs: start, Nonce: p[2].ToUpperInvariant(),
+                RosterTag: p[3].ToUpperInvariant(), ShowmasterSteps: p[5]);
+            return true;
+        }
+        if (p.Length == 5 && p[1].Equals("schk", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||
+                !ShowmasterCodec.TryDecodeV2(p[4], out _)) return false;
+            cue = new GamePartyCue(GamePartyCueKind.ShowmasterCheck, -1, "",
+                Nonce: p[2].ToUpperInvariant(), RosterTag: p[3].ToUpperInvariant(),
+                ShowmasterSteps: p[4]);
+            return true;
+        }
+        if (p.Length == 4 && p[1].Equals("sok", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || p[3].Length != 3 ||
+                !int.TryParse(p[3], NumberStyles.HexNumber, CultureInfo.InvariantCulture,
+                    out int mask) || mask > 0xFFF) return false;
+            cue = new GamePartyCue(GamePartyCueKind.ShowmasterAvailabilityReply, -1, "",
+                Nonce: p[2].ToUpperInvariant(), ShowmasterMask: mask);
+            return true;
+        }
         if (p.Length == 6 && p[1].Equals("show", StringComparison.OrdinalIgnoreCase))
         {
             if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||

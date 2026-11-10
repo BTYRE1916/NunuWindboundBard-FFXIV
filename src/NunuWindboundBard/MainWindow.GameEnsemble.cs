@@ -158,15 +158,19 @@ public sealed partial class MainWindow
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
                 GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
-                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed)
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed or
+                GamePartyCueKind.ShowmasterAvailabilityReply)
             {
                 if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor)
                 {
-                    if (cue.Kind is GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed)
+                    if (cue.Kind is GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed or
+                GamePartyCueKind.ShowmasterAvailabilityReply)
                     {
                         HandleStageReply(cue, envelope.SenderContentId);
                         continue;
                     }
+                    if (cue.Kind == GamePartyCueKind.ShowmasterAvailabilityReply)
+                    { ReceiveShowmasterAvailability(cue, envelope.SenderContentId); continue; }
                     OnNativeLeaderReply(cue, envelope.SenderContentId);
                     OnNativeArmReply(cue, envelope.SenderContentId);
                     if (cue.Kind == GamePartyCueKind.StageReport)
@@ -176,8 +180,10 @@ public sealed partial class MainWindow
                 continue;
             }
             if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower) continue;
-            if (cue.Kind == GamePartyCueKind.ShowmasterStart)
+            if (cue.Kind is GamePartyCueKind.ShowmasterStart or GamePartyCueKind.ShowmasterStartV2)
             { ReceiveShowmasterStart(cue); continue; }
+            if (cue.Kind == GamePartyCueKind.ShowmasterCheck)
+            { ReceiveShowmasterCheck(cue); continue; }
             if (cue.Kind == GamePartyCueKind.ShowmasterStop)
             { ReceiveShowmasterStop(cue); continue; }
             if (cue.Kind == GamePartyCueKind.FormationCapture)

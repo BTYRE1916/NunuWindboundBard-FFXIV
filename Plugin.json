@@ -3,7 +3,7 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.38.0.0",
+    "AssemblyVersion": "0.38.1.0",
     "Punchline": "A Bard Performance MIDI player with in-game instrument icons.",
     "Description": "FFXIV Bard MIDI player with a dedicated in-game Band Portraits tab, ensemble track assignments, instrument icons and switching, stage formations, solo stage movement, and Soulweaver Studio.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",

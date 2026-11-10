@@ -22,6 +22,7 @@ public sealed class Configuration : IPluginConfiguration
     public float PianoAcademySpeed { get; set; } = 1f;
     // v0.38 Showmaster: disabled on followers until they explicitly opt in.
     public bool AllowLeaderShowmaster { get; set; } = false;
+    public bool ShowmasterUseBowFallback { get; set; } = true;
     public List<ShowmasterRoutine> ShowmasterRoutines { get; set; } = ShowmasterCodec.Defaults();
     public bool LiveMidiInputEnabled { get; set; } = false;
     public string LiveMidiInputDeviceName { get; set; } = "";

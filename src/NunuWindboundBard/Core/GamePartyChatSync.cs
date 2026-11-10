@@ -101,7 +101,8 @@ public sealed unsafe class GamePartyChatSync : IDisposable
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
                 GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
-                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed;
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed or
+                GamePartyCueKind.ShowmasterAvailabilityReply;
             if (!isReply && senderId != leader.ContentId)
             { Reject("Command sender is a party member, but is NOT the actual party leader."); return; }
             if (isReply && senderId == 0)
@@ -155,7 +156,8 @@ public sealed unsafe class GamePartyChatSync : IDisposable
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
                 GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
-                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed)
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed or
+                GamePartyCueKind.ShowmasterAvailabilityReply)
         { reason = "Invalid leader party command."; return false; }
         return TrySendPartyMessage(text, out reason);
     }
@@ -170,7 +172,8 @@ public sealed unsafe class GamePartyChatSync : IDisposable
                 GamePartyCueKind.NativeFileReady or GamePartyCueKind.NativeFileFailed or
                 GamePartyCueKind.NativeTracksReady or GamePartyCueKind.NativeTracksFailed or
                 GamePartyCueKind.StageReport or GamePartyCueKind.NativeArmReady or GamePartyCueKind.NativeArmFailed or
-                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed))
+                GamePartyCueKind.FormationPosition or GamePartyCueKind.FormationArrived or GamePartyCueKind.FormationFailed or
+                GamePartyCueKind.ShowmasterAvailabilityReply))
         { reason = "Invalid follower READY/FAIL reply."; return false; }
         return TrySendPartyMessage(text, out reason);
     }

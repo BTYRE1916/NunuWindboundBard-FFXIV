@@ -25,6 +25,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPartyList Party { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IChatGui Chat { get; private set; } = null!;
+    [PluginService] internal static IDataManager Data { get; private set; } = null!;
+    [PluginService] internal static IUnlockState UnlockState { get; private set; } = null!;
 
     internal readonly Configuration Config;
     internal readonly PlaybackEngine Player = new();
@@ -385,7 +387,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.38.0 loaded: Piano Academy + Showmaster; existing MIDI playback and ensembles retained.");
+        Log.Information("Windbound Bard v0.38.1 loaded: Piano Academy + Showmaster; existing MIDI playback and ensembles retained.");
     }
 
     private void OnFrameworkUpdate(IFramework _)

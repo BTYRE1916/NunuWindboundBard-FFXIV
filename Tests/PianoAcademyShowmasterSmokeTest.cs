@@ -70,4 +70,36 @@ player.Tick(1000,true,e=>{performed.Add(e);return true;});
 Check(performed.Count==1, "first emote executed once");
 player.Tick(1100,false,e=>{performed.Add(e);return true;});
 Check(!player.Active && performed.Count==1, "emotes stopped when gameplay resumes");
+// v0.38.1: full Emote-sheet IDs instead of just 12 fixed emote keywords.
+var fullRoutine = Enumerable.Range(0, 12).Select(i => new ShowmasterStep {
+    EmoteId = (uint)(101 + i), Emote = "", DelayAfterMs = 1250 + (i % 3) * 250
+}).ToList();
+var allEmoteCodes = ShowmasterCodec.EncodeV2(fullRoutine);
+Check(allEmoteCodes.Length == 72, "up to 12 arbitrary native Emote-sheet IDs");
+Check(ShowmasterCodec.TryDecodeV2(allEmoteCodes, out var decodedV2) && decodedV2.Count == 12 &&
+    decodedV2[0].EmoteId == 101 && decodedV2[11].EmoteId == 112,
+    "native ID routine roundtrip");
+Check(!ShowmasterCodec.TryDecodeV2(allEmoteCodes + "000001", out _), "more than 12 emotes rejected");
+Check(!ShowmasterCodec.TryDecodeV2("000000", out _), "zero Emote-sheet ID rejected");
+Check(!ShowmasterCodec.TryDecodeV2("002A15", out _), "invalid delay ticks rejected");
+string nativeCue = GamePartyCueProtocol.ShowmasterStartV2(nonce, tag, 1794320000000L, allEmoteCodes);
+Check(nativeCue.Length <= GamePartyCueProtocol.MaxChatCharacters,
+    "12-step native emote cue fits the 130-character party-chat maximum");
+Check(GamePartyCueProtocol.TryParse(nativeCue, out var parsedV2) &&
+    parsedV2.Kind == GamePartyCueKind.ShowmasterStartV2 && parsedV2.ShowmasterSteps == allEmoteCodes,
+    "native emote cue parsed");
+string availabilityQuery = GamePartyCueProtocol.ShowmasterCheck(nonce, tag, allEmoteCodes);
+Check(GamePartyCueProtocol.TryParse(availabilityQuery, out var parsedQuery) &&
+    parsedQuery.Kind == GamePartyCueKind.ShowmasterCheck, "band availability query parsed");
+string availabilityReply = GamePartyCueProtocol.ShowmasterAvailability(nonce, 0xAAA);
+Check(GamePartyCueProtocol.TryParse(availabilityReply, out var parsedReply) &&
+    parsedReply.Kind == GamePartyCueKind.ShowmasterAvailabilityReply && parsedReply.ShowmasterMask == 0xAAA,
+    "band member per-step capability mask parsed");
+var next = new ShowmasterPlayer();
+next.Start(decodedV2, 1000);
+next.TickWithSteps(1000, true, _ => ShowmasterExecutionResult.SkippedUnavailable);
+Check(next.Active && next.SkippedSteps == 1 && next.CompletedSteps == 1,
+    "locked member emote skips without aborting choreography");
+next.TickWithSteps(1100, false, _ => ShowmasterExecutionResult.Performed);
+Check(!next.Active, "gameplay safety aborts native ID choreography");
 Console.WriteLine("PASS: full-range piano, wait chords, score, emote allowlist, party cues and stop safety");

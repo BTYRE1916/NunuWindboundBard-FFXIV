@@ -1,3 +1,8 @@
+
+## v0.38.1 — Full Showmaster Emote Library
+
+The Showmaster tab now reads all player emotes from FFXIV's game data and offers the **current character's unlocked actions** in its searchable picker, with real emote icons. A conductor can compose up to 12 emote steps and broadcast their game emote IDs to opted-in followers. Use **CHECK BAND EMOTES** before the show to see which selected emotes are unlocked on each participating character. Missing emotes can fall back to a bow or be skipped; ownership is **never** granted across accounts. See [START-HERE-v0.38.1.md](START-HERE-v0.38.1.md).
+
 > **v0.38 preview source (unverified in-game):** New **Piano Academy** tab offers falling notes, full-range 88-key keyboard lessons, a detachable practice window and live USB piano input. **Showmaster** adds between-song emote macro buttons, custom timed routines and opt-in group choreography. See [START-HERE-v0.38.md](START-HERE-v0.38.md). Keep a backup of the prior working build.
 
 # Windbound Bard v0.37.3 — Portrait Crop Fix 🖤🎶
