@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://btyre1916.github.io/NunuWindboundBard-FFXIV/sitemap.xml
