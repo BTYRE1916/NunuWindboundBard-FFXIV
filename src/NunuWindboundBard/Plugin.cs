@@ -38,6 +38,7 @@ public sealed class Plugin : IDalamudPlugin
     internal readonly GamePartyChatSync PartyChat;
     internal readonly InstrumentSwitcher Instruments;
     internal readonly LiveMidiInputService LiveMidi = new();
+    internal readonly ObsRecordingClient ObsCapture = new();
     private readonly WindowSystem windows = new("NunuWindboundBard");
     private readonly MainWindow main;
     private readonly PerformanceHudWindow hud;
@@ -345,6 +346,16 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 37;
             Config.Save();
         }
+        if (Config.Version < 38)
+        {
+            // OBS is fully optional: connect, record and stream only by explicit action.
+            Config.ObsWebSocketPort = ObsRecordingClient.DefaultPort;
+            Config.ObsDiskMonitorFolder ??= "";
+            Config.ObsDiskWarningGiB = 10f;
+            Config.ObsShowCaptureHud = true;
+            Config.Version = 38;
+            Config.Save();
+        }
         Config.StageFormations ??= new();
         Config.MemberPortraitFileByContentId ??= new(StringComparer.OrdinalIgnoreCase);
         Config.ConcertSnapshots ??= new();
@@ -372,6 +383,8 @@ public sealed class Plugin : IDalamudPlugin
         Config.GuitarTonesByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.InstrumentsByFile ??= new(StringComparer.OrdinalIgnoreCase);
         Config.OctaveShiftsByFile ??= new(StringComparer.OrdinalIgnoreCase);
+        ObsCapture.SetDiskMonitorFolder(Config.ObsDiskMonitorFolder);
+        Config.ObsSongTitleSource ??= ObsSongTitleOverlay.DefaultSourceName;
         Instruments = new InstrumentSwitcher(Objects, Conditions, SigScanner);
         if (Config.LiveMidiInputEnabled && !string.IsNullOrWhiteSpace(Config.LiveMidiInputDeviceName))
         {
@@ -397,7 +410,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.39 loaded: Dark Stage UI, Piano Academy + Showmaster; MIDI and ensembles retained.");
+        Log.Information("Windbound Bard v0.40 loaded: Dark Stage UI, Piano Academy + Showmaster; MIDI and ensembles retained.");
     }
 
     private void OnFrameworkUpdate(IFramework _)
@@ -466,6 +479,10 @@ public sealed class Plugin : IDalamudPlugin
         AudioPreview.Poll();
         main.PollConcertSetlist();
         main.PollSongTransitions();
+        // Updates OBS text only when the MIDI title/playback state changes.
+        // Never uses network I/O on the Dalamud framework thread.
+        try { main.PollConcertCaptureSongTitle(); }
+        catch (Exception error) { Log.Warning("Concert title overlay update failed: " + error.GetType().Name); }
     }
 
     private void Draw()
@@ -542,6 +559,7 @@ public sealed class Plugin : IDalamudPlugin
         main.CancelPendingInstrumentStart();
         main.StopStageMovementOnUnload();
         Instruments.Cancel();
+        ObsCapture.Dispose();
         LiveMidi.Dispose();
         AudioPreview.Dispose();
         Player.Dispose();

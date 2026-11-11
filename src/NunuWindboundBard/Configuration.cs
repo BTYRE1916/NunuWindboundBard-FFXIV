@@ -8,7 +8,16 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 37;
+    public int Version { get; set; } = 38;
+    // v0.40: only local OBS WebSocket configuration. No password or stream key is saved.
+    public int ObsWebSocketPort { get; set; } = 4455;
+    public string ObsDiskMonitorFolder { get; set; } = "";
+    public float ObsDiskWarningGiB { get; set; } = 10f;
+    public bool ObsShowCaptureHud { get; set; } = true;
+    // The text source must be created and styled manually in OBS. Disabled by default.
+    public bool ObsSongTitleEnabled { get; set; } = false;
+    public string ObsSongTitleSource { get; set; } = ObsSongTitleOverlay.DefaultSourceName;
+    public bool ObsSongTitleOnlyWhilePlaying { get; set; } = true;
     // v0.39 local-only optional visual chrome; nothing here changes song timing.
     public bool DarkStageThemeEnabled { get; set; } = true;
     public bool StageUiMotionEnabled { get; set; } = true;

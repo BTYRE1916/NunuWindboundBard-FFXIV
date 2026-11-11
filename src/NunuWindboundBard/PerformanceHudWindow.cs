@@ -192,6 +192,34 @@ public sealed class PerformanceHudWindow : Window
         ImGui.SameLine();
         if (ImGui.SmallButton(Loc.T("Hide HUD##hud"))) plugin.SetHudVisible(false);
 
+        if (cfg.ObsShowCaptureHud)
+        {
+            var capture = plugin.ObsCapture.Snapshot;
+            if (capture.Connected)
+            {
+                ImGui.Separator();
+                ImGui.TextColored(capture.Recording ? Rose : Good,
+                    capture.Recording ? (capture.Paused ? "OBS PAUSED " : "OBS REC ") +
+                        ObsRecordingClient.FormatDuration(capture.RecordingMilliseconds) : "OBS STANDBY");
+                if (capture.Streaming) { ImGui.SameLine(); ImGui.TextColored(Rose, "LIVE"); }
+                if (capture.Recording && capture.FreeDiskGiB is { } free && free < cfg.ObsDiskWarningGiB)
+                    ImGui.TextColored(Warning, $"OBS LOW DISK: {free:0.0} GiB free");
+                if (!capture.Busy && !capture.Recording)
+                {
+                    if (ImGui.SmallButton("Record concert##hudObsRecord"))
+                        plugin.ObsCapture.Command("StartRecord");
+                }
+                else if (!capture.Busy && capture.Recording)
+                {
+                    if (ImGui.SmallButton(capture.Paused ? "Resume OBS##hudObsResume" : "Pause OBS##hudObsPause"))
+                        plugin.ObsCapture.Command(capture.Paused ? "ResumeRecord" : "PauseRecord");
+                    ImGui.SameLine();
+                    if (ImGui.SmallButton("Open capture controls##hudObsOpen")) main.IsOpen = true;
+                }
+                ImGui.TextDisabled("Stop OBS recording in SHOW > Concert Capture (confirmation required).");
+            }
+        }
+
         if (!cfg.HudCompact)
         {
             float opacity = cfg.HudOpacity;

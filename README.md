@@ -1,5 +1,13 @@
-<img width="1536" height="1024" alt="3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0" src="https://github.com/user-attachments/assets/d34bb51b-f784-4a9b-9278-b4cc55a24714" />
+> **v0.40 preview — Concert Capture + OBS Now Playing Overlay:** Use **SHOW → Concert Capture** to record or stream full concerts through local OBS WebSocket 5 (no time cap) and optionally display the current MIDI song title on an OBS Text (GDI+) lower-third. See [START-HERE-v0.40.md](START-HERE-v0.40.md). Source-only; not compiled/tested live yet.
 
+> **v0.40 — Concert Capture Studio (experimental source):**
+> Manual, localhost-only OBS WebSocket 5 control for **unlimited-duration** concert recording,
+> pause/resume, manual file splitting, replay buffer, separate confirmed streaming,
+> recording status and disk-space advisories.
+> Go to **SHOW → Concert Capture**. OBS Studio performs all recording/encoding;
+> WindboundBard never starts recording automatically with a MIDI.
+> See [START-HERE-v0.40.md](START-HERE-v0.40.md) and [CHANGELOG-v0.40.md](CHANGELOG-v0.40.md).
+> **No live Dalamud/OBS build was performed here.** Keep your working v0.39 build until tested.
 
 > **v0.39 — Dark Stage UI:** The plugin now has six grouped workspaces,
 > a concert header, status chips, custom accents and Showmaster/Piano Academy

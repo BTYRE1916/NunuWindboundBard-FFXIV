@@ -92,7 +92,7 @@ public sealed partial class MainWindow
             "SONG  " + StageUiTruncate(string.IsNullOrEmpty(loaded) ? "No MIDI loaded" : Path.GetFileName(loaded),
                 width < 540 ? 28 : 57));
         if (width > 570)
-            draw.AddText(top + new Vector2(width - 108, 14), ImGui.ColorConvertFloat4ToU32(accent), plugin.Player.IsPlaying ? "v0.39  LIVE" : "v0.39  READY");
+            draw.AddText(top + new Vector2(width - 108, 14), ImGui.ColorConvertFloat4ToU32(accent), plugin.Player.IsPlaying ? "v0.40  LIVE" : "v0.40  READY");
         float shimmer = cfg.StageUiMotionEnabled
             ? .65f + .27f * (float)(.5d + .5d * Math.Sin(Environment.TickCount64 / 650d))
             : .8f;
@@ -197,8 +197,13 @@ public sealed partial class MainWindow
             }
             if (ImGui.BeginTabItem(Loc.T("SHOW")))
             {
-                DrawStageWorkspaceTitle("SHOWMASTER", "Concert bows, encore routines and opted-in choreography");
-                DrawShowmaster();
+                DrawStageWorkspaceTitle("SHOWMASTER & CAPTURE", "Intermission choreography, full-concert recording and local OBS livestream controls");
+                if (ImGui.BeginTabBar("WindboundShowTabs"))
+                {
+                    if (ImGui.BeginTabItem("Showmaster")) { DrawShowmaster(); ImGui.EndTabItem(); }
+                    if (ImGui.BeginTabItem("Concert Capture")) { DrawConcertCapture(); ImGui.EndTabItem(); }
+                    ImGui.EndTabBar();
+                }
                 ImGui.EndTabItem();
             }
             if (ImGui.BeginTabItem(Loc.T("TOOLS")))
