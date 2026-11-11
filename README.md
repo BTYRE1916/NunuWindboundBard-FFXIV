@@ -1,3 +1,6 @@
+<img width="1536" height="1024" alt="3ddefb13-2297-4b7c-81ab-fa85d7c4a3b0" src="https://github.com/user-attachments/assets/d34bb51b-f784-4a9b-9278-b4cc55a24714" />
+
+
 > **v0.39 — Dark Stage UI:** The plugin now has six grouped workspaces,
 > a concert header, status chips, custom accents and Showmaster/Piano Academy
 > display polish. For installation and test instructions see
