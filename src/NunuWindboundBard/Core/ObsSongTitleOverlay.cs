@@ -35,5 +35,6 @@ public static class ObsSongTitleOverlay
     }
 
     public static bool IsTextInputKind(string kind) => kind is
-        "text_gdiplus_v3" or "text_gdiplus_v2" or "text_gdiplus" or "text_ft2_source";
+        "text_gdiplus_v3" or "text_gdiplus_v2" or "text_gdiplus" or
+        "text_ft2_source" or "text_ft2_source_v2";
 }

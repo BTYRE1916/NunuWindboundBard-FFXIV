@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
@@ -31,6 +32,8 @@ public sealed record ObsCaptureSnapshot
     public double? FreeDiskGiB { get; init; }
     public string Message { get; init; } = "OBS not connected. Set up OBS WebSocket and connect manually.";
     public string SongTitleStatus { get; init; } = "Song title overlay is off.";
+    public string[] SongTitleSources { get; init; } = Array.Empty<string>();
+    public string CurrentObsScene { get; init; } = "";
 }
 
 /// <summary>
@@ -59,6 +62,7 @@ public sealed class ObsRecordingClient : IDisposable
     private string lastAppliedTitleSource = "";
     private long titleVersion;
     private bool titlePending;
+    private int refreshTextSourcesRequested = 1;
     private int generation;
     private bool disposed;
     public ObsCaptureSnapshot Snapshot { get { lock (sync) return current; } }
@@ -87,6 +91,90 @@ public sealed class ObsRecordingClient : IDisposable
     public void RetrySongTitle()
     {
         lock (sync) { titleVersion++; titlePending = true; }
+    }
+
+    /// <summary>Request text-source discovery without blocking FFXIV.</summary>
+    public void RefreshSongTitleSources() => Interlocked.Exchange(ref refreshTextSourcesRequested, 1);
+
+    /// <summary>
+    /// Create an OBS Text source ONLY after an explicit UI click; never overwrite
+    /// another input with the same name or modify scenes during connection setup.
+    /// </summary>
+    public void CreateSongTitleSource(string sourceName)
+    {
+        sourceName = (sourceName ?? "").Trim();
+        if (sourceName.Length == 0 || sourceName.Length > 128)
+        { Update(s => s with { SongTitleStatus = "Choose a valid OBS text source name (1-128 characters)." }); return; }
+        if (!Snapshot.Connected || disposed || Interlocked.CompareExchange(ref busy, 1, 0) != 0) return;
+        int revision = Volatile.Read(ref generation);
+        Update(s => s with { Busy = true, SongTitleStatus = "Creating the OBS text source in the current program scene..." });
+        _ = Task.Run(async () =>
+        {
+            bool hasGate = false;
+            try
+            {
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
+                    lifetime.Token, connectionLifetime?.Token ?? lifetime.Token);
+                timeout.CancelAfter(TimeSpan.FromSeconds(12));
+                await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+                hasGate = true;
+                var ws = socket ?? throw new WebSocketException("OBS is disconnected.");
+                var inputs = await RequestAsync(ws, "GetInputList", timeout.Token).ConfigureAwait(false);
+                if (inputs.TryGetProperty("inputs", out var array) && array.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var input in array.EnumerateArray())
+                    {
+                        if (!string.Equals(GetString(input, "inputName"), sourceName, StringComparison.Ordinal)) continue;
+                        if (!ObsSongTitleOverlay.IsTextInputKind(GetString(input, "inputKind")))
+                            throw new InvalidOperationException("An OBS input with that name already exists but is not a Text source.");
+                        Update(s => s with { SongTitleStatus = "That OBS Text source already exists. " +
+                            "Add it to the recording scene if it is not visible, then click Sync." });
+                        RefreshSongTitleSources();
+                        RetrySongTitle();
+                        return;
+                    }
+                }
+                var scene = await RequestAsync(ws, "GetCurrentProgramScene", timeout.Token).ConfigureAwait(false);
+                var sceneName = GetString(scene, "currentProgramSceneName");
+                if (sceneName.Length == 0) throw new InvalidOperationException("Select a current program scene in OBS first.");
+                var kinds = await RequestAsync(ws, "GetInputKindList", timeout.Token).ConfigureAwait(false);
+                string inputKind = "";
+                if (kinds.TryGetProperty("inputKinds", out var available) && available.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (string candidate in new[] { "text_gdiplus_v3", "text_gdiplus_v2", "text_gdiplus" })
+                    {
+                        foreach (var kind in available.EnumerateArray())
+                            if (string.Equals(kind.GetString(), candidate, StringComparison.Ordinal))
+                            { inputKind = candidate; break; }
+                        if (inputKind.Length != 0) break;
+                    }
+                }
+                if (inputKind.Length == 0)
+                    throw new InvalidOperationException("OBS Text (GDI+) is unavailable. Add a text source manually.");
+                await RequestAsync(ws, "CreateInput", new {
+                    sceneName, inputName = sourceName, inputKind,
+                    inputSettings = new { text = "Windbound Bard — ready for a song" },
+                    sceneItemEnabled = true
+                }, timeout.Token).ConfigureAwait(false);
+                if (revision != Volatile.Read(ref generation)) return;
+                Update(s => s with { SongTitleStatus = "Created OBS Text source '" + sourceName + "' in scene '" +
+                    sceneName + "'. Position it in OBS, then Sync Title." });
+                RefreshSongTitleSources();
+                RetrySongTitle();
+            }
+            catch (OperationCanceledException) when (revision != Volatile.Read(ref generation) || disposed) { }
+            catch (Exception ex)
+            {
+                if (revision == Volatile.Read(ref generation))
+                    Update(s => s with { SongTitleStatus = "Create OBS title source: " + SafeTitleError(ex) });
+            }
+            finally
+            {
+                if (hasGate) requests.Release();
+                Interlocked.Exchange(ref busy, 0);
+                if (revision == Volatile.Read(ref generation)) Update(s => s with { Busy = false });
+            }
+        });
     }
 
     private void Update(Func<ObsCaptureSnapshot, ObsCaptureSnapshot> update)
@@ -139,6 +227,7 @@ public sealed class ObsRecordingClient : IDisposable
                 socket = ws;
                 ws = null;
                 Update(s => s with { Connected = true, Message = "Connected to OBS. Recording is controlled manually." });
+                RefreshSongTitleSources();
                 RetrySongTitle(); // Restores the requested title after reconnection.
                 _ = Task.Run(() => PollLoopAsync(revision, tokenSource.Token));
             }
@@ -211,27 +300,38 @@ public sealed class ObsRecordingClient : IDisposable
 
     private async Task PollLoopAsync(int revision, CancellationToken cancel)
     {
+        // OBS record/replay status is optional; a failed status query must NOT
+        // suppress song-title updates. Check title changes every 350ms while
+        // polling expensive recorder status approximately every two seconds.
+        int ticks = 0;
         try
         {
             while (!cancel.IsCancellationRequested && revision == Volatile.Read(ref generation))
             {
+                await requests.WaitAsync(cancel).ConfigureAwait(false);
                 try
                 {
-                    await requests.WaitAsync(cancel).ConfigureAwait(false);
-                    try
+                    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+                    timeout.CancelAfter(TimeSpan.FromSeconds(10));
+                    var ws = socket;
+                    if (ws == null) throw new WebSocketException("OBS disconnected.");
+                    if (Interlocked.Exchange(ref refreshTextSourcesRequested, 0) != 0)
                     {
-                        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
-                        timeout.CancelAfter(TimeSpan.FromSeconds(10));
-                        await RefreshAsync(timeout.Token).ConfigureAwait(false);
-                        await UpdateSongTitleAsync(timeout.Token).ConfigureAwait(false);
+                        try { await ReadTextSourceListAsync(ws, timeout.Token).ConfigureAwait(false); }
+                        catch (ObsRequestException ex)
+                        { Update(s => s with { SongTitleStatus = "OBS source list unavailable: " + SafeError(ex) }); }
                     }
-                    finally { requests.Release(); }
+                    // Attempt title FIRST even when GetReplayBufferStatus fails.
+                    await UpdateSongTitleAsync(timeout.Token).ConfigureAwait(false);
+                    if (ticks++ % 6 == 0)
+                    {
+                        try { await RefreshAsync(timeout.Token).ConfigureAwait(false); }
+                        catch (ObsRequestException ex)
+                        { Update(s => s with { Message = "OBS status request: " + SafeError(ex) }); }
+                    }
                 }
-                catch (ObsRequestException ex)
-                {
-                    Update(s => s with { Message = "OBS status request: " + SafeError(ex) });
-                }
-                await Task.Delay(TimeSpan.FromSeconds(2), cancel).ConfigureAwait(false);
+                finally { requests.Release(); }
+                await Task.Delay(TimeSpan.FromMilliseconds(350), cancel).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
@@ -240,7 +340,7 @@ public sealed class ObsRecordingClient : IDisposable
             if (revision == Volatile.Read(ref generation))
             {
                 Disconnect();
-                Update(s => s with { Message = "OBS status timed out. Check OBS and reconnect." });
+                Update(s => s with { Message = "OBS status/title request timed out. Check OBS and reconnect." });
             }
         }
         catch (Exception ex)
@@ -251,6 +351,28 @@ public sealed class ObsRecordingClient : IDisposable
                 Update(s => s with { Message = "OBS connection lost: " + SafeError(ex) });
             }
         }
+    }
+
+    private async Task ReadTextSourceListAsync(ClientWebSocket ws, CancellationToken cancel)
+    {
+        var inputList = await RequestAsync(ws, "GetInputList", cancel).ConfigureAwait(false);
+        var found = new List<string>();
+        if (inputList.TryGetProperty("inputs", out var inputs) && inputs.ValueKind == JsonValueKind.Array)
+            foreach (var input in inputs.EnumerateArray())
+                if (ObsSongTitleOverlay.IsTextInputKind(GetString(input, "inputKind")))
+                {
+                    string name = GetString(input, "inputName");
+                    if (name.Length != 0) found.Add(name);
+                }
+        found.Sort(StringComparer.OrdinalIgnoreCase);
+        string sceneName = "";
+        try
+        {
+            var scene = await RequestAsync(ws, "GetCurrentProgramScene", cancel).ConfigureAwait(false);
+            sceneName = GetString(scene, "currentProgramSceneName");
+        }
+        catch (ObsRequestException) { /* Scene is display-only, not required to update an input. */ }
+        Update(s => s with { SongTitleSources = found.ToArray(), CurrentObsScene = sceneName });
     }
 
     private async Task RefreshAsync(CancellationToken cancel)
@@ -326,7 +448,7 @@ public sealed class ObsRecordingClient : IDisposable
             if (previous.Length != 0 && (!enabled || previous != source))
             {
                 try { await WriteSongTitleAsync(ws, previous, "", cancel).ConfigureAwait(false); }
-                catch (Exception ex) when (ex is ObsRequestException or ObsWrongTitleSourceException)
+                catch (Exception ex) when (ex is ObsRequestException or ObsWrongTitleSourceException or ObsTitleFileModeException)
                 { /* Old source may have been removed or changed in OBS. */ }
                 previous = "";
             }
@@ -341,7 +463,8 @@ public sealed class ObsRecordingClient : IDisposable
                 if (titleVersion == currentVersion) titlePending = false;
             }
             Update(s => s with { SongTitleStatus = enabled
-                ? (text.Length == 0 ? "Song title hidden between performances." : "OBS song title updated: " + text)
+                ? (text.Length == 0 ? "OBS title cleared (local performance idle)." :
+                    "OBS text field updated: " + text + " (confirm source is visible in the recording scene)")
                 : "Song title overlay disabled." });
         }
         catch (OperationCanceledException) { throw; }
@@ -350,21 +473,35 @@ public sealed class ObsRecordingClient : IDisposable
             // Don't spam OBS requests for a missing or non-text source. The
             // Sync button, connection restart, or source-name edit retries it.
             lock (sync) { if (titleVersion == currentVersion) titlePending = false; }
-            string reason = ex is ObsWrongTitleSourceException ? "OBS source is not a Text source."
-                : ex is ObsRequestException ? "OBS source not found or rejected."
-                : SafeError(ex);
-            Update(s => s with { SongTitleStatus = "Title overlay: " + reason +
-                " Create a Text (GDI+) source with the exact configured name, then Sync Title." });
+            string reason = ex is ObsWrongTitleSourceException ? "Source is not a Text input."
+                : ex is ObsTitleFileModeException ? "OBS source has Read from file enabled. " +
+                    "Switch it OFF for WebSocket updates, or point it to the Windbound-NowPlaying.txt fallback."
+                : ex is ObsRequestException ? "OBS source was not found or rejected. " +
+                    "Check its exact name in the source list, or use CREATE SOURCE."
+                : SafeTitleError(ex);
+            Update(s => s with { SongTitleStatus = "Title overlay: " + reason });
         }
     }
 
     private sealed class ObsWrongTitleSourceException : Exception { }
+    private sealed class ObsTitleFileModeException : Exception { }
+
+    private static string SafeTitleError(Exception ex) => ex switch {
+        ObsWrongTitleSourceException => "The named source is not an OBS Text source.",
+        ObsTitleFileModeException => "Read from file is enabled; disable it or use the generated text file.",
+        ObsRequestException known => known.Message,
+        InvalidOperationException known => known.Message,
+        _ => SafeError(ex)
+    };
 
     private static async Task WriteSongTitleAsync(ClientWebSocket ws, string source, string text, CancellationToken cancel)
     {
         var info = await RequestAsync(ws, "GetInputSettings", new { inputName = source }, cancel).ConfigureAwait(false);
         if (!ObsSongTitleOverlay.IsTextInputKind(GetString(info, "inputKind")))
             throw new ObsWrongTitleSourceException();
+        if (info.TryGetProperty("inputSettings", out var settings) &&
+            settings.ValueKind == JsonValueKind.Object && GetBool(settings, "read_from_file"))
+            throw new ObsTitleFileModeException();
         await RequestAsync(ws, "SetInputSettings", new {
             inputName = source,
             inputSettings = new { text },

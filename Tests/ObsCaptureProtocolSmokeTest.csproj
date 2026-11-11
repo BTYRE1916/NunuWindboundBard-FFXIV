@@ -10,5 +10,6 @@
     <Compile Include="ObsCaptureProtocolSmokeTest.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/ObsRecordingClient.cs" Link="ObsRecordingClient.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/ObsSongTitleOverlay.cs" Link="ObsSongTitleOverlay.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/ObsSongTitleFileBridge.cs" Link="ObsSongTitleFileBridge.cs" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using NunuWindboundBard.Core;
@@ -13,6 +15,9 @@ public sealed partial class MainWindow
     private bool obsGoLiveConfirmed;
     private bool obsConfirmRecordStop;
     private bool obsConfirmStreamStop;
+    private long obsTitleTestUntilQpc;
+    private readonly ObsSongTitleFileBridge obsTitleFile = new(
+        Plugin.PluginInterface.GetPluginConfigDirectory());
 
     // Called every framework tick, including when the Concert Capture tab is closed.
     // The OBS client compares/coalesces updates and performs WebSocket I/O later.
@@ -21,8 +26,13 @@ public sealed partial class MainWindow
         string title = ObsSongTitleOverlay.FromMidiPath(loaded);
         string text = ObsSongTitleOverlay.TextForPlayback(title, plugin.Player.IsPlaying,
             cfg.ObsSongTitleOnlyWhilePlaying);
+        // Test the full OBS chain without needing a MIDI currently playing.
+        if (Stopwatch.GetTimestamp() < obsTitleTestUntilQpc)
+            text = "WINDBOUND BARD — TEST TITLE";
         plugin.ObsCapture.SetSongTitle(cfg.ObsSongTitleSource ?? ObsSongTitleOverlay.DefaultSourceName,
             text, cfg.ObsSongTitleEnabled);
+        // Fallback never needs OBS or sends anything to the game/party.
+        obsTitleFile.SetText(cfg.ObsSongTitleEnabled ? text : "");
     }
 
     private void DrawConcertCapture()
@@ -181,8 +191,8 @@ public sealed partial class MainWindow
         ImGui.Separator();
 
         ImGui.TextColored(WindboundStageStyle.Accent(cfg.StageUiAccent), "NOW PLAYING — OBS SONG TITLE OVERLAY");
-        ImGui.TextWrapped("Adds the MIDI song title to the actual OBS recording/stream. " +
-            "Create and style a Text (GDI+) source named 'Windbound Song Title' in your OBS concert scene first.");
+        ImGui.TextWrapped("Displays the current MIDI filename (without .mid) on the OBS recording/stream. " +
+            "The title source must be visible in your active OBS recording scene.");
         bool titleEnabled = cfg.ObsSongTitleEnabled;
         if (ImGui.Checkbox("Show current MIDI title on OBS video##windboundObsTitleToggle", ref titleEnabled))
         { cfg.ObsSongTitleEnabled = titleEnabled; cfg.Save(); }
@@ -190,16 +200,73 @@ public sealed partial class MainWindow
         ImGui.SetNextItemWidth(315);
         if (ImGui.InputText("OBS Text source name##windboundObsTitleSource", ref sourceName, 128))
         { cfg.ObsSongTitleSource = sourceName; cfg.Save(); }
+        if (state.Connected)
+        {
+            if (!state.Busy && ImGui.Button("CREATE TEXT SOURCE IN OBS SCENE##wbObsTitleCreate"))
+                obs.CreateSongTitleSource(cfg.ObsSongTitleSource ?? ObsSongTitleOverlay.DefaultSourceName);
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Refresh OBS text sources##wbObsTitleRefresh"))
+                obs.RefreshSongTitleSources();
+            if (state.SongTitleSources.Length > 0)
+            {
+                if (ImGui.BeginCombo("Select existing OBS Text source##wbObsTitlePicker", sourceName))
+                {
+                    foreach (string available in state.SongTitleSources)
+                        if (ImGui.Selectable(available + "##wbObsSource" + available,
+                            string.Equals(available, sourceName, StringComparison.Ordinal)))
+                        {
+                            cfg.ObsSongTitleSource = available;
+                            sourceName = available;
+                            cfg.Save();
+                            obs.RetrySongTitle();
+                        }
+                    ImGui.EndCombo();
+                }
+            }
+            ImGui.TextDisabled("OBS program scene: " +
+                (state.CurrentObsScene.Length == 0 ? "unknown" : state.CurrentObsScene));
+        }
         bool onlyPlaying = cfg.ObsSongTitleOnlyWhilePlaying;
         if (ImGui.Checkbox("Hide title between songs##windboundObsTitleHide", ref onlyPlaying))
         { cfg.ObsSongTitleOnlyWhilePlaying = onlyPlaying; cfg.Save(); }
         string titlePreview = ObsSongTitleOverlay.FromMidiPath(loaded);
         ImGui.TextWrapped("Current MIDI: " + (titlePreview.Length == 0 ? "No song loaded" : titlePreview));
+        ImGui.TextDisabled("Local MIDI output: " + (plugin.Player.IsPlaying ? "PLAYING" : "IDLE") +
+            (cfg.ObsSongTitleOnlyWhilePlaying && !plugin.Player.IsPlaying
+                ? " — Hide between songs is clearing the title (including a silent conductor)." : ""));
         ImGui.TextWrapped(state.SongTitleStatus);
+        if (ImGui.SmallButton("COPY TITLE DIAGNOSTICS##wbObsTitleDiagnostics"))
+            ImGui.SetClipboardText("WindboundBard OBS title diagnostics: " +
+                "OBS Connected=" + state.Connected +
+                "; Source='" + sourceName + "'; TitleEnabled=" + cfg.ObsSongTitleEnabled +
+                "; LocalMidiPlaying=" + plugin.Player.IsPlaying +
+                "; OnlyWhilePlaying=" + cfg.ObsSongTitleOnlyWhilePlaying +
+                "; LoadedTitle='" + titlePreview + "'; OBS Scene='" + state.CurrentObsScene +
+                "'; AvailableTextSources='" + string.Join(", ", state.SongTitleSources) +
+                "'; TitleStatus=" + state.SongTitleStatus + "; TitleFileStatus=" + obsTitleFile.Status);
         if (state.Connected && ImGui.Button("SYNC SONG TITLE TO OBS NOW##windboundObsTitleSync"))
             obs.RetrySongTitle();
-        ImGui.TextDisabled("The OBS Text source must be visible in the recording scene; its font, position, size, " +
-            "colour and animations are configured in OBS. Turn OFF Read from file in OBS. This changes text only.");
+        ImGui.SameLine();
+        if (ImGui.Button("SHOW TEST TITLE (10 seconds)##wbObsTitleTest"))
+        {
+            cfg.ObsSongTitleEnabled = true;
+            cfg.Save();
+            obsTitleTestUntilQpc = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 10;
+            obs.RetrySongTitle();
+        }
+        ImGui.TextDisabled("For WebSocket titles: OBS Text source must be visible, and Read from file must be OFF.");
+        ImGui.Separator();
+        ImGui.TextUnformatted("ALTERNATIVE: OBS TEXT-FILE SOURCE (NO WEBSOCKET NEEDED)");
+        ImGui.TextWrapped("WindboundBard automatically maintains a small local UTF-8 text file while the " +
+            "title overlay is enabled. In OBS Text (GDI+), turn ON Read from file and choose this path:");
+        ImGui.TextWrapped(obsTitleFile.FilePath);
+        if (ImGui.SmallButton("COPY TITLE FILE PATH##wbObsCopyFilePath"))
+            ImGui.SetClipboardText(obsTitleFile.FilePath);
+        ImGui.SameLine();
+        if (ImGui.SmallButton("RETRY TITLE FILE WRITE##wbObsRetryFile"))
+            obsTitleFile.Retry();
+        ImGui.TextDisabled(obsTitleFile.Status);
+        ImGui.TextDisabled("Use either OBS's WebSocket text property OR the text file, not both on the same source.");
 
         ImGui.TextWrapped("Long concerts: OBS MKV (or hybrid MP4) is recommended. " +
             "Use OBS Settings > Output for optional automatic file splitting; " +

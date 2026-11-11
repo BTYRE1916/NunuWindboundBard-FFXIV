@@ -25,7 +25,30 @@ Check(ObsSongTitleOverlay.TextForPlayback("Encore", false, true) == "", "hide ti
 Check(ObsSongTitleOverlay.TextForPlayback("Encore", true, true) == "Encore", "title on while playing");
 Check(ObsSongTitleOverlay.IsTextInputKind("text_gdiplus_v2"), "OBS Windows Text GDI+ v2 supported");
 Check(ObsSongTitleOverlay.IsTextInputKind("text_gdiplus_v3"), "OBS Windows Text GDI+ v3 supported");
+Check(ObsSongTitleOverlay.IsTextInputKind("text_ft2_source_v2"), "newer OBS FreeType text input supported");
 Check(!ObsSongTitleOverlay.IsTextInputKind("game_capture"), "refuse non-Text OBS source");
+string temporary = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "windbound-obs-test-" + Guid.NewGuid().ToString("N"));
+try
+{
+    using var writer = new ObsSongTitleFileBridge(temporary);
+    writer.SetText("Edea & Nunu — Concert Finale");
+    string titlePath = writer.FilePath;
+    bool written = SpinWait.SpinUntil(() => {
+        try { return System.IO.File.Exists(titlePath) &&
+            System.IO.File.ReadAllText(titlePath).Contains("Concert Finale"); }
+        catch (System.IO.IOException) { return false; }
+    }, TimeSpan.FromSeconds(5));
+    Check(written, "song title text file saved asynchronously as UTF-8");
+    writer.SetText("");
+    bool cleared = SpinWait.SpinUntil(() => {
+        try { return System.IO.File.Exists(titlePath) &&
+            System.IO.File.ReadAllText(titlePath).Length == 0; }
+        catch (System.IO.IOException) { return false; }
+    }, TimeSpan.FromSeconds(5));
+    Check(cleared, "song title text file cleared between performances");
+}
+finally { try { System.IO.Directory.Delete(temporary, true); } catch { } }
+
 using var obs = new ObsRecordingClient();
 Check(!obs.Snapshot.Connected && !obs.Snapshot.Recording, "manual opt-in defaults");
 obs.SetDiskMonitorFolder("C:\\Concerts");

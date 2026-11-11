@@ -82,6 +82,7 @@ public sealed partial class MainWindow : Window, IDisposable
         plugin.AudioPreview.Stop();
         plugin.LiveMidi.PracticeMidiReceived = null;
         plugin.LiveMidi.PracticeMonitoring = false;
+        obsTitleFile.Dispose();
         DisposeMemberPortraitCapture();
         fileDialogs.Reset();
     }

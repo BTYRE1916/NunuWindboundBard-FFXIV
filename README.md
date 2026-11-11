@@ -1,3 +1,7 @@
+> **v0.40.1 — OBS Now Playing title fix:** The Concert Capture overlay now runs independently of recording-status polling. Select or create an OBS Text source, test it with a 10-second caption, or use the generated `Windbound-NowPlaying.txt` fallback in OBS **Read from file** mode. See [START-HERE-v0.40.1.md](START-HERE-v0.40.1.md) and [CHANGELOG-v0.40.1.md](CHANGELOG-v0.40.1.md).
+>
+> **Note:** Source-only local test build; the OBS/FFXIV runtime and Dalamud compilation are not verified here.
+
 > **v0.40 preview — Concert Capture + OBS Now Playing Overlay:** Use **SHOW → Concert Capture** to record or stream full concerts through local OBS WebSocket 5 (no time cap) and optionally display the current MIDI song title on an OBS Text (GDI+) lower-third. See [START-HERE-v0.40.md](START-HERE-v0.40.md). Source-only; not compiled/tested live yet.
 
 > **v0.40 — Concert Capture Studio (experimental source):**
