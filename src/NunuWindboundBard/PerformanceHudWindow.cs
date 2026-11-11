@@ -195,29 +195,29 @@ public sealed class PerformanceHudWindow : Window
         if (cfg.ObsShowCaptureHud)
         {
             var capture = plugin.ObsCapture.Snapshot;
-            if (capture.Connected)
-            {
-                ImGui.Separator();
-                ImGui.TextColored(capture.Recording ? Rose : Good,
-                    capture.Recording ? (capture.Paused ? "OBS PAUSED " : "OBS REC ") +
-                        ObsRecordingClient.FormatDuration(capture.RecordingMilliseconds) : "OBS STANDBY");
-                if (capture.Streaming) { ImGui.SameLine(); ImGui.TextColored(Rose, "LIVE"); }
-                if (capture.Recording && capture.FreeDiskGiB is { } free && free < cfg.ObsDiskWarningGiB)
-                    ImGui.TextColored(Warning, $"OBS LOW DISK: {free:0.0} GiB free");
-                if (!capture.Busy && !capture.Recording)
-                {
-                    if (ImGui.SmallButton("Record concert##hudObsRecord"))
-                        plugin.ObsCapture.Command("StartRecord");
-                }
-                else if (!capture.Busy && capture.Recording)
-                {
-                    if (ImGui.SmallButton(capture.Paused ? "Resume OBS##hudObsResume" : "Pause OBS##hudObsPause"))
-                        plugin.ObsCapture.Command(capture.Paused ? "ResumeRecord" : "PauseRecord");
-                    ImGui.SameLine();
-                    if (ImGui.SmallButton("Open capture controls##hudObsOpen")) main.IsOpen = true;
-                }
-                ImGui.TextDisabled("Stop OBS recording in SHOW > Concert Capture (confirmation required).");
-            }
+            ImGui.Separator();
+            ImGui.TextColored(!capture.Connected ? Warning : capture.Recording ? Rose : Good,
+                "OBS " + ObsRecordTransport.StatusLabel(capture) +
+                (capture.Recording ? "  " + ObsRecordingClient.FormatDuration(capture.RecordingMilliseconds) : ""));
+            if (capture.Streaming) { ImGui.SameLine(); ImGui.TextColored(Rose, "LIVE"); }
+            if (capture.Recording && capture.FreeDiskGiB is { } free && free < cfg.ObsDiskWarningGiB)
+                ImGui.TextColored(Warning, $"OBS LOW DISK: {free:0.0} GiB free");
+
+            ImGui.BeginDisabled(!ObsRecordTransport.CanStart(capture));
+            if (ImGui.SmallButton("REC##hudObsRecord")) plugin.ObsCapture.Command("StartRecord");
+            ImGui.EndDisabled();
+            ImGui.SameLine();
+            ImGui.BeginDisabled(!ObsRecordTransport.CanPause(capture));
+            if (ImGui.SmallButton("PAUSE##hudObsPause")) plugin.ObsCapture.Command("PauseRecord");
+            ImGui.EndDisabled();
+            ImGui.SameLine();
+            ImGui.BeginDisabled(!ObsRecordTransport.CanResume(capture));
+            if (ImGui.SmallButton("PLAY / RESUME##hudObsResume")) plugin.ObsCapture.Command("ResumeRecord");
+            ImGui.EndDisabled();
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Capture settings##hudObsOpen")) main.IsOpen = true;
+            ImGui.TextDisabled("STOP & SAVE with confirmation: SHOW > Concert Capture. " +
+                "The MIDI playback buttons above do not control OBS.");
         }
 
         if (!cfg.HudCompact)

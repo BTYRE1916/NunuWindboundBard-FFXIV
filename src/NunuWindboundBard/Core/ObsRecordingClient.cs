@@ -282,10 +282,15 @@ public sealed class ObsRecordingClient : IDisposable
                 var ws = socket ?? throw new InvalidOperationException("OBS is disconnected.");
                 JsonElement data = await RequestAsync(ws, requestType, timeout.Token).ConfigureAwait(false);
                 if (revision != Volatile.Read(ref generation)) return;
-                if (requestType == "StopRecord" && data.ValueKind == JsonValueKind.Object &&
-                    data.TryGetProperty("outputPath", out var path))
-                    Update(s => s with { LastSavedFile = path.GetString() ?? "" });
-                Update(s => s with { Message = "OBS accepted " + requestType + "." });
+                string savedPath = requestType == "StopRecord" && data.ValueKind == JsonValueKind.Object &&
+                    data.TryGetProperty("outputPath", out var path) ? path.GetString() ?? "" : "";
+                // Don't wait for the next OBS poll to reveal Pause / Resume buttons.
+                Update(s => {
+                    var next = SnapshotAfterAcceptedCommand(s, requestType) with {
+                        Message = "OBS accepted " + requestType + "."
+                    };
+                    return savedPath.Length == 0 ? next : next with { LastSavedFile = savedPath };
+                });
             }
             catch (OperationCanceledException) when (revision != Volatile.Read(ref generation) || disposed) { }
             catch (Exception ex) { if (revision == Volatile.Read(ref generation)) Update(s => s with { Message = "OBS: " + SafeError(ex) }); }
@@ -297,6 +302,25 @@ public sealed class ObsRecordingClient : IDisposable
             }
         });
     }
+
+    /// <summary>
+    /// Project a successfully acknowledged OBS transport command immediately.
+    /// Recording remains OBS-owned; the next GetRecordStatus poll remains authoritative.
+    /// </summary>
+    public static ObsCaptureSnapshot SnapshotAfterAcceptedCommand(ObsCaptureSnapshot state, string requestType) =>
+        requestType switch
+        {
+            "StartRecord" => state with { Recording = true, Paused = false,
+                RecordingMilliseconds = 0, RecordingBytes = 0 },
+            "PauseRecord" when state.Recording => state with { Paused = true },
+            "ResumeRecord" when state.Recording => state with { Paused = false },
+            "StopRecord" => state with { Recording = false, Paused = false },
+            "StartStream" => state with { Streaming = true },
+            "StopStream" => state with { Streaming = false },
+            "StartReplayBuffer" => state with { ReplayBuffer = true },
+            "StopReplayBuffer" => state with { ReplayBuffer = false },
+            _ => state
+        };
 
     private async Task PollLoopAsync(int revision, CancellationToken cancel)
     {
@@ -378,9 +402,32 @@ public sealed class ObsRecordingClient : IDisposable
     private async Task RefreshAsync(CancellationToken cancel)
     {
         var ws = socket ?? throw new WebSocketException("OBS is disconnected.");
+        // Recorder status is the authoritative transport state. Update it NOW,
+        // before asking about optional stream/replay features, so a disabled
+        // replay buffer can never make Pause/Resume vanish from Windbound's UI.
         var rec = await RequestAsync(ws, "GetRecordStatus", cancel).ConfigureAwait(false);
-        var live = await RequestAsync(ws, "GetStreamStatus", cancel).ConfigureAwait(false);
-        var replay = await RequestAsync(ws, "GetReplayBufferStatus", cancel).ConfigureAwait(false);
+        bool paused = GetBool(rec, "outputPaused");
+        bool active = GetBool(rec, "outputActive") || paused;
+        Update(s => s with {
+            Recording = active,
+            Paused = paused,
+            RecordingMilliseconds = GetLong(rec, "outputDuration"),
+            RecordingBytes = GetLong(rec, "outputBytes")
+        });
+        bool? streaming = null;
+        bool? replayActive = null;
+        try
+        {
+            var live = await RequestAsync(ws, "GetStreamStatus", cancel).ConfigureAwait(false);
+            streaming = GetBool(live, "outputActive");
+        }
+        catch (ObsRequestException) { /* Streaming not configured; recording control must still work. */ }
+        try
+        {
+            var replay = await RequestAsync(ws, "GetReplayBufferStatus", cancel).ConfigureAwait(false);
+            replayActive = GetBool(replay, "outputActive");
+        }
+        catch (ObsRequestException) { /* Replay buffer may be disabled in OBS. */ }
         string directory = Snapshot.Directory;
         int w = Snapshot.OutputWidth, h = Snapshot.OutputHeight;
         float fps = Snapshot.OutputFrameRate;
@@ -410,10 +457,10 @@ public sealed class ObsRecordingClient : IDisposable
         Update(s => s with {
             Connected = true,
             FreeDiskGiB = available,
-            Recording = GetBool(rec, "outputActive"),
-            Paused = GetBool(rec, "outputPaused"),
-            Streaming = GetBool(live, "outputActive"),
-            ReplayBuffer = GetBool(replay, "outputActive"),
+            Recording = active,
+            Paused = paused,
+            Streaming = streaming ?? s.Streaming,
+            ReplayBuffer = replayActive ?? s.ReplayBuffer,
             RecordingMilliseconds = GetLong(rec, "outputDuration"),
             RecordingBytes = GetLong(rec, "outputBytes"),
             OutputWidth = w, OutputHeight = h, OutputFrameRate = fps, Directory = directory

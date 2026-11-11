@@ -35,6 +35,70 @@ public sealed partial class MainWindow
         obsTitleFile.SetText(cfg.ObsSongTitleEnabled ? text : "");
     }
 
+    /// <summary>
+    /// Always-visible transport: Start / Pause / Resume / Stop remain on screen
+    /// even when OBS is offline, busy or not yet recording. Invalid commands are
+    /// disabled instead of disappearing, unlike the original context-only UI.
+    /// </summary>
+    private void DrawObsRecordingTransport(ObsRecordingClient obs, ObsCaptureSnapshot state,
+        Vector4 pink, Vector4 amber, Vector4 green)
+    {
+        ImGui.TextColored(WindboundStageStyle.Accent(cfg.StageUiAccent), "OBS RECORDING TRANSPORT");
+        ImGui.TextColored(!state.Connected ? amber : state.Paused ? amber : state.Recording ? pink : green,
+            ObsRecordTransport.StatusLabel(state));
+        if (state.Connected && state.Recording)
+            ImGui.TextDisabled("Duration " + ObsRecordingClient.FormatDuration(state.RecordingMilliseconds) +
+                " — unlimited while OBS and disk space remain available");
+
+        ImGui.BeginDisabled(!ObsRecordTransport.CanStart(state));
+        if (ImGui.Button("START RECORDING  [REC]##windboundObsStart"))
+        {
+            obs.Command("StartRecord");
+            obsConfirmRecordStop = false;
+        }
+        ImGui.EndDisabled();
+        ImGui.SameLine();
+        ImGui.BeginDisabled(!ObsRecordTransport.CanPause(state));
+        if (ImGui.Button("PAUSE  [||]##windboundObsPause")) obs.Command("PauseRecord");
+        ImGui.EndDisabled();
+
+        ImGui.BeginDisabled(!ObsRecordTransport.CanResume(state));
+        if (ImGui.Button("PLAY / RESUME  [>]##windboundObsResume")) obs.Command("ResumeRecord");
+        ImGui.EndDisabled();
+        ImGui.SameLine();
+        ImGui.BeginDisabled(!ObsRecordTransport.CanStop(state));
+        if (ImGui.Button("STOP & SAVE...##windboundObsStopConfirm")) obsConfirmRecordStop = true;
+        ImGui.EndDisabled();
+
+        if (obsConfirmRecordStop && !state.Recording) obsConfirmRecordStop = false;
+        if (obsConfirmRecordStop)
+        {
+            ImGui.TextColored(amber, "Finish this recording and save the concert file in OBS?");
+            ImGui.BeginDisabled(!ObsRecordTransport.CanStop(state));
+            if (ImGui.Button("YES, STOP & SAVE##windboundObsStop"))
+            {
+                obs.Command("StopRecord");
+                obsConfirmRecordStop = false;
+            }
+            ImGui.EndDisabled();
+            ImGui.SameLine();
+            if (ImGui.Button("CANCEL — KEEP RECORDING##windboundObsKeep")) obsConfirmRecordStop = false;
+        }
+        if (state.Recording)
+        {
+            ImGui.BeginDisabled(state.Busy || !state.Connected);
+            if (ImGui.SmallButton("SPLIT RECORDING FILE NOW##windboundObsSplit"))
+                obs.Command("SplitRecordFile");
+            ImGui.EndDisabled();
+        }
+        if (!state.Connected)
+            ImGui.TextColored(amber, "Connect to local OBS above to enable these recording controls.");
+        else if (state.Busy)
+            ImGui.TextDisabled("OBS is processing a request; controls will unlock when it finishes.");
+        ImGui.TextDisabled("PLAY / RESUME continues the SAME video file after Pause. " +
+            "To play back a finished recording, open the saved file in a video player.");
+    }
+
     private void DrawConcertCapture()
     {
         var obs = plugin.ObsCapture;
@@ -102,33 +166,7 @@ public sealed partial class MainWindow
         ImGui.TextDisabled("Select NVENC H.264/HEVC/AV1 if available under OBS Settings > Output. " +
             "WindboundBard never changes OBS quality or encoder settings.");
 
-        if (state.Connected)
-        {
-            ImGui.Spacing();
-            if (!state.Recording)
-            {
-                if (!state.Busy && ImGui.Button("START FULL CONCERT RECORDING##windboundObsStart"))
-                { obs.Command("StartRecord"); obsConfirmRecordStop = false; }
-            }
-            else
-            {
-                if (!state.Busy && ImGui.Button(state.Paused ? "RESUME RECORDING##windboundObsResume" :
-                    "PAUSE RECORDING##windboundObsPause"))
-                    obs.Command(state.Paused ? "ResumeRecord" : "PauseRecord");
-                ImGui.SameLine();
-                if (!state.Busy && ImGui.Button("SPLIT FILE NOW##windboundObsSplit"))
-                    obs.Command("SplitRecordFile");
-                if (ImGui.Button("STOP RECORDING...##windboundObsStopConfirm")) obsConfirmRecordStop = true;
-                if (obsConfirmRecordStop)
-                {
-                    ImGui.TextColored(amber, "Stop recording the current concert? OBS will finalize the file.");
-                    if (!state.Busy && ImGui.Button("YES, STOP & SAVE##windboundObsStop"))
-                    { obs.Command("StopRecord"); obsConfirmRecordStop = false; }
-                    ImGui.SameLine();
-                    if (ImGui.Button("Keep recording##windboundObsKeep")) obsConfirmRecordStop = false;
-                }
-            }
-        }
+        DrawObsRecordingTransport(obs, state, pink, amber, green);
         ImGui.TextDisabled("There is NO recording time limit and no song-triggered stop. " +
             "OBS keeps recording if WindboundBard's UI closes or the plugin reloads.");
         if (!string.IsNullOrWhiteSpace(state.LastSavedFile))

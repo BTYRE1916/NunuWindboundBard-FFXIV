@@ -1,3 +1,5 @@
+> **v0.40.2 — OBS Recorder Transport:** Concert Capture now always shows START, PAUSE, PLAY/RESUME, and STOP & SAVE. Recording state updates immediately after an OBS acknowledgement, even with replay buffer disabled. See [START-HERE-v0.40.2.md](START-HERE-v0.40.2.md) and [CHANGELOG-v0.40.2.md](CHANGELOG-v0.40.2.md).
+
 > **v0.40.1 — OBS Now Playing title fix:** The Concert Capture overlay now runs independently of recording-status polling. Select or create an OBS Text source, test it with a 10-second caption, or use the generated `Windbound-NowPlaying.txt` fallback in OBS **Read from file** mode. See [START-HERE-v0.40.1.md](START-HERE-v0.40.1.md) and [CHANGELOG-v0.40.1.md](CHANGELOG-v0.40.1.md).
 >
 > **Note:** Source-only local test build; the OBS/FFXIV runtime and Dalamud compilation are not verified here.

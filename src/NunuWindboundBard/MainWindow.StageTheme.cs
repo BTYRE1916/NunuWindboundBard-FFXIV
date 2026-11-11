@@ -92,7 +92,7 @@ public sealed partial class MainWindow
             "SONG  " + StageUiTruncate(string.IsNullOrEmpty(loaded) ? "No MIDI loaded" : Path.GetFileName(loaded),
                 width < 540 ? 28 : 57));
         if (width > 570)
-            draw.AddText(top + new Vector2(width - 108, 14), ImGui.ColorConvertFloat4ToU32(accent), plugin.Player.IsPlaying ? "v0.40  LIVE" : "v0.40  READY");
+            draw.AddText(top + new Vector2(width - 108, 14), ImGui.ColorConvertFloat4ToU32(accent), plugin.Player.IsPlaying ? "v0.40.2  LIVE" : "v0.40.2  READY");
         float shimmer = cfg.StageUiMotionEnabled
             ? .65f + .27f * (float)(.5d + .5d * Math.Sin(Environment.TickCount64 / 650d))
             : .8f;
