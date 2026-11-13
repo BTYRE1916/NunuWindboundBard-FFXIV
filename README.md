@@ -1,3 +1,5 @@
+[Start here for the 0.42.3 startup fix](START-HERE-v0.42.3.md)
+
 > **v0.42.0 — Our native capture suite:** Windbound now owns capture, scenes, composition, audio mixing, timelines and replay buffering. The Windows engine uses Windows APIs and a bundled codec worker; **no OBS runtime is required**. All controls stay in the plugin tab. Start with [START-HERE-v0.42.0.md](START-HERE-v0.42.0.md). Development build; Windows live capture testing remains pending.
 
 > **v0.41.0 — Background Capture Studio (development preview):** Scene/overlay editing, filters, audio mixing, preview and outputs are controlled from the plugin; a separate Windows process hosts libobs. The existing OBS option remains the default. Includes compiled development binaries, not a live-tested release. Start with [START-HERE-v0.41.0.md](START-HERE-v0.41.0.md).

@@ -57,7 +57,8 @@ public sealed partial class MainWindow
         ImGui.TextWrapped("Build scenes and overlays here. The Windows background engine captures, mixes and encodes; MIDI transport remains independent.");
         if (!state.Connected)
         {
-            string exe = cfg.CaptureEnginePath, root = cfg.CaptureFfmpegPath;
+            var paths = plugin.CapturePaths;
+            string exe = paths.EngineExecutable, root = paths.FfmpegExecutable;
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputText("Engine executable##wbStudioExe", ref exe, 1024)) { cfg.CaptureEnginePath = exe; cfg.Save(); }
             ImGui.SetNextItemWidth(-1);

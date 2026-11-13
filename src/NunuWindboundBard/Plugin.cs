@@ -29,6 +29,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IUnlockState UnlockState { get; private set; } = null!;
 
     internal readonly Configuration Config;
+    internal (string EngineExecutable, string FfmpegExecutable) CapturePaths =>
+        Config.ResolveCapturePaths(PluginInterface.AssemblyLocation.DirectoryName);
     internal readonly PlaybackEngine Player = new();
     internal readonly AudioPreviewPlayer AudioPreview = new();
     internal readonly EnsembleCoordinator Ensemble = new();
@@ -360,9 +362,6 @@ public sealed class Plugin : IDalamudPlugin
         if (Config.Version < 39)
         {
             Config.CaptureBackend = 1;
-            string engineFolder = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(Plugin).Assembly.Location)!, "CaptureEngine");
-            Config.CaptureEnginePath = System.IO.Path.Combine(engineFolder, "WindboundCaptureEngine.exe");
-            Config.CaptureFfmpegPath = System.IO.Path.Combine(engineFolder, "ffmpeg.exe");
             Config.Version = 39;
             Config.Save();
         }

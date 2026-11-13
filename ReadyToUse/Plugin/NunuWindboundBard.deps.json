@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v10.0": {
-      "NunuWindboundBard/0.42.1.0": {
+      "NunuWindboundBard/0.42.3.0": {
         "dependencies": {
           "MeltySynth": "2.4.1",
           "NAudio": "2.2.1"
@@ -105,7 +105,7 @@
     }
   },
   "libraries": {
-    "NunuWindboundBard/0.42.1.0": {
+    "NunuWindboundBard/0.42.3.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

@@ -11,8 +11,11 @@ public sealed class Configuration : IPluginConfiguration
     public int Version { get; set; } = 39;
     // Capture option is a view preference; selecting it never starts an output.
     public int CaptureBackend { get; set; } = 1; // 0 optional OBS connection, 1 native suite
-    public string CaptureEnginePath { get; set; } = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(Configuration).Assembly.Location)!, "CaptureEngine", "WindboundCaptureEngine.exe");
-    public string CaptureFfmpegPath { get; set; } = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(Configuration).Assembly.Location)!, "CaptureEngine", "ffmpeg.exe");
+    // Empty means use the engine bundled beside the plugin. Resolve that path
+    // through Dalamud after loading configuration, never through reflection:
+    // memory-loaded plugin assemblies have an empty Assembly.Location.
+    public string CaptureEnginePath { get; set; } = "";
+    public string CaptureFfmpegPath { get; set; } = "";
     public bool CapturePreviewEnabled { get; set; } = true;
     // v0.40: only local OBS WebSocket configuration. No password or stream key is saved.
     public int ObsWebSocketPort { get; set; } = 4455;
@@ -151,5 +154,19 @@ public sealed class Configuration : IPluginConfiguration
     public Dictionary<string, SoulweaverPreset> SoulweaverPresetsByFile { get; set; }
         = new(StringComparer.OrdinalIgnoreCase);
     public string LastFile { get; set; } = "";
+    internal (string EngineExecutable, string FfmpegExecutable) ResolveCapturePaths(string? pluginDirectory)
+    {
+        string Resolve(string? configuredPath, string fileName)
+        {
+            if (!string.IsNullOrWhiteSpace(configuredPath)) return configuredPath;
+            return string.IsNullOrWhiteSpace(pluginDirectory)
+                ? ""
+                : System.IO.Path.Combine(pluginDirectory, "CaptureEngine", fileName);
+        }
+
+        return (Resolve(CaptureEnginePath, "WindboundCaptureEngine.exe"),
+            Resolve(CaptureFfmpegPath, "ffmpeg.exe"));
+    }
+
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }
