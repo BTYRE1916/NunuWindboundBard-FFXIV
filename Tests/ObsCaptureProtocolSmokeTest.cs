@@ -55,5 +55,5 @@ obs.SetDiskMonitorFolder("C:\\Concerts");
 obs.Command("StartRecord"); // must not start when disconnected
 Check(!obs.Snapshot.Recording, "no recording action without OBS connection");
 obs.Disconnect();
-Check(obs.Snapshot.Message.Contains("continues in OBS"), "disconnect never stops OBS output");
+Check(!obs.Snapshot.Connected && obs.Snapshot.Message.Contains("continues") && obs.Snapshot.Message.Contains("stopped in OBS"), "disconnect explains that OBS outputs continue");
 Console.WriteLine("OBS capture protocol smoke test passed. Live OBS/FFXIV test is still required.");

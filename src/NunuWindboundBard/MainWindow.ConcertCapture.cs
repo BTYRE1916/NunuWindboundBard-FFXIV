@@ -101,6 +101,8 @@ public sealed partial class MainWindow
 
     private void DrawConcertCapture()
     {
+        DrawCaptureBackendSelector();
+        if (cfg.CaptureBackend == 1) { DrawCaptureStudio(); return; }
         var obs = plugin.ObsCapture;
         var state = obs.Snapshot;
         Vector4 green = new(.38f, .94f, .65f, 1f);

@@ -8,7 +8,12 @@ namespace NunuWindboundBard;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 38;
+    public int Version { get; set; } = 39;
+    // Capture option is a view preference; selecting it never starts an output.
+    public int CaptureBackend { get; set; } = 1; // 0 optional OBS connection, 1 native suite
+    public string CaptureEnginePath { get; set; } = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(Configuration).Assembly.Location)!, "CaptureEngine", "WindboundCaptureEngine.exe");
+    public string CaptureFfmpegPath { get; set; } = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(Configuration).Assembly.Location)!, "CaptureEngine", "ffmpeg.exe");
+    public bool CapturePreviewEnabled { get; set; } = true;
     // v0.40: only local OBS WebSocket configuration. No password or stream key is saved.
     public int ObsWebSocketPort { get; set; } = 4455;
     public string ObsDiskMonitorFolder { get; set; } = "";

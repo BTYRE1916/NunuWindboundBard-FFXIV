@@ -195,13 +195,13 @@ public sealed partial class MainWindow
                 }
                 ImGui.EndTabItem();
             }
-            if (ImGui.BeginTabItem(Loc.T("SHOW")))
+            if (ImGui.BeginTabItem(Loc.T("SHOW"), openCaptureCockpit ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
             {
                 DrawStageWorkspaceTitle("SHOWMASTER & CAPTURE", "Intermission choreography, full-concert recording and local OBS livestream controls");
                 if (ImGui.BeginTabBar("WindboundShowTabs"))
                 {
                     if (ImGui.BeginTabItem("Showmaster")) { DrawShowmaster(); ImGui.EndTabItem(); }
-                    if (ImGui.BeginTabItem("Concert Capture")) { DrawConcertCapture(); ImGui.EndTabItem(); }
+                    if (ImGui.BeginTabItem("Concert Capture", openCaptureCockpit ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None)) { openCaptureCockpit = false; DrawConcertCapture(); ImGui.EndTabItem(); }
                     ImGui.EndTabBar();
                 }
                 ImGui.EndTabItem();

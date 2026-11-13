@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ObsRecorderTransportSmokeTest.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/ObsSongTitleOverlay.cs" Link="ObsSongTitleOverlay.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/ObsRecordingClient.cs" Link="ObsRecordingClient.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/ObsRecordTransport.cs" Link="ObsRecordTransport.cs" />
   </ItemGroup>

@@ -1,0 +1,15 @@
+Windbound Bard v0.42.1 - complete native-suite build fix
+
+Open START-HERE-v0.42.1.md in the project root.
+
+Plugin: Plugin/NunuWindboundBard.dll
+Native background engine: Plugin/CaptureEngine/WindboundCaptureEngine.exe
+Bundled codec worker: Plugin/CaptureEngine/ffmpeg.exe
+
+Both plugin and engine have been rebuilt from this package's source.
+No Capture Studio patch script or engine assembly reference is required.
+The native backend does not require OBS.
+
+Compilation passed. Windows live capture/device/visual tests remain outstanding.
+The Linux-host native output smoke test timed out during finalization; see
+VALIDATION-v0.42.1.md before relying on recording.

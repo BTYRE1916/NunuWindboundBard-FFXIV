@@ -39,6 +39,7 @@ public sealed class Plugin : IDalamudPlugin
     internal readonly InstrumentSwitcher Instruments;
     internal readonly LiveMidiInputService LiveMidi = new();
     internal readonly ObsRecordingClient ObsCapture = new();
+    internal readonly CaptureStudioClient StudioCapture = new();
     private readonly WindowSystem windows = new("NunuWindboundBard");
     private readonly MainWindow main;
     private readonly PerformanceHudWindow hud;
@@ -356,6 +357,15 @@ public sealed class Plugin : IDalamudPlugin
             Config.Version = 38;
             Config.Save();
         }
+        if (Config.Version < 39)
+        {
+            Config.CaptureBackend = 1;
+            string engineFolder = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(Plugin).Assembly.Location)!, "CaptureEngine");
+            Config.CaptureEnginePath = System.IO.Path.Combine(engineFolder, "WindboundCaptureEngine.exe");
+            Config.CaptureFfmpegPath = System.IO.Path.Combine(engineFolder, "ffmpeg.exe");
+            Config.Version = 39;
+            Config.Save();
+        }
         Config.StageFormations ??= new();
         Config.MemberPortraitFileByContentId ??= new(StringComparer.OrdinalIgnoreCase);
         Config.ConcertSnapshots ??= new();
@@ -559,6 +569,7 @@ public sealed class Plugin : IDalamudPlugin
         main.CancelPendingInstrumentStart();
         main.StopStageMovementOnUnload();
         Instruments.Cancel();
+        StudioCapture.Dispose();
         ObsCapture.Dispose();
         LiveMidi.Dispose();
         AudioPreview.Dispose();

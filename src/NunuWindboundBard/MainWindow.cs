@@ -83,6 +83,7 @@ public sealed partial class MainWindow : Window, IDisposable
         plugin.LiveMidi.PracticeMidiReceived = null;
         plugin.LiveMidi.PracticeMonitoring = false;
         obsTitleFile.Dispose();
+        DisposeCaptureStudioPreview();
         DisposeMemberPortraitCapture();
         fileDialogs.Reset();
     }

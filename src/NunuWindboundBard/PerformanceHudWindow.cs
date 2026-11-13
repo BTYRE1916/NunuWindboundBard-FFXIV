@@ -192,7 +192,9 @@ public sealed class PerformanceHudWindow : Window
         ImGui.SameLine();
         if (ImGui.SmallButton(Loc.T("Hide HUD##hud"))) plugin.SetHudVisible(false);
 
-        if (cfg.ObsShowCaptureHud)
+        if (cfg.ObsShowCaptureHud && cfg.CaptureBackend == 1) DrawStudioCaptureHud();
+
+        if (cfg.ObsShowCaptureHud && cfg.CaptureBackend == 0)
         {
             var capture = plugin.ObsCapture.Snapshot;
             ImGui.Separator();
@@ -215,7 +217,7 @@ public sealed class PerformanceHudWindow : Window
             if (ImGui.SmallButton("PLAY / RESUME##hudObsResume")) plugin.ObsCapture.Command("ResumeRecord");
             ImGui.EndDisabled();
             ImGui.SameLine();
-            if (ImGui.SmallButton("Capture settings##hudObsOpen")) main.IsOpen = true;
+            if (ImGui.SmallButton("Capture settings##hudObsOpen")) main.OpenCaptureCockpit();
             ImGui.TextDisabled("STOP & SAVE with confirmation: SHOW > Concert Capture. " +
                 "The MIDI playback buttons above do not control OBS.");
         }
@@ -237,6 +239,24 @@ public sealed class PerformanceHudWindow : Window
             }
             ImGui.TextDisabled(Loc.T("Drag the title bar to move. /windbound hud toggles visibility."));
         }
+    }
+
+    private void DrawStudioCaptureHud()
+    {
+        var s = plugin.StudioCapture.Snapshot;
+        ImGui.Separator();
+        ImGui.TextColored(s.Recording || s.Streaming ? Rose : s.Connected ? Good : Warning,
+            "STUDIO " + (s.Recording ? s.Paused ? "PAUSED " : "REC " : s.Connected ? "READY " : "OFFLINE ") +
+            (s.Recording ? ObsRecordingClient.FormatDuration(s.RecordingMilliseconds) : "") + (s.Streaming ? " LIVE" : ""));
+        ImGui.BeginDisabled(!s.Connected || s.Busy || s.Recording);
+        if (ImGui.SmallButton("REC##hudStudioRecord")) plugin.StudioCapture.Command("StartRecord");
+        ImGui.EndDisabled(); ImGui.SameLine();
+        ImGui.BeginDisabled(!s.Connected || s.Busy || !s.Recording);
+        if (ImGui.SmallButton(s.Paused ? "RESUME##hudStudioResume" : "PAUSE##hudStudioPause"))
+            plugin.StudioCapture.Command(s.Paused ? "ResumeRecord" : "PauseRecord");
+        ImGui.EndDisabled(); ImGui.SameLine();
+        if (ImGui.SmallButton("Studio settings##hudStudioOpen")) main.OpenCaptureCockpit();
+        ImGui.TextDisabled("STOP & SAVE: SHOW > Concert Capture. MIDI buttons do not control capture.");
     }
 
     private static string FormatTime(double milliseconds)

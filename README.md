@@ -1,3 +1,7 @@
+> **v0.42.0 — Our native capture suite:** Windbound now owns capture, scenes, composition, audio mixing, timelines and replay buffering. The Windows engine uses Windows APIs and a bundled codec worker; **no OBS runtime is required**. All controls stay in the plugin tab. Start with [START-HERE-v0.42.0.md](START-HERE-v0.42.0.md). Development build; Windows live capture testing remains pending.
+
+> **v0.41.0 — Background Capture Studio (development preview):** Scene/overlay editing, filters, audio mixing, preview and outputs are controlled from the plugin; a separate Windows process hosts libobs. The existing OBS option remains the default. Includes compiled development binaries, not a live-tested release. Start with [START-HERE-v0.41.0.md](START-HERE-v0.41.0.md).
+
 > **v0.40.2 — OBS Recorder Transport:** Concert Capture now always shows START, PAUSE, PLAY/RESUME, and STOP & SAVE. Recording state updates immediately after an OBS acknowledgement, even with replay buffer disabled. See [START-HERE-v0.40.2.md](START-HERE-v0.40.2.md) and [CHANGELOG-v0.40.2.md](CHANGELOG-v0.40.2.md).
 
 > **v0.40.1 — OBS Now Playing title fix:** The Concert Capture overlay now runs independently of recording-status polling. Select or create an OBS Text source, test it with a 10-second caption, or use the generated `Windbound-NowPlaying.txt` fallback in OBS **Read from file** mode. See [START-HERE-v0.40.1.md](START-HERE-v0.40.1.md) and [CHANGELOG-v0.40.1.md](CHANGELOG-v0.40.1.md).
