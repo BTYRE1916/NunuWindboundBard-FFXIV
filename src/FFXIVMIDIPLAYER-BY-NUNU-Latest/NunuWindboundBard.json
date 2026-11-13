@@ -1,0 +1,21 @@
+{
+  "Author": "Real Nunu",
+  "Name": "Nunu's Windbound Bard",
+  "InternalName": "NunuWindboundBard",
+  "AssemblyVersion": "0.42.1.0",
+  "Description": "Native FFXIV Ensemble Ready Check with automatic client confirmation and game-synchronised START inspired by MidiBard 2. Includes Soulweaver Studio, chat-safe chords, optional party instrument and playlist setup, compact Performance HUD, native instrument switching, C3-C6 optimiser, smart Solo/Ensemble playlists and full-featured concert tools.",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "bard",
+    "midi",
+    "performance",
+    "music"
+  ],
+  "DalamudApiLevel": 15,
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
+  "LoadPriority": 0,
+  "Punchline": "Visual stage formation editor, concert director, SoundFont preview and native ensembles.",
+  "AcceptsFeedback": true
+}
