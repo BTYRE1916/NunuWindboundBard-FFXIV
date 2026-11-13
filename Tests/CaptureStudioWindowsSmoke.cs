@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using NunuWindboundBard.Core;
@@ -33,13 +34,29 @@ try {
         Send("TakeScene",new { SceneId=sceneId,Duration=100 });
         Wait(()=>Send("Preview",new { SceneId=sceneId }).Preview is { Length: StudioProtocol.PreviewWidth*StudioProtocol.PreviewHeight*4 });
         Console.WriteLine("PASS native scene composition, overlay edits and auxiliary edit preview");
+        // Request the new compressed HD preview, then verify a decoded JPEG frame.
+        var hdOutput=Send("Status").State.Output with { Width=1920, Height=1080 };
+        Send("OutputSettings",hdOutput);
+        StudioResponse? hdFrame=null;
+        Wait(()=> {
+            var response=Send("Preview",new { SceneId=sceneId, Options=new StudioPreviewSettings { Width=1280,Height=720,Fps=10 } });
+            if(response.Preview==null)return false;
+            StudioProtocol.ValidatePreview(response);hdFrame=response;
+            return response.PreviewEncoding=="jpeg" && response.PreviewWidth==1280 && response.PreviewHeight==720;
+        });
+        using(var imageBytes=new MemoryStream(hdFrame!.Preview!))using(var jpeg=Image.FromStream(imageBytes)) {
+            if(jpeg.Width!=1280 || jpeg.Height!=720)throw new Exception("HD preview decoded to the wrong size.");
+        }
+        Console.WriteLine("PASS compressed HD preview decodes at 1280x720");
+        Send("OutputSettings",hdOutput with { Width=640,Height=360,RecordingFormat="mp4" });
         Send("StartRecord"); Wait(()=> { var s=Send("Status").State; return s.Recording && !s.RecordingStarting; });
         Thread.Sleep(1500); Send("PauseRecord"); if(!Send("Status").State.Paused) throw new Exception("Pause not acknowledged.");
         Thread.Sleep(500); Send("ResumeRecord"); Thread.Sleep(1000); Send("StopRecord"); Wait(()=>!Send("Status").State.Recording);
         string saved=Send("Status").State.LastSavedFile;
-        if(!File.Exists(saved)||new FileInfo(saved).Length<1000) throw new Exception("Recording was not saved.");
-        Console.WriteLine("PASS native record/pause/resume/stop: "+saved);
+        if(!saved.EndsWith(".mp4",StringComparison.OrdinalIgnoreCase)||!File.Exists(saved)||new FileInfo(saved).Length<1000) throw new Exception("Recording was not saved.");
+        Console.WriteLine("PASS native MP4 record/pause/resume/stop: "+saved);
         Send("StartReplay"); Thread.Sleep(6500); Send("SaveReplay"); Wait(()=>File.Exists(Send("Status").State.LastReplayFile));
+        if(!Send("Status").State.LastReplayFile.EndsWith(".mp4",StringComparison.OrdinalIgnoreCase))throw new Exception("Replay format was not MP4.");
         Send("StopReplay"); Wait(()=>!Send("Status").State.Replay);
         var rejected=engine.Execute(new() { Command="StartStream",Args=StudioProtocol.Json(new { Confirmed=false,Server="rtmp://invalid.test/live",Key="test" }) });
         if(rejected.Success) throw new Exception("Unconfirmed broadcast accepted.");

@@ -1,5 +1,6 @@
-Windbound Bard 0.42.3 - configuration startup crash fix
+Windbound Bard 0.42.4 - MP4 and HD preview
 
-Start with START-HERE-v0.42.3.md in the project root.
-Select Plugin/NunuWindboundBard.dll in Dalamud dev plugin locations.
-Keep the entire Plugin folder together, including CaptureEngine and FFmpeg.
+Open START-HERE-v0.42.4.md.
+Ready-to-use plugin: Plugin/NunuWindboundBard.dll
+Keep its CaptureEngine subfolder with the plugin.
+Stop outputs and shut down the idle old engine before updating.

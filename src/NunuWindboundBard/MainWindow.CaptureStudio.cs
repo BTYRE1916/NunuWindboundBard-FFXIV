@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
@@ -22,8 +24,14 @@ public sealed partial class MainWindow
     private string studioStreamServer = "", studioStreamKey = "";
     private bool studioStreamConfirmed, studioStopConfirmed, studioRemoveSourceConfirmed, studioRemoveSceneConfirmed;
     private int studioTransitionMs = 300;
-    private long studioPreviewAt, studioTextureSequence = -1;
+    private long studioPreviewAt;
     private IDalamudTextureWrap? studioTexture;
+    private Task<IDalamudTextureWrap>? studioTextureTask;
+    private CancellationTokenSource? studioTextureLifetime;
+    private StudioPreviewFrame? studioQueuedFrame;
+    private long studioAttemptedSequence = -1;
+    private string studioAttemptedScene = "";
+    private int studioTextureWidth, studioTextureHeight;
     private string studioPreviewError = "";
     private StudioOutputSettings? studioOutputDraft;
     private StudioTransform? studioTransformDraft;
@@ -33,7 +41,21 @@ public sealed partial class MainWindow
     private string studioTextureScene = "";
     private bool studioDragging, studioResizing;
     private StudioTransform? studioDragOriginal;
-    private void DisposeCaptureStudioPreview() { studioTexture?.Dispose(); studioTexture = null; studioStreamKey = ""; }
+    private void ResetStudioPreviewTexture()
+    {
+        studioTextureLifetime?.Cancel(); studioTextureLifetime?.Dispose(); studioTextureLifetime = null;
+        var pending = studioTextureTask; studioTextureTask = null; studioQueuedFrame = null;
+        if (pending != null) _ = DiscardStudioTextureAsync(pending);
+        studioTexture?.Dispose(); studioTexture = null;
+        studioAttemptedSequence = -1; studioTextureScene = studioAttemptedScene = "";
+        studioPreviewAt = 0;
+    }
+    private static async Task DiscardStudioTextureAsync(Task<IDalamudTextureWrap> pending)
+    {
+        try { (await pending.ConfigureAwait(false)).Dispose(); }
+        catch (Exception) { /* Closing/reloading must also release a late upload. */ }
+    }
+    private void DisposeCaptureStudioPreview() { ResetStudioPreviewTexture(); studioStreamKey = ""; }
 
     private void DrawCaptureBackendSelector()
     {
@@ -151,33 +173,75 @@ public sealed partial class MainWindow
             ImGui.TextDisabled("Server and key are not saved in the scene collection or plugin configuration.");
         }
     }
-    private void DrawStudioPreview(StudioSnapshot s)
+    private void DrawStudioPreview(StudioSnapshot s) => DrawStudioPreviewView(s, false);
+    internal void DrawStandaloneStudioPreview()
     {
+        var s = plugin.StudioCapture.Snapshot;
+        if (!s.Connected) { ImGui.TextWrapped("Connect to the capture engine in SHOW > Concert Capture to view the preview."); return; }
+        DrawStudioPreviewView(s, true);
+    }
+    private void DrawStudioPreviewView(StudioSnapshot s, bool large)
+    {
+        if (studioSceneId.Length > 0 && !s.Scenes.Any(scene => scene.Id == studioSceneId)) studioSceneId = s.ProgramScene;
         string sceneId = studioPreviewProgram ? "" : (studioSceneId.Length == 0 ? s.ProgramScene : studioSceneId);
         string label = s.Scenes.FirstOrDefault(x => x.Id == (sceneId.Length == 0 ? s.ProgramScene : sceneId))?.Name ?? "Scene";
         ImGui.TextUnformatted((studioPreviewProgram ? "PROGRAM PREVIEW — " : "EDIT PREVIEW — ") + label);
         ImGui.Checkbox("Preview Program instead of selected scene##wbStudioPreviewProgram", ref studioPreviewProgram);
         bool previewOn = cfg.CapturePreviewEnabled;
-        if (ImGui.Checkbox("Show composed preview##wbStudioPreview", ref previewOn)) { cfg.CapturePreviewEnabled = previewOn; cfg.Save(); }
+        if (ImGui.Checkbox("Show composed preview##wbStudioPreview", ref previewOn)) { cfg.CapturePreviewEnabled = previewOn; cfg.Save(); ResetStudioPreviewTexture(); }
         if (!previewOn) return;
-        if (Stopwatch.GetTimestamp() > studioPreviewAt) { plugin.StudioCapture.RequestPreview(sceneId); studioPreviewAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency / 4; }
-        var frame = plugin.StudioCapture.Preview;
-        if (frame.Bytes != null && frame.SceneId == sceneId && (frame.Sequence != studioTextureSequence || frame.SceneId != studioTextureScene))
-        {
-            try {
-                var next = Plugin.Textures.CreateFromRaw(new RawImageSpecification { Width = StudioProtocol.PreviewWidth, Height = StudioProtocol.PreviewHeight, Pitch = StudioProtocol.PreviewWidth * 4, DxgiFormat = 28 }, frame.Bytes, "Windbound studio preview");
-                studioTexture?.Dispose(); studioTexture = next; studioTextureSequence = frame.Sequence; studioTextureScene = frame.SceneId; studioPreviewError = "";
-            } catch (Exception e) { studioPreviewError = "Preview unavailable: " + e.Message; }
-        }
+        int quality = cfg.CapturePreviewQuality is 0 or 2 ? cfg.CapturePreviewQuality : 1;
+        int rate = cfg.CapturePreviewFps switch { 5 => 0, 15 => 2, _ => 1 };
+        ImGui.BeginDisabled(!s.SupportsHdPreview);
+        ImGui.SetNextItemWidth(240);
+        bool changed = ImGui.Combo("Preview quality##wbStudioPreviewQuality", ref quality, "Economy (up to 960 x 540)\0HD (up to 1280 x 720)\0Full HD (up to 1920 x 1080)\0");
+        ImGui.SetNextItemWidth(110);
+        changed |= ImGui.Combo("Preview FPS##wbStudioPreviewRate", ref rate, "5 FPS\0" + "10 FPS\0" + "15 FPS\0");
+        ImGui.EndDisabled();
+        if (changed) { cfg.CapturePreviewQuality = quality; cfg.CapturePreviewFps = rate switch { 0 => 5, 2 => 15, _ => 10 }; cfg.Save(); ResetStudioPreviewTexture(); }
+        if (!large && ImGui.SmallButton("OPEN LARGE PREVIEW##wbStudioLargePreview")) plugin.CapturePreview.IsOpen = true;
+        var options = s.SupportsHdPreview ? cfg.PreviewSettings() : StudioPreviewSettings.Legacy;
+        if (Stopwatch.GetTimestamp() > studioPreviewAt) { plugin.StudioCapture.RequestPreview(sceneId, s.SupportsHdPreview ? options : null); studioPreviewAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency / options.Fps; }
+        UpdateStudioPreviewTexture(sceneId);
         if (studioTexture != null && studioTextureScene == sceneId) {
-            float width = Math.Min(768, ImGui.GetContentRegionAvail().X);
-            Vector2 origin = ImGui.GetCursorScreenPos(), size = new(width, width * 9 / 16);
+            var available = ImGui.GetContentRegionAvail();
+            float aspect = (float)studioTextureWidth / studioTextureHeight;
+            float heightLimit = large ? Math.Max(80, available.Y - ImGui.GetTextLineHeightWithSpacing() * 3) : 480;
+            float width = Math.Max(1, Math.Min(available.X, heightLimit * aspect));
+            Vector2 origin = ImGui.GetCursorScreenPos(), size = new(width, width / aspect);
             ImGui.Image(studioTexture.Handle, size);
-            if (!studioPreviewProgram) DrawStudioCanvasHandles(s, sceneId, origin, size);
+            if (!large && !studioPreviewProgram) DrawStudioCanvasHandles(s, sceneId, origin, size);
+            ImGui.TextDisabled($"Preview: {studioTextureWidth} x {studioTextureHeight}, up to {options.Fps} FPS. Recording quality is set separately.");
         } else ImGui.TextDisabled("Waiting for composed frames...");
         if (studioPreviewError.Length > 0) ImGui.TextWrapped(studioPreviewError);
-        ImGui.TextDisabled("Preview is 384 x 216 at about 4 FPS; recording uses the configured full resolution and frame rate.");
-        ImGui.TextDisabled("Select and edit a scene, then Take to send it to Program. Editing Program changes the live output.");
+        if (s.PreviewError.Length > 0) ImGui.TextWrapped(s.PreviewError);
+        if (!s.SupportsHdPreview) ImGui.TextWrapped("This running engine has the older preview. Stop all outputs, shut down the idle engine and launch the updated engine for HD preview and MP4.");
+        if (!large) ImGui.TextDisabled("Select and edit a scene, then Take to send it to Program. Editing Program changes the live output.");
+    }
+    private void UpdateStudioPreviewTexture(string sceneId)
+    {
+        if (studioTextureTask is { IsCompleted: true } completed)
+        {
+            var queued = studioQueuedFrame; studioTextureTask = null; studioQueuedFrame = null;
+            try {
+                var next = completed.GetAwaiter().GetResult();
+                if (queued != null && queued.SceneId == sceneId && next.Width == queued.Width && next.Height == queued.Height) {
+                    studioTexture?.Dispose(); studioTexture = next; studioTextureScene = queued.SceneId;
+                    studioTextureWidth = queued.Width; studioTextureHeight = queued.Height; studioPreviewError = "";
+                } else next.Dispose();
+            } catch (OperationCanceledException) { }
+            catch (Exception e) { studioPreviewError = "Preview unavailable: " + e.Message; }
+        }
+        var frame = plugin.StudioCapture.Preview;
+        if (studioTextureTask != null || frame.Bytes == null || frame.SceneId != sceneId ||
+            (frame.Sequence == studioAttemptedSequence && frame.SceneId == studioAttemptedScene)) return;
+        studioAttemptedSequence = frame.Sequence; studioAttemptedScene = frame.SceneId;
+        studioQueuedFrame = frame; studioTextureLifetime ??= new CancellationTokenSource();
+        try {
+            studioTextureTask = frame.Encoding == "jpeg"
+                ? Plugin.Textures.CreateFromImageAsync(frame.Bytes, "Windbound HD studio preview", studioTextureLifetime.Token)
+                : Plugin.Textures.CreateFromRawAsync(new RawImageSpecification { Width = frame.Width, Height = frame.Height, Pitch = frame.Width * 4, DxgiFormat = 28 }, frame.Bytes, "Windbound studio preview", studioTextureLifetime.Token);
+        } catch (Exception e) { studioQueuedFrame = null; studioPreviewError = "Preview unavailable: " + e.Message; }
     }
     private void DrawStudioCanvasHandles(StudioSnapshot s, string sceneId, Vector2 origin, Vector2 size)
     {
@@ -453,20 +517,21 @@ public sealed partial class MainWindow
         studioOutputDraft ??= s.Output;
         var o = studioOutputDraft;
         int width = o.Width, height = o.Height, fps = o.Fps, bitrate = o.VideoBitrate, audio = o.AudioBitrate, seconds = o.ReplaySeconds, memory = o.ReplayMegabytes;
-        string encoder = o.Encoder, folder = o.Folder;
+        string encoder = o.Encoder, folder = o.Folder, format = o.RecordingFormat;
         ImGui.BeginDisabled(s.Busy || s.Recording || s.Streaming || s.StreamingStarting || s.Replay || s.OutputStopping);
         ImGui.InputInt("Canvas/output width##wbStudioWidth", ref width); ImGui.InputInt("Height##wbStudioHeight", ref height); ImGui.InputInt("FPS##wbStudioFps", ref fps);
         DrawStudioTypePicker("H.264 encoder##wbStudioEncoder", s.Encoders, ref encoder);
+        DrawStudioTypePicker("Recording format##wbStudioRecordingFormat", s.RecordingFormats, ref format);
         ImGui.InputInt("Video bitrate (kbps)##wbStudioBitrate", ref bitrate); ImGui.InputInt("Audio bitrate per track (kbps)##wbStudioAudioBitrate", ref audio);
         ImGui.InputText("Recording folder##wbStudioFolder", ref folder, 1024);
         if (ImGui.SmallButton("Browse recording folder##wbStudioFolderBrowse")) fileDialogs.OpenFolderDialog("Choose recording folder", (bool ok, string chosen) => {
             if (ok && studioOutputDraft != null) studioOutputDraft = studioOutputDraft with { Folder = chosen };
         });
         ImGui.InputInt("Replay duration (seconds)##wbStudioReplaySeconds", ref seconds); ImGui.InputInt("Replay RAM limit (MiB)##wbStudioReplayMemory", ref memory);
-        studioOutputDraft = o with { Width = width, Height = height, Fps = fps, VideoBitrate = bitrate, AudioBitrate = audio, Encoder = encoder, Folder = folder, ReplaySeconds = seconds, ReplayMegabytes = memory };
+        studioOutputDraft = o with { Width = width, Height = height, Fps = fps, VideoBitrate = bitrate, AudioBitrate = audio, Encoder = encoder, RecordingFormat = format, Folder = folder, ReplaySeconds = seconds, ReplayMegabytes = memory };
         if (ImGui.Button("APPLY OUTPUT SETTINGS##wbStudioApplyOutput")) plugin.StudioCapture.Command("OutputSettings", studioOutputDraft);
         ImGui.SameLine(); if (ImGui.SmallButton("Reload saved settings##wbStudioOutputReload")) studioOutputDraft = s.Output;
         ImGui.EndDisabled();
-        ImGui.TextDisabled("Stop all outputs before applying settings. MKV recording, stereo 48 kHz AAC, six recording tracks. Choose NVIDIA, Intel or AMD hardware encoding when supported by your GPU.");
+        ImGui.TextWrapped("Stop all outputs before applying settings. Recording and saved replays use the selected format, H.264 video and six stereo AAC tracks. MP4 must finish Stop & Save before the file is ready.");
     }
 }

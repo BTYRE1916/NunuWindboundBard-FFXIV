@@ -17,6 +17,8 @@ public sealed class Configuration : IPluginConfiguration
     public string CaptureEnginePath { get; set; } = "";
     public string CaptureFfmpegPath { get; set; } = "";
     public bool CapturePreviewEnabled { get; set; } = true;
+    public int CapturePreviewQuality { get; set; } = 1; // 0: 540p, 1: 720p, 2: 1080p
+    public int CapturePreviewFps { get; set; } = 10;
     // v0.40: only local OBS WebSocket configuration. No password or stream key is saved.
     public int ObsWebSocketPort { get; set; } = 4455;
     public string ObsDiskMonitorFolder { get; set; } = "";
@@ -154,6 +156,12 @@ public sealed class Configuration : IPluginConfiguration
     public Dictionary<string, SoulweaverPreset> SoulweaverPresetsByFile { get; set; }
         = new(StringComparer.OrdinalIgnoreCase);
     public string LastFile { get; set; } = "";
+    internal StudioPreviewSettings PreviewSettings()
+    {
+        var size = CapturePreviewQuality switch { 0 => (960, 540), 2 => (1920, 1080), _ => (1280, 720) };
+        return new() { Width = size.Item1, Height = size.Item2, Fps = CapturePreviewFps is 5 or 10 or 15 ? CapturePreviewFps : 10 };
+    }
+
     internal (string EngineExecutable, string FfmpegExecutable) ResolveCapturePaths(string? pluginDirectory)
     {
         string Resolve(string? configuredPath, string fileName)

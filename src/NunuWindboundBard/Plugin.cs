@@ -45,6 +45,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WindowSystem windows = new("NunuWindboundBard");
     private readonly MainWindow main;
     private readonly PerformanceHudWindow hud;
+    internal readonly CapturePreviewWindow CapturePreview;
     private volatile bool performing;
     private volatile bool expandedKeyboard;
     internal bool IsPerforming => performing;
@@ -411,6 +412,8 @@ public sealed class Plugin : IDalamudPlugin
         hud = new PerformanceHudWindow(this, main);
         hud.IsOpen = Config.HudVisible;
         windows.AddWindow(hud);
+        CapturePreview = new CapturePreviewWindow(main);
+        windows.AddWindow(CapturePreview);
         Commands.AddHandler("/windbound", new CommandInfo(OnCommand)
         {
             HelpMessage = Loc.T("Open Windbound Bard; /windbound recover clears stuck local playback/stage state; /windbound stop stops playback.")
@@ -419,7 +422,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMain;
-        Log.Information("Windbound Bard v0.40 loaded: Dark Stage UI, Piano Academy + Showmaster; MIDI and ensembles retained.");
+        Log.Information($"Windbound Bard v{PluginInterface.Manifest.AssemblyVersion} loaded: native capture, MIDI and ensembles.");
     }
 
     private void OnFrameworkUpdate(IFramework _)

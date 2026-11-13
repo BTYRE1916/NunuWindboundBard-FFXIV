@@ -28,7 +28,11 @@ internal sealed class ReplayBuffer : IDisposable
         try{
             var list=new List<string>();for(int i=0;i<blocks.Length;i++){string file="clip-"+i.ToString("D5")+".mkv";await File.WriteAllBytesAsync(Path.Combine(temp,file),blocks[i]);list.Add("file '"+file+"'");}
             string concat=Path.Combine(temp,"clips.txt");await File.WriteAllLinesAsync(concat,list);
-            var result=await Task.Run(()=>runtime.Run(new[]{"-hide_banner","-loglevel","error","-n","-f","concat","-safe","1","-i",concat,"-map","0","-c","copy",destination},120));
+            var arguments=new List<string>{"-hide_banner","-loglevel","error","-n","-f","concat","-safe","1","-i",concat,"-map","0","-c","copy"};
+            if(Path.GetExtension(destination).Equals(".mp4",StringComparison.OrdinalIgnoreCase))arguments.AddRange(["-movflags","+faststart","-f","mp4"]);
+            else arguments.AddRange(["-f","matroska"]);
+            arguments.Add(destination);
+            var result=await Task.Run(()=>runtime.Run(arguments,120));
             if(result.ExitCode!=0)throw new InvalidOperationException("Replay could not be saved: "+result.Output);
         }finally{try{Directory.Delete(temp,true);}catch{}}
     }

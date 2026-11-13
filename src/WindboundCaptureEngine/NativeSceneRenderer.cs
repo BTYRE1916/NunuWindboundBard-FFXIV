@@ -126,8 +126,37 @@ internal sealed class NativeSceneRenderer : IDisposable
     }
     public static byte[] Preview(Bitmap image)
     {
-        using var scaled=new Bitmap(StudioProtocol.PreviewWidth,StudioProtocol.PreviewHeight,PixelFormat.Format32bppArgb);using(var g=Graphics.FromImage(scaled))g.DrawImage(image,0,0,scaled.Width,scaled.Height);
-        var bytes=Bgra(scaled);for(int i=0;i<bytes.Length;i+=4)(bytes[i],bytes[i+2])=(bytes[i+2],bytes[i]);return bytes;
+        using var scaled=ScalePreview(image,StudioPreviewSettings.Legacy);
+        return EncodePreview(scaled,StudioPreviewSettings.Legacy);
+    }
+    public static Bitmap ScalePreview(Bitmap image,StudioPreviewSettings settings)
+    {
+        var size=settings.Fit(image.Width,image.Height);
+        var scaled=new Bitmap(size.Width,size.Height,PixelFormat.Format32bppArgb);
+        try{
+            using var g=Graphics.FromImage(scaled);
+            g.CompositingMode=CompositingMode.SourceCopy;g.CompositingQuality=CompositingQuality.HighQuality;
+            g.InterpolationMode=InterpolationMode.HighQualityBicubic;g.PixelOffsetMode=PixelOffsetMode.HighQuality;
+            using var attributes=new ImageAttributes();attributes.SetWrapMode(WrapMode.TileFlipXY);
+            g.DrawImage(image,new Rectangle(0,0,size.Width,size.Height),0,0,image.Width,image.Height,GraphicsUnit.Pixel,attributes);
+            return scaled;
+        }catch{scaled.Dispose();throw;}
+    }
+    public static byte[] EncodePreview(Bitmap scaled,StudioPreviewSettings settings)
+    {
+        if(settings.Encoding=="rgba"){
+            var bytes=Bgra(scaled);for(int i=0;i<bytes.Length;i+=4)(bytes[i],bytes[i+2])=(bytes[i+2],bytes[i]);return bytes;
+        }
+        var codec=ImageCodecInfo.GetImageEncoders().First(x=>x.FormatID==ImageFormat.Jpeg.Guid);
+        // A bounded, high-quality JPEG keeps HD previews small on the control pipe.
+        // No recording pixels are encoded through this preview path.
+        for(int quality=92;quality>=52;quality-=10){
+            using var output=new MemoryStream();using var parameters=new EncoderParameters(1);
+            parameters.Param[0]=new EncoderParameter(System.Drawing.Imaging.Encoder.Quality,(long)quality);
+            scaled.Save(output,codec,parameters);
+            if(output.Length<=StudioProtocol.MaxPreviewBytes)return output.ToArray();
+        }
+        throw new InvalidDataException("Preview image exceeds the transfer limit. Choose a lower preview quality.");
     }
     public (Size Size,string Status) Inspect(string id)
     {

@@ -1,4 +1,4 @@
-[Start here for the 0.42.3 startup fix](START-HERE-v0.42.3.md)
+[Start here for 0.42.4 MP4 and HD preview](START-HERE-v0.42.4.md)
 
 > **v0.42.0 — Our native capture suite:** Windbound now owns capture, scenes, composition, audio mixing, timelines and replay buffering. The Windows engine uses Windows APIs and a bundled codec worker; **no OBS runtime is required**. All controls stay in the plugin tab. Start with [START-HERE-v0.42.0.md](START-HERE-v0.42.0.md). Development build; Windows live capture testing remains pending.
 

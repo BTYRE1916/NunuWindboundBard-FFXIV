@@ -16,15 +16,13 @@ public sealed class CaptureStudioClient : IDisposable
     private CancellationTokenSource? connection;
     private StudioSnapshot current = new();
     private StudioInspector? inspector;
-    private byte[]? preview;
-    private long previewSequence;
-    private string previewSceneId = "";
+    private StudioPreviewFrame preview = new();
     private string error = "";
     private int busy, previewPending, generation;
     public StudioSnapshot Snapshot { get { lock (sync) return current with { Busy = Volatile.Read(ref busy) != 0 || current.Busy }; } }
     public StudioInspector? Inspector { get { lock (sync) return inspector; } }
     public string LastError { get { lock (sync) return error; } }
-    public (long Sequence, byte[]? Bytes, string SceneId) Preview { get { lock (sync) return (previewSequence, preview, previewSceneId); } }
+    public StudioPreviewFrame Preview { get { lock (sync) return preview; } }
     private bool disposed;
     public void Launch(string enginePath, string ffmpegPath, string profile)
     {
@@ -94,12 +92,12 @@ public sealed class CaptureStudioClient : IDisposable
             finally { Interlocked.Exchange(ref busy, 0); }
         });
     }
-    public void RequestPreview(string sceneId = "")
+    public void RequestPreview(string sceneId = "", StudioPreviewSettings? options = null)
     {
         if (disposed || !Snapshot.Connected || Volatile.Read(ref busy) != 0 || Interlocked.CompareExchange(ref previewPending, 1, 0) != 0) return;
         int expected = Volatile.Read(ref generation);
         _ = Task.Run(async () => {
-            try { await RequestAsync(new() { Command = "Preview", Args = StudioProtocol.Json(new { SceneId = sceneId }) }, lifetime.Token, expected); }
+            try { await RequestAsync(new() { Command = "Preview", Args = StudioProtocol.Json(new { SceneId = sceneId, Options = options }) }, lifetime.Token, expected); }
             catch (OperationCanceledException) { }
             catch (Exception ex) { SetError(ex.Message); }
             finally { Interlocked.Exchange(ref previewPending, 0); }
@@ -115,11 +113,12 @@ public sealed class CaptureStudioClient : IDisposable
             await StudioProtocol.WriteAsync(pipe, request, timeout.Token);
             var response = await StudioProtocol.ReadAsync<StudioResponse>(pipe, timeout.Token);
             if (response.Version != StudioProtocol.Version || response.Id != request.Id) throw new InvalidDataException("Engine response version or request ID mismatch.");
+            StudioProtocol.ValidatePreview(response);
             lock(sync) {
                 if (disposed || (expected >= 0 && expected != generation)) return;
                 current = response.State;
                 if (response.Inspector != null) inspector = response.Inspector;
-                if (response.Preview is { } bytes && bytes.Length == StudioProtocol.PreviewWidth * StudioProtocol.PreviewHeight * 4) { preview = bytes; previewSequence = response.PreviewSequence; previewSceneId = response.PreviewSceneId; }
+                if (response.Preview is { } bytes) preview = new(response.PreviewSequence, bytes, response.PreviewSceneId, response.PreviewWidth, response.PreviewHeight, response.PreviewEncoding);
             }
             if (!response.Success) throw new InvalidOperationException(response.Error);
         }
@@ -129,7 +128,7 @@ public sealed class CaptureStudioClient : IDisposable
     private void SetError(string text) { lock(sync) if (!disposed) error = text; }
     public void Disconnect()
     {
-        lock(sync) { ++generation; connection?.Cancel(); current = current with { Connected = false, Message = "Controller disconnected. Engine outputs continue in the background." }; preview = null; inspector = null; }
+        lock(sync) { ++generation; connection?.Cancel(); current = current with { Connected = false, Message = "Controller disconnected. Engine outputs continue in the background." }; preview = new(); inspector = null; }
     }
     public void Dispose()
     {

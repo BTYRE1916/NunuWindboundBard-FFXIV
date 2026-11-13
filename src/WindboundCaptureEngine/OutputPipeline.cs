@@ -48,7 +48,9 @@ internal sealed class OutputPipeline : IDisposable
     private readonly Process process;
     private readonly AudioPipe[] audio;
     private readonly CancellationTokenSource lifetime=new();
-    private readonly Channel<StudioFrame> queue=Channel.CreateBounded<StudioFrame>(new BoundedChannelOptions(4){SingleReader=true,FullMode=BoundedChannelFullMode.Wait});
+    private const int VideoQueueFrames=4,AudioQueueFrames=16;
+    private readonly Channel<byte[]> videoQueue=Channel.CreateBounded<byte[]>(new BoundedChannelOptions(VideoQueueFrames){SingleReader=true,SingleWriter=true,FullMode=BoundedChannelFullMode.Wait});
+    private readonly Channel<byte[]>[] audioQueues;
     private readonly Task writer,observer;
     private readonly object sync=new();
     private string error="",tail="",secret="";
@@ -71,9 +73,13 @@ internal sealed class OutputPipeline : IDisposable
     {
         this.runtime=runtime;this.settings=settings;Kind=kind;Path=path;secret=streamKey;
         string temp=System.IO.Path.GetTempPath();audio=Enumerable.Range(0,kind=="stream"?1:6).Select(i=>new AudioPipe(temp,i,lifetime.Token)).ToArray();
+        audioQueues=audio.Select(_=>Channel.CreateBounded<byte[]>(new BoundedChannelOptions(AudioQueueFrames){SingleReader=true,SingleWriter=true,FullMode=BoundedChannelFullMode.Wait})).ToArray();
         try{process=Process.Start(runtime.StartInfo(Arguments(settings,kind,path,audio.Select(x=>x.Path).ToArray())))??throw new InvalidOperationException("Could not start encoder.");}
         catch{foreach(var pipe in audio)pipe.Dispose();lifetime.Cancel();throw;}
-        writer=Task.Run(WriteLoop);observer=Task.Run(Observe);
+        // FFmpeg opens/probes each input separately. Independent writers let it
+        // request more video or audio without waiting for all other inputs.
+        writer=Task.WhenAll(new[]{Task.Run(WriteVideo)}.Concat(Enumerable.Range(0,audio.Length).Select(i=>Task.Run(()=>WriteAudio(i)))));
+        observer=Task.Run(Observe);
     }
     internal static string[] Arguments(StudioOutputSettings s,string kind,string path,string[] pipes)
     {
@@ -86,30 +92,49 @@ internal sealed class OutputPipeline : IDisposable
         a.AddRange(new[]{"-c:a","aac","-b:a",s.AudioBitrate+"k","-ar","48000","-shortest"});
         if(kind=="stream")a.AddRange(new[]{"-f","flv",path});
         else if(kind=="replay")a.AddRange(new[]{"-f","segment","-segment_time","2","-reset_timestamps","1","-segment_format","matroska",path});
+        else if(s.RecordingFormat=="mp4")a.AddRange(new[]{"-movflags","+faststart","-f","mp4",path});
         else a.AddRange(new[]{"-f","matroska",path});
         return a.ToArray();
     }
     public void Enqueue(StudioFrame frame)
     {
-        lock(sync){if(complete||stopping||paused)return;
-            if(!queue.Writer.TryWrite(frame)){
-                if(started)dropped++;if(started&&++overflows>settings.Fps){error="Encoder cannot keep up. Lower resolution/FPS or select a hardware encoder.";stopping=true;queue.Writer.TryComplete();}
-            }else overflows=0;
+        lock(sync){if(disposed||complete||stopping||paused)return;
+            // A single producer admits complete frames under this lock. Readers
+            // only free slots, so no stream can advance while another drops a frame.
+            if(videoQueue.Reader.Count>=VideoQueueFrames||audioQueues.Any(q=>q.Reader.Count>=AudioQueueFrames)){
+                if(started)dropped++;if(started&&++overflows>settings.Fps){error="Encoder cannot keep up. Lower resolution/FPS or select a hardware encoder.";stopping=true;CompleteInputs();}
+                return;
+            }
+            videoQueue.Writer.TryWrite(frame.Bgra);
+            for(int i=0;i<audio.Length;i++)audioQueues[i].Writer.TryWrite(frame.Audio[i]);
+            overflows=0;
         }
     }
     public void Pause(bool value){lock(sync){if(Kind!="record"||complete||stopping)throw new InvalidOperationException("Recording cannot pause now.");paused=value;}}
-    public void Stop(){lock(sync){if(stopping||complete)return;stopping=true;paused=false;queue.Writer.TryComplete();}}
-    private async Task WriteLoop()
+    private void CompleteInputs(){videoQueue.Writer.TryComplete();foreach(var queue in audioQueues)queue.Writer.TryComplete();}
+    public void Stop(){lock(sync){if(stopping||complete)return;stopping=true;paused=false;CompleteInputs();}}
+    private void InputFailed(Exception ex)
+    {
+        lock(sync)if(!disposed&&!stopping&&error.Length==0)error="Encoder input: "+ex.Message;
+        lifetime.Cancel();CompleteInputs();
+    }
+    private async Task WriteVideo()
     {
         try{
-            await foreach(var frame in queue.Reader.ReadAllAsync(lifetime.Token)){
-                var writes=new List<Task>{process.StandardInput.BaseStream.WriteAsync(frame.Bgra,lifetime.Token).AsTask()};
-                for(int i=0;i<audio.Length;i++)writes.Add(audio[i].WriteAsync(frame.Audio[i],lifetime.Token));
-                await Task.WhenAll(writes);
-            }
+            await foreach(var pixels in videoQueue.Reader.ReadAllAsync(lifetime.Token))
+                await process.StandardInput.BaseStream.WriteAsync(pixels,lifetime.Token);
         }catch(OperationCanceledException){}
-        catch(Exception ex){lock(sync)if(!stopping)error="Encoder input: "+ex.Message;}
-        finally{try{process.StandardInput.Close();}catch{}foreach(var pipe in audio)pipe.Dispose();}
+        catch(Exception ex){InputFailed(ex);}
+        finally{try{process.StandardInput.Close();}catch{}}
+    }
+    private async Task WriteAudio(int index)
+    {
+        try{
+            await foreach(var samples in audioQueues[index].Reader.ReadAllAsync(lifetime.Token))
+                await audio[index].WriteAsync(samples,lifetime.Token);
+        }catch(OperationCanceledException){}
+        catch(Exception ex){InputFailed(ex);}
+        finally{audio[index].Dispose();}
     }
     private async Task Observe()
     {
@@ -120,7 +145,7 @@ internal sealed class OutputPipeline : IDisposable
             await process.WaitForExitAsync();await errors;
             lock(sync){if(process.ExitCode!=0&&error.Length==0)error="Encoder failed ("+process.ExitCode+"). "+tail;if(!stopping&&error.Length==0)error="Encoder ended unexpectedly.";complete=true;}
         }catch(Exception ex){lock(sync){error=Redact(ex.Message);complete=true;}}
-        finally{lifetime.Cancel();queue.Writer.TryComplete();}
+        finally{lifetime.Cancel();CompleteInputs();}
     }
     private string Redact(string text)=>secret.Length==0?text:text.Replace(secret,"[redacted]",StringComparison.Ordinal);
     public async Task FinishAsync(TimeSpan timeout)
@@ -131,7 +156,9 @@ internal sealed class OutputPipeline : IDisposable
     public void Dispose()
     {
         if(disposed)return;disposed=true;
-        if(!observer.IsCompleted){lifetime.Cancel();queue.Writer.TryComplete();try{process.Kill(true);}catch{}}
-        foreach(var pipe in audio)pipe.Dispose();process.Dispose();lifetime.Dispose();
+        if(!observer.IsCompleted){lifetime.Cancel();CompleteInputs();try{process.Kill(true);}catch{}}
+        foreach(var pipe in audio)pipe.Dispose();process.Dispose();
+        // Cancellation may still be unwinding the independent pipe writers.
+        _=Task.WhenAll(writer,observer).ContinueWith(done=>{_ = done.Exception;lifetime.Dispose();},CancellationToken.None,TaskContinuationOptions.ExecuteSynchronously,TaskScheduler.Default);
     }
 }
