@@ -4,12 +4,18 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NunuWindboundBard", "src\NunuWindboundBard\NunuWindboundBard.csproj", "{27B6069B-5948-4A7A-92D4-812756D90442}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindboundCaptureEngine", "src\WindboundCaptureEngine\WindboundCaptureEngine.csproj", "{A1B7D3C4-5E6F-4789-ABCD-1234567890AB}"
+EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
         Debug|x64 = Debug|x64
         Release|x64 = Release|x64
     EndGlobalSection
     GlobalSection(ProjectConfigurationPlatforms) = postSolution
+        {A1B7D3C4-5E6F-4789-ABCD-1234567890AB}.Debug|x64.ActiveCfg = Debug|Any CPU
+        {A1B7D3C4-5E6F-4789-ABCD-1234567890AB}.Debug|x64.Build.0 = Debug|Any CPU
+        {A1B7D3C4-5E6F-4789-ABCD-1234567890AB}.Release|x64.ActiveCfg = Release|Any CPU
+        {A1B7D3C4-5E6F-4789-ABCD-1234567890AB}.Release|x64.Build.0 = Release|Any CPU
         {27B6069B-5948-4A7A-92D4-812756D90442}.Debug|x64.ActiveCfg = Debug|x64
         {27B6069B-5948-4A7A-92D4-812756D90442}.Debug|x64.Build.0 = Debug|x64
         {27B6069B-5948-4A7A-92D4-812756D90442}.Release|x64.ActiveCfg = Release|x64
