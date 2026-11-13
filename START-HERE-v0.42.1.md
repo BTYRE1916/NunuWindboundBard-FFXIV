@@ -20,6 +20,22 @@ The solution already includes both projects. Do not add `WindboundCaptureEngine`
 
 There is no Apply-CaptureStudioBuildFix.ps1 step. The source has already been corrected.
 
+## Both projects must be selected for build
+
+In Visual Studio, use **Build > Configuration Manager**. Choose **Release** and **x64**. For both `NunuWindboundBard` and `WindboundCaptureEngine`, select **Release**, platform **x64**, and check **Build**. Repeat for Debug/x64 if you use Debug. Close the dialog and choose **Build > Rebuild Solution**.
+
+The supplied solution already contains these mappings for both projects in both configurations. The original repository's older solution maps the capture engine to Any CPU; when using the newer x64-only engine, use the matching solution from this package or update those mappings in Configuration Manager. Building just the plugin project does not build the separate engine.
+
+`Build-Plugin.ps1` now rebuilds the **whole solution**, checks that both output assemblies exist and prints both paths. Run it from a PowerShell terminal with `./Build-Plugin.ps1 -Configuration Release` (or Debug). No engine assembly reference is needed.
+
+To build only the native engine, independently of Visual Studio's selected projects, run:
+
+```powershell
+dotnet build .\src\WindboundCaptureEngine\WindboundCaptureEngine.csproj -c Release -p:Platform=x64 --no-incremental
+```
+
+If Visual Studio still reports a skipped build, its exact next output line distinguishes an excluded project from an unsupported configuration or a project already up to date.
+
 ## Supplied binaries
 
 Use `ReadyToUse/Plugin/NunuWindboundBard.dll` as the development plugin location in Dalamud. Keep all its accompanying dependencies and the entire `CaptureEngine` subfolder together. Both the plugin and the self-contained Windows x64 engine were rebuilt from this source.

@@ -1,23 +1,42 @@
+[CmdletBinding()]
+param(
+    [ValidateSet('Debug', 'Release')]
+    [string]$Configuration = 'Debug'
+)
+
 $ErrorActionPreference = 'Stop'
-Set-Location $PSScriptRoot
-$project = Join-Path $PSScriptRoot 'src\NunuWindboundBard\NunuWindboundBard.csproj'
-Write-Host 'Building Nunu Windbound Bard for Dalamud API 15 (.NET 10)...' -ForegroundColor Magenta
-dotnet build $project -c Debug -p:Platform=x64
-if ($LASTEXITCODE -ne 0) { throw 'Build failed. See Visual Studio/.NET output.' }
-Write-Host 'Use /xlsettings > Experimental > Dev Plugin Locations and select the built DLL.' -ForegroundColor Green
-# The audio preview adds managed NuGet dependencies. Dalamud must see the
-# dependent DLL files in the same output folder as NunuWindboundBard.dll.
-$pluginDll = Get-ChildItem (Join-Path $PSScriptRoot 'src\NunuWindboundBard\bin') -Filter 'NunuWindboundBard.dll' -File -Recurse |
-    Where-Object { $_.FullName -match '[\\/]Debug[\\]' } | Select-Object -First 1
-if ($pluginDll) {
-    foreach ($dependency in @('MeltySynth.dll', 'NAudio.dll', 'NAudio.Core.dll', 'NAudio.WinMM.dll')) {
-        $candidate = Join-Path $pluginDll.DirectoryName $dependency
-        if (Test-Path $candidate) {
-            Write-Host "Audio dependency ready: $dependency" -ForegroundColor Green
-        } else {
-            Write-Warning "Audio dependency not found next to the plugin DLL: $dependency; check NuGet restore and output folder."
-        }
+$projectRoot = $PSScriptRoot
+$solution = Join-Path $projectRoot 'NunuWindboundBard.sln'
+if (-not (Test-Path -LiteralPath $solution -PathType Leaf)) {
+    throw 'NunuWindboundBard.sln must be beside Build-Plugin.ps1.'
+}
+
+Write-Host "Building plugin and native capture engine ($Configuration | x64)..." -ForegroundColor Magenta
+# The separate engine has no plugin assembly reference, so build the solution.
+$buildArguments = @(
+    'build', $solution, '-c', $Configuration,
+    '-p:Platform=x64', '-p:EnableWindowsTargeting=true',
+    '--no-incremental', '-m:1', '-nr:false', '-p:UseSharedCompilation=false'
+)
+& dotnet @buildArguments
+if ($LASTEXITCODE -ne 0) { throw 'Solution build failed. See the .NET output above.' }
+
+$pluginOutput = Join-Path $projectRoot "src\NunuWindboundBard\bin\x64\$Configuration"
+$pluginDll = Join-Path $pluginOutput 'NunuWindboundBard.dll'
+$engineOutput = Join-Path $projectRoot "src\WindboundCaptureEngine\bin\x64\$Configuration\net10.0-windows10.0.19041.0"
+$engineDll = Join-Path $engineOutput 'WindboundCaptureEngine.dll'
+foreach ($builtFile in @($pluginDll, $engineDll)) {
+    if (-not (Test-Path -LiteralPath $builtFile -PathType Leaf)) {
+        throw "Expected build output is missing: $builtFile"
     }
 }
 
-Get-ChildItem (Join-Path $PSScriptRoot 'src\NunuWindboundBard\bin') -Filter 'NunuWindboundBard.dll' -File -Recurse | Select-Object -ExpandProperty FullName
+Write-Host "Plugin built: $pluginDll" -ForegroundColor Green
+Write-Host "Capture engine built: $engineDll" -ForegroundColor Green
+foreach ($dependency in @('MeltySynth.dll', 'NAudio.dll', 'NAudio.Core.dll', 'NAudio.WinMM.dll')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $pluginOutput $dependency))) {
+        Write-Warning "Audio dependency not found beside the plugin: $dependency"
+    }
+}
+Write-Host 'To publish a standalone Windows capture EXE, run Build-CaptureEngine.ps1.'
+Write-Host 'For the supplied complete binaries, use ReadyToUse/Plugin/NunuWindboundBard.dll and keep its CaptureEngine folder.'

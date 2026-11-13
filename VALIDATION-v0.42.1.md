@@ -29,3 +29,11 @@ Reproduced the user's exact `Microsoft.Windows.SDK.NET.Ref (= 10.0.19041.57)` NU
 Rebuilt the full solution with restore and `--no-incremental`: passed with 0 errors and the same 6 existing warnings. C# sources and supplied binaries are unchanged from the prior v0.42.1 package; this update changes restore configuration and documentation only.
 
 Reference: https://learn.microsoft.com/en-us/nuget/consume-packages/package-source-mapping
+
+## Whole-solution build correction
+
+`Build-Plugin.ps1` now targets NunuWindboundBard.sln rather than just the plugin project. It forces a non-incremental x64 build for the chosen Debug or Release configuration, stops on build failure and verifies both output assemblies. Both projects have ActiveCfg and Build.0 mappings for Debug/x64 and Release/x64 in the supplied solution.
+
+Executed the same dotnet command used by the updated script in both configurations: Debug/x64 and Release/x64 each compiled both projects successfully with 0 errors and the same 6 existing warnings. Both expected output assemblies were checked after each build. PowerShell execution itself was not performed on this Linux host; the script was checked lexically.
+
+This correction changes the build script and documentation only. Application sources and supplied binaries remain those from the validated v0.42.1 package. The prior unresolved recording smoke-test timeout remains unresolved.
