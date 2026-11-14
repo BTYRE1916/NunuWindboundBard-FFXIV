@@ -1,33 +1,25 @@
-Nunu Windbound Bard 0.42.4 - MP4 / HD preview
-Windows x64 / Dalamud API 15
+Windbound MIDI Suite 0.43.0.0 — Windows x64 / Dalamud API 15
 
-To activate the update, stop all capture outputs and choose SHUT DOWN IDLE
-ENGINE in Concert Capture before updating. Launch the updated engine after
-installing; its status should identify 0.42.4. Plugin updates intentionally
-do not interrupt a running engine or recording.
+New: STUDIO > MIDI Workbench
+Import MIDI; edit tracks and notes in the piano roll; undo / redo; merge or
+split voices; adapt ranges; clean duplicates and overlaps; quantize to beats;
+split GM drums with custom pitch maps; preview with your SoundFont; export MIDI
+and LRC lyrics. Exported MIDI can be added to the library and loaded in Windbound.
+Source MIDI files and existing exports are preserved.
 
-Repository maintainer setup:
-1. Upload this ZIP as FFXIVMIDIPLAYER-BY-NUNU-v0.42.4.zip on the latest
-   published release of BTYRE1916/NunuWindboundBard-FFXIV.
-2. Commit and push the companion Plugin.json at the repository root.
-3. Refresh the repository in Dalamud and install/update to 0.42.4.0.
-The ZIP's plugin DLL and JSON belong at its root. Keep every file and the
-CaptureEngine subfolder together. The engine is self-contained and FFmpeg
-is included. For a dev load, select the root NunuWindboundBard.dll.
+The native capture engine, MP4 output, HD preview and Bassdrum fix are retained.
+Keep the CaptureEngine folder beside NunuWindboundBard.dll.
 
-MP4: SHOW > Concert Capture > Video, encoding and storage > Recording format
-> MP4 > APPLY OUTPUT SETTINGS (outputs stopped). Stop & Save finalizes it.
-Saved replays use the selected format too. Existing settings default to MKV.
+PUBLISHING:
+Create a public GitHub release with the EXACT tag v0.43.0.
+Attach FFXIVMIDIPLAYER-BY-NUNU-v0.43.0.zip unchanged.
+Publish that release before replacing the repository root Plugin.json.
+The manifest points to that exact tag and asset name.
 
-Preview: choose 540p/720p/1080p and 5/10/15 FPS. OPEN LARGE PREVIEW opens a
-separate resizable monitor that remains visible with the main window closed.
-Preview settings do not change recording resolution or frame rate.
-
-Validation: both projects compile; 35 format/preview/codec checks, 14 offline
-studio checks and 19 memory-loaded startup checks passed. Actual recording,
-pause/resume, finalization and replay tests passed at 30 FPS for MKV and MP4
-on the Linux host transport. The Windows native/JPEG smoke test compiled;
-Windows in-game preview, capture devices and hardware encoders were not
-executed here. Requested preview FPS is an upper bound.
-
-Third-party notices and FFmpeg license/build information are included.
+VALIDATION:
+Full solution Release/x64 build: 0 errors, 6 existing warnings.
+43 Workbench regression checks, including real MIDI export / re-import, passed.
+Existing MIDI metadata / Bassdrum regression passed.
+Actual compiled DLL version, x64, memory-loaded configuration, drum-map
+serialization and Workbench MIDI export verified.
+In-game UI interaction and Windows audio-device playback need verification.

@@ -186,6 +186,7 @@ public sealed partial class MainWindow
                 DrawStageWorkspaceTitle("CREATIVE STUDIO", "Learn songs, inspect MIDI, compose and preview arrangements");
                 if (ImGui.BeginTabBar("WindboundStudioTabs"))
                 {
+                    if (ImGui.BeginTabItem(Loc.T("MIDI Workbench"))) { DrawMidiWorkbench(); ImGui.EndTabItem(); }
                     if (ImGui.BeginTabItem(Loc.T("Piano Academy"))) { DrawPianoAcademy(); ImGui.EndTabItem(); }
                     if (ImGui.BeginTabItem(Loc.T("Soulweaver Studio"))) { DrawSoulweaver(); ImGui.EndTabItem(); }
                     if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }

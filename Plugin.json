@@ -3,9 +3,9 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.42.5.0",
-    "Punchline": "A Bard Performance MIDI player with in-game instrument icons.",
-    "Description": "FFXIV Bard MIDI and ensemble concert suite with Piano Academy, Showmaster, Band Portraits, Dark Stage UI and manual localhost OBS Concert Capture controls and a separate native Windows capture suite controlled from the plugin.",
+    "AssemblyVersion": "0.43.0.0",
+    "Punchline": "MIDI workbench, Bard performance, ensemble arrangements and native concert capture.",
+    "Description": "Windbound Bard MIDI suite with an in-game MIDI Workbench: piano roll and note editing, track tools, drum splitting with custom pitch maps, C3-C6 adaptation, undo/redo, SoundFont preview and MIDI/LRC export. Includes native ensembles, Soulweaver Studio, Showmaster and the separate Windows capture engine with MP4 recording and HD preview.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -19,8 +19,8 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/v0.42.5/FFXIVMIDIPLAYER-BY-NUNU-v0.42.5.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/v0.42.5/FFXIVMIDIPLAYER-BY-NUNU-v0.42.5.zip",
-    "LastUpdate": "1794664830"
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/v0.43.0/FFXIVMIDIPLAYER-BY-NUNU-v0.43.0.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/v0.43.0/FFXIVMIDIPLAYER-BY-NUNU-v0.43.0.zip",
+    "LastUpdate": "1794669437"
   }
 ]

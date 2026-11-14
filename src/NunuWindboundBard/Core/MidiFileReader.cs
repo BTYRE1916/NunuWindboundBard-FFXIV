@@ -33,6 +33,13 @@ public sealed record MidiSong(string FileName, IReadOnlyList<MidiNote> Notes,
 /// </summary>
 public static class MidiFileReader
 {
+    // SMF has no text-encoding flag. Prefer UTF-8 while retaining common older
+    // single-byte titles / lyrics instead of replacing accented characters.
+    internal static string DecodeText(byte[] bytes)
+    {
+        try { return new UTF8Encoding(false, true).GetString(bytes); }
+        catch (DecoderFallbackException) { return Encoding.Latin1.GetString(bytes); }
+    }
     private sealed record RawNote(long Tick, int Pitch, int Velocity, int Track, int Channel, bool IsOn);
     private sealed record TempoChange(long Tick, int MicrosecondsPerBeat, int Order);
     private sealed record TimelineEvent(long Tick, int Kind, int Order, RawNote? Note, int Tempo);
@@ -121,7 +128,7 @@ public static class MidiFileReader
                         // Text, Track Name, Instrument Name, Marker, Cue Point.
                         // Track tags in the first 2 KiB are sufficient and bounded.
                         byte[] bytes = reader.ReadBytes((int)Math.Min(length, 2048));
-                        string value = Encoding.UTF8.GetString(bytes).Trim('\0', ' ', '\t');
+                        string value = DecodeText(bytes).Trim('\0', ' ', '\t');
                         stream.Position += length - bytes.Length;
                         if (meta == 0x03 && !string.IsNullOrWhiteSpace(value)) name = value;
                         if (meta == 0x04 && !string.IsNullOrWhiteSpace(value)) instrumentName = value;

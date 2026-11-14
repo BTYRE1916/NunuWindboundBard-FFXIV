@@ -36,6 +36,7 @@ public sealed class Configuration : IPluginConfiguration
     public string PreviewSoundFontPath { get; set; } = "";
     public float PreviewVolume { get; set; } = .65f;
     public float PreviewSpeed { get; set; } = 1f;
+    public MidiWorkbenchSettings MidiWorkbench { get; set; } = new();
     // UI language: en (default) or fr. This does not change file names, notes or protocol.
     public string Language { get; set; } = "en";
     // v0.20 live hardware MIDI keyboard input in Solo mode. Device opt-in is saved,
