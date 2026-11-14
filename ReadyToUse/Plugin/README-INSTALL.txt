@@ -11,7 +11,7 @@ The native capture engine, MP4 output, HD preview and Bassdrum fix are retained.
 Keep the CaptureEngine folder beside NunuWindboundBard.dll.
 
 PUBLISHING:
-Create a public GitHub release with the EXACT tag v0.43.0.
+Create a public GitHub release with the EXACT tag 0.43.0.
 Attach FFXIVMIDIPLAYER-BY-NUNU-v0.43.0.zip unchanged.
 Publish that release before replacing the repository root Plugin.json.
 The manifest points to that exact tag and asset name.

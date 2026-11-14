@@ -48,7 +48,7 @@ are retained from the preceding release.
 ## Publishing the repository update
 
 Use **FFXIVMIDIPLAYER-BY-NUNU-v0.43.0.zip** as the GitHub release asset unchanged.
-Create a public release with the exact tag **v0.43.0**. Publish the ZIP asset
+Create a public release with the exact tag **0.43.0**. Publish the ZIP asset
 before updating the public repository's root **Plugin.json**. The supplied
 manifest points to this exact release tag and filename. Publishing the manifest
 first advertises a download that does not exist yet and results in HTTP 404.
