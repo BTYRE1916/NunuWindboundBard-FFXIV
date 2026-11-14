@@ -32,6 +32,14 @@ public static class MidiInstrumentInference
                 true, false, lane.NoteCount);
         if (lane.IsPercussion)
         {
+            // FFXIV-scored percussion can already use playable pitches (e.g.
+            // C4), which are different from GM drum-kit note identifiers.
+            // A specific part name must beat that heuristic. Generic names
+            // such as "Drums", "Percussion" and "Kit" still use GM voting.
+            int namedPercussion = MapNamedPercussion(lane.TrackName?.ToLowerInvariant() ?? "");
+            if (namedPercussion != 0)
+                return new(namedPercussion, "MIDI percussion track name: " + lane.TrackName,
+                    true, false, lane.NoteCount);
             var votes = lane.DrumPitches.Select(hit =>
                 (Instrument: PercussionInstrument(hit.Pitch), hit.Count))
                 .GroupBy(v => v.Instrument)
@@ -136,11 +144,9 @@ public static class MidiInstrumentInference
     {
         if (string.IsNullOrWhiteSpace(name)) return 0;
         string n = name.ToLowerInvariant();
-        if (Contains(n,"snare","caisse claire")) return 13;
-        if (Contains(n,"kick","bass drum","grosse caisse")) return 12;
-        if (Contains(n,"cymbal","hi-hat","crash","ride")) return 14;
-        if (Contains(n,"timpani","timbale")) return 10;
-        if (Contains(n,"bongo","conga","percussion","drum")) return 11;
+        int percussion = MapNamedPercussion(n);
+        if (percussion != 0) return percussion;
+        if (Contains(n,"percussion","drum")) return 11;
         if (Contains(n,"overdrive","distort","lead guitar")) return 24;
         if (Contains(n,"muted guitar")) return 26;
         if (Contains(n,"power chord")) return 27;
@@ -163,6 +169,18 @@ public static class MidiInstrumentInference
         if (Contains(n,"panpipe","pan flute","flûte de pan")) return 9;
         if (Contains(n,"piccolo","fife","fifre")) return 8;
         if (Contains(n,"flute","flûte","recorder")) return 5;
+        return 0;
+    }
+
+    // Input is lower-case. Keep specific drum names ahead of the generic
+    // "drum" fallback: "Bassdrum" is a common MIDI label, not a Bongo.
+    private static int MapNamedPercussion(string name)
+    {
+        if (Contains(name,"snare","caisse claire")) return 13;
+        if (Contains(name,"kick","bass drum","bassdrum","bass-drum","bass_drum","grosse caisse")) return 12;
+        if (Contains(name,"cymbal","hi-hat","crash","ride")) return 14;
+        if (Contains(name,"timpani","timbale")) return 10;
+        if (Contains(name,"bongo","conga")) return 11;
         return 0;
     }
 

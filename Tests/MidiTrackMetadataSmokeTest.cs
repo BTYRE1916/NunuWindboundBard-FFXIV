@@ -31,6 +31,14 @@ static class Program
         Check(MidiTrackTags.SelectOctave(0, -12, 12, true) == -12, "manual edit beats track tag");
         Check(MidiTrackTags.SelectOctave(12, null, null, false) == 12, "normal optimizer unchanged");
 
+        foreach (string name in new[] {"Bassdrum", "BassDrum", "Bass Drum", "BASSDRUM", "bass-drum", "bass_drum"})
+        {
+            Check(MidiInstrumentInference.MapInstrumentName(name) == 12, name + " resolves to Bass Drum, not Bongo");
+            Check(MidiTrackTags.ExplicitInstrumentId("#" + name) == 12, "explicit #" + name + " tag");
+        }
+        Check(InstrumentCatalog.Find(11)?.DisplayName == "Bongo", "Bongo remains Perform row 11");
+        Check(InstrumentCatalog.Find(12)?.DisplayName == "Bass Drum", "Bass Drum remains Perform row 12");
+
         string path = Path.Combine(Path.GetTempPath(), "Windbound-Metadata-" + Guid.NewGuid().ToString("N") + ".mid");
         try
         {
@@ -110,7 +118,35 @@ static class Program
                 "unambiguous GM program inherited from metadata-only track");
             Check(MidiInstrumentInference.ForLane(song.LaneInstruments[0]).InstrumentId == 20,
                 "cross-track GM Violin detected");
-            Console.WriteLine("PASS: FF01/FF06 tags, track names, split-track GM, #+12 #Lute and #-12 #Violin, GM/FF04 mapping, member assignments, conflicts, manual overrides, notes unchanged.");
+
+            // FFXIV-scored percussion may already use playable pitches such as
+            // C4 (60). That pitch must not override a specifically named part.
+            MakeMidi(path, new[] {
+                MakeTrack("Bassdrum", 0, 0, 1, 60),
+                MakeTrack("Part 2", 1, 0, 1, 60, "Bassdrum"),
+                MakeTrack("#Bassdrum", 9, -1, 1, 60),
+                MakeTrack("Bassdrum", 9, -1, 1, 60),
+                MakeTrack("Drums", 9, -1, 2, 35),
+                MakeTrack("Bongo", 9, -1, 1, 60),
+                MakeTrack("SnareDrum", 9, -1, 1, 60),
+                MakeTrack("Cymbal", 9, -1, 1, 60),
+                MakeTrack("Timpani", 9, -1, 1, 60),
+                MakeTrack("Kit", 9, -1, 1, 60),
+                MakePercussionTagTrack(0x01),
+                MakePercussionTagTrack(0x06),
+            });
+            song = MidiFileReader.Load(path);
+            int[] expected = {12, 12, 12, 12, 12, 11, 13, 14, 10, 11, 12, 12};
+            Check(song.LaneInstruments.Count == expected.Length, "percussion regression lanes retained");
+            for (int i = 0; i < expected.Length; i++)
+                Check(MidiInstrumentInference.ForLane(song.LaneInstruments[i]).InstrumentId == expected[i],
+                    "percussion metadata regression track " + i);
+            Check(song.Notes.Count == 13 && song.Notes.Count(n => n.Pitch == 35) == 2,
+                "instrument inference preserves drum notes and pitches");
+            var bassPart = MidiInstrumentInference.ForParty(song,
+                new Dictionary<MidiLaneKey, ulong> {[new(3, 9)] = 200}).Single();
+            Check(bassPart.InstrumentId == 12, "named percussion Bassdrum reaches party assignment as ID 12");
+            Console.WriteLine("PASS: Bassdrum spelling variants, named FFXIV percussion, FF01/FF06 tags, track names, split-track GM, #+12 #Lute and #-12 #Violin, GM/FF04 mapping, member assignments, conflicts, manual overrides, notes unchanged.");
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
@@ -210,6 +246,17 @@ static class Program
         WriteNote(w, 9, 38);
         w.Write(new byte[] {0, 0xFF, 0x2F, 0});
         return buf.ToArray();
+    }
+
+    static byte[] MakePercussionTagTrack(byte kind)
+    {
+        using var buffer = new MemoryStream();
+        using var writer = new BinaryWriter(buffer);
+        WriteMeta(writer, 0x03, "Drums");
+        WriteMeta(writer, kind, "#Bassdrum");
+        WriteNote(writer, 9, 60);
+        writer.Write(new byte[] {0, 0xFF, 0x2F, 0});
+        return buffer.ToArray();
     }
 
     static void WriteNote(BinaryWriter w, int channel, byte pitch)
