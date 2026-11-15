@@ -66,6 +66,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         this.plugin = plugin;
         cfg = plugin.Config;
+        LoadEditorPreferences();
         plugin.LiveMidi.PracticeMidiReceived = OnAcademyMidi;
         fileInput = cfg.LastFile;
         soundFontInput = cfg.PreviewSoundFontPath ?? "";
@@ -79,6 +80,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
+        editorDevices.Dispose();
         plugin.AudioPreview.Stop();
         plugin.LiveMidi.PracticeMidiReceived = null;
         plugin.LiveMidi.PracticeMonitoring = false;

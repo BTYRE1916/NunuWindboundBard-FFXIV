@@ -79,7 +79,7 @@
         if (releaseStatus) releaseStatus.textContent = 'Release information checked with GitHub. The button links to the compiled installer asset.';
       })
       .catch(() => {
-        if (releaseStatus) releaseStatus.textContent = 'Live release information is unavailable. The button keeps the versioned v0.43.0 installer link; you can also open GitHub releases below.';
+        if (releaseStatus) releaseStatus.textContent = 'Live release information is unavailable. The button keeps the versioned installer link; you can also open GitHub releases below.';
       })
       .finally(() => window.clearTimeout(abortTimer));
   }

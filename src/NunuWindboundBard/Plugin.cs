@@ -504,6 +504,7 @@ public sealed class Plugin : IDalamudPlugin
         if (Player.IsPlaying && (AudioPreview.IsPlaying || AudioPreview.IsLoading))
             AudioPreview.Stop("Preview stopped: FFXIV Performance MIDI started.");
         AudioPreview.Poll();
+        main.PollMidiEditor();
         main.PollConcertSetlist();
         main.PollSongTransitions();
         // Updates OBS text only when the MIDI title/playback state changes.

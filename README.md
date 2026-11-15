@@ -1,10 +1,14 @@
-# Windbound MIDI Suite v0.43.1.0
+# Windbound MIDI Suite v0.44.0
+
+**STUDIO → MIDI Editor** adds a direct piano roll, expression lanes, tempo and meter editing, local MIDI playback and keyboard recording. See [START-HERE-v0.44.0.md](START-HERE-v0.44.0.md) for editing controls and install instructions. See [Downloads](https://btyre1916.github.io/NunuWindboundBard-FFXIV/download.html) for the installer.
+
+## Native Performance HUD toggle
 
 **Hide Game Performance HUD** in the main Windbound window hides FFXIV's Performance keyboard, guitar tone selector, and metronome during playback. **Show Game Performance HUD** restores them. The toggle starts off whenever Windbound loads.
 
 See [START-HERE-v0.43.1.md](START-HERE-v0.43.1.md) for the release files, build steps, and GitHub publishing order.
 
-Open **STUDIO → MIDI Workbench** for the native MIDI editor.
+Open **STUDIO → MIDI Workbench** to prepare MIDI arrangements for Bard Performance.
 See [START-HERE-v0.43.0.md](START-HERE-v0.43.0.md) for its tools, export behavior, build instructions and release publishing order.
 
 [Start here for 0.42.4 MP4 and HD preview](START-HERE-v0.42.4.md)

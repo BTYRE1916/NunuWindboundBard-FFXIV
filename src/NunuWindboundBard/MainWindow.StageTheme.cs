@@ -199,6 +199,7 @@ public sealed partial class MainWindow
                 if (ImGui.BeginTabBar("WindboundStudioTabs"))
                 {
                     if (ImGui.BeginTabItem(Loc.T("MIDI Workbench"))) { DrawMidiWorkbench(); ImGui.EndTabItem(); }
+                    if (ImGui.BeginTabItem(Loc.T("MIDI Editor"))) { DrawMidiEditor(); ImGui.EndTabItem(); }
                     if (ImGui.BeginTabItem(Loc.T("Piano Academy"))) { DrawPianoAcademy(); ImGui.EndTabItem(); }
                     if (ImGui.BeginTabItem(Loc.T("Soulweaver Studio"))) { DrawSoulweaver(); ImGui.EndTabItem(); }
                     if (ImGui.BeginTabItem(Loc.T("Audio Preview"))) { DrawAudioPreview(); ImGui.EndTabItem(); }
