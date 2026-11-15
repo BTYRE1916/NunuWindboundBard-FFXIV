@@ -3,9 +3,9 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.44.2.0",
+    "AssemblyVersion": "0.44.3.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
-    "Description": "Windbound Bard MIDI suite with a full piano roll, MIDI event editing, hardware input and output, and local SoundFont audition. Includes same-PC ensemble song sharing, a low-render camera for background followers, MIDI Workbench, Soulweaver Studio, Showmaster, the native Performance HUD toggle, and MP4 concert capture.",
+    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, same-PC ensemble song sharing, a low-render follower camera, Showmaster, and MP4 concert capture. Includes customizable shortcut bars with commands, macros, radial menus, condition sets and shareable layouts.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.2/FFXIVMIDIPLAYER-BY-NUNU-v0.44.2.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.2/FFXIVMIDIPLAYER-BY-NUNU-v0.44.2.zip",
-    "LastUpdate": "1794785087",
-    "Changelog": "Added an opt-in low-render follower camera under BAND → Ensemble. It aims the camera at the ground and narrows the view while a follower performs in the background. Focusing the follower window or leaving Performance restores the normal view."
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.3/FFXIVMIDIPLAYER-BY-NUNU-v0.44.3.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.3/FFXIVMIDIPLAYER-BY-NUNU-v0.44.3.zip",
+    "LastUpdate": "1794786696",
+    "Changelog": "Added Shortcut Bars with dockable layouts, nested categories, spacer labels, game and custom icons, clickable command and macro buttons, radial hotkeys, condition sets and clipboard sharing."
   }
 ]

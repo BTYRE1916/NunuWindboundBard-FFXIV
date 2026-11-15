@@ -161,6 +161,9 @@ public sealed partial class MainWindow
 
     /// <summary>6 navigational workspaces instead of 16 cramped top-level tabs.
     /// The same legacy renderers/controls are invoked, preserving stored IDs and state.</summary>
+    private bool openShortcuts;
+    internal void OpenShortcutEditor() { openShortcuts = true; IsOpen = true; }
+
     private void DrawWindboundWorkspaces()
     {
         if (!ImGui.BeginTabBar("WindboundStageWorkspaces")) return;
@@ -230,12 +233,18 @@ public sealed partial class MainWindow
                 }
                 ImGui.EndTabItem();
             }
-            if (ImGui.BeginTabItem(Loc.T("SETUP")))
+            if (ImGui.BeginTabItem(Loc.T("SETUP"), openShortcuts ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
             {
                 DrawStageWorkspaceTitle("CUSTOMISE YOUR STAGE", "Colours, accessibility, help and installation notes");
                 if (ImGui.BeginTabBar("WindboundSetupTabs"))
                 {
                     if (ImGui.BeginTabItem(Loc.T("Appearance"))) { DrawStageAppearanceSettings(); ImGui.EndTabItem(); }
+                    if (ImGui.BeginTabItem(Loc.T("Shortcut Bars"), openShortcuts ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+                    {
+                        openShortcuts = false;
+                        plugin.Shortcuts.DrawEditor();
+                        ImGui.EndTabItem();
+                    }
                     if (ImGui.BeginTabItem(Loc.T("About / Setup"))) { DrawHelp(); ImGui.EndTabItem(); }
                     ImGui.EndTabBar();
                 }

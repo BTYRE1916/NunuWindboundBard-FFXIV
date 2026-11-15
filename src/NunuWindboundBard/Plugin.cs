@@ -39,6 +39,7 @@ public sealed class Plugin : IDalamudPlugin
     internal readonly MultiDeviceEnsemble Network = new();
     internal readonly GameEnsembleSync GameEnsemble;
     internal readonly GamePartyChatSync PartyChat;
+    internal readonly ShortcutBarsUi Shortcuts;
     internal readonly InstrumentSwitcher Instruments;
     internal readonly LiveMidiInputService LiveMidi = new();
     internal readonly ObsRecordingClient ObsCapture = new();
@@ -72,6 +73,8 @@ public sealed class Plugin : IDalamudPlugin
         var previousConfig = PluginInterface.GetPluginConfig();
         bool isFirstInstall = previousConfig is not Configuration;
         Config = previousConfig as Configuration ?? new Configuration();
+        Config.ShortcutBars ??= new();
+        Config.ShortcutBars.Normalize();
         if (Config.Version < 2)
         {
             Config.ChordStrategy = (int)ChordStrategy.PreserveAll;
@@ -424,6 +427,7 @@ public sealed class Plugin : IDalamudPlugin
         };
         PartyChat = new GamePartyChatSync(Chat, Party, Objects);
         main = new MainWindow(this);
+        Shortcuts = new ShortcutBarsUi(this, main.OpenShortcutEditor);
         windows.AddWindow(main);
         hud = new PerformanceHudWindow(this, main);
         hud.IsOpen = Config.HudVisible;
@@ -520,6 +524,7 @@ public sealed class Plugin : IDalamudPlugin
         // Never uses network I/O on the Dalamud framework thread.
         try { main.PollConcertCaptureSongTitle(); }
         catch (Exception error) { Log.Warning("Concert title overlay update failed: " + error.GetType().Name); }
+        Shortcuts.Update();
     }
 
     private void UpdateFollowerCamera()
@@ -545,6 +550,7 @@ public sealed class Plugin : IDalamudPlugin
     private void Draw()
     {
         windows.Draw();
+        Shortcuts.DrawOverlay();
         // Draw outside the Windbound main ImGui window so pickers remain independent.
         main.DrawFileDialogs();
         // Independent floating rehearsal view remains visible when the main UI is closed.
@@ -554,6 +560,16 @@ public sealed class Plugin : IDalamudPlugin
     private void OnCommand(string command, string args)
     {
         string input = (args ?? string.Empty).Trim();
+        if (input.Equals("bars", StringComparison.OrdinalIgnoreCase))
+        {
+            main.OpenShortcutEditor();
+            return;
+        }
+        if (input.Equals("bars toggle", StringComparison.OrdinalIgnoreCase))
+        {
+            Shortcuts.ToggleVisibility();
+            return;
+        }
         if (input.Equals("recover", StringComparison.OrdinalIgnoreCase) ||
             input.Equals("resetmidi", StringComparison.OrdinalIgnoreCase))
         {

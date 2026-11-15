@@ -3,11 +3,11 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <Version>0.44.2.0</Version>
+    <Version>0.44.3.0</Version>
     <Author>Real Nunu</Author>
     <Name>Nunu's Windbound Bard</Name>
     <Punchline>MIDI Editor, Bard Workbench, native ensembles, and concert capture.</Punchline>
-    <Description>Windbound Bard MIDI suite with a full piano roll, MIDI event editing, hardware input and output, and local SoundFont audition. Includes same-PC ensemble song sharing, a low-render camera for background followers, MIDI Workbench, Soulweaver Studio, Showmaster, the native Performance HUD toggle, and MP4 concert capture.</Description>
+    <Description>Windbound Bard MIDI suite with a piano roll, MIDI Workbench, same-PC ensemble song sharing, a low-render follower camera, Showmaster, and MP4 concert capture. Includes customizable shortcut bars with commands, macros, radial menus, condition sets and shareable layouts.</Description>
     <Tags>bard;midi;performance;music</Tags>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64</Platforms>

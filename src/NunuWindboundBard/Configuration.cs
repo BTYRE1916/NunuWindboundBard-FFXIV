@@ -9,6 +9,7 @@ namespace NunuWindboundBard;
 public sealed class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 39;
+    public ShortcutBarSettings ShortcutBars { get; set; } = new();
     // Capture option is a view preference; selecting it never starts an output.
     public int CaptureBackend { get; set; } = 1; // 0 optional OBS connection, 1 native suite
     // Empty means use the engine bundled beside the plugin. Resolve that path
