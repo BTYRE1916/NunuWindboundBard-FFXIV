@@ -27,6 +27,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui Chat { get; private set; } = null!;
     [PluginService] internal static IDataManager Data { get; private set; } = null!;
     [PluginService] internal static IUnlockState UnlockState { get; private set; } = null!;
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
 
     internal readonly Configuration Config;
     internal (string EngineExecutable, string FfmpegExecutable) CapturePaths =>
@@ -45,11 +46,18 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WindowSystem windows = new("NunuWindboundBard");
     private readonly MainWindow main;
     private readonly PerformanceHudWindow hud;
+    private readonly NativePerformanceHud nativePerformanceHud;
     internal readonly CapturePreviewWindow CapturePreview;
     private volatile bool performing;
     private volatile bool expandedKeyboard;
+    private volatile bool hideNativePerformanceHud;
     internal bool IsPerforming => performing;
     internal bool IsExpandedKeyboard => expandedKeyboard;
+    internal bool HideNativePerformanceHud
+    {
+        get => hideNativePerformanceHud;
+        set => hideNativePerformanceHud = value;
+    }
 
     public Plugin()
     {
@@ -418,6 +426,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = Loc.T("Open Windbound Bard; /windbound recover clears stuck local playback/stage state; /windbound stop stops playback.")
         });
+        nativePerformanceHud = new NativePerformanceHud(AddonLifecycle);
         Framework.Update += OnFrameworkUpdate;
         PluginInterface.UiBuilder.Draw += Draw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMain;
@@ -477,6 +486,12 @@ public sealed class Plugin : IDalamudPlugin
             Instruments.InProgress, Config.LiveMidiTranspose,
             Config.LiveMidiFoldToRange, Config.LiveMidiSustain, Config.LiveMidiChannel);
         Player.Update(performing && expandedKeyboard);
+        try { nativePerformanceHud.Update(performing && hideNativePerformanceHud); }
+        catch (Exception error)
+        {
+            hideNativePerformanceHud = false;
+            Log.Error("Could not update the native Performance HUD: " + error);
+        }
         // Stage navigation is optional and can fail independently (e.g. an IPC
         // provider unload). Never let that interrupt native MIDI event timing.
         try { main.PollStageFormations(); }
@@ -564,6 +579,14 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         Framework.Update -= OnFrameworkUpdate;
+        try
+        {
+            if (!Framework.IsFrameworkUnloading &&
+                !Framework.Run(() => nativePerformanceHud.Update(false)).Wait(TimeSpan.FromSeconds(2)))
+                Log.Warning("Timed out waiting for native Performance HUD restoration.");
+        }
+        catch (Exception error) { Log.Warning("Could not restore the native Performance HUD: " + error.Message); }
+        finally { nativePerformanceHud.Unregister(); }
         PluginInterface.UiBuilder.Draw -= Draw;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMain;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleMain;

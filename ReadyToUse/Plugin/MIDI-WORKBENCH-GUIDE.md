@@ -1,4 +1,4 @@
-# Windbound MIDI Workbench — v0.43.0.0
+# Windbound MIDI Workbench
 
 Open **STUDIO → MIDI Workbench** in the plugin.
 
@@ -44,39 +44,3 @@ The exporter explains these cases instead of silently losing notes.
 
 The native capture engine, MP4 output, HD preview, Soulweaver and Bassdrum fix
 are retained from the preceding release.
-
-## Publishing the repository update
-
-Use **FFXIVMIDIPLAYER-BY-NUNU-v0.43.0.zip** as the GitHub release asset unchanged.
-Create a public release with the exact tag **0.43.0**. Publish the ZIP asset
-before updating the public repository's root **Plugin.json**. The supplied
-manifest points to this exact release tag and filename. Publishing the manifest
-first advertises a download that does not exist yet and results in HTTP 404.
-
-The full-project source archive is for development. Its ReadyToUse/Plugin
-directory contains the same compiled files as the installer ZIP.
-
-## Building
-
-Install the .NET 10 SDK and Dalamud API 15 reference files. On Windows with a
-standard XIVLauncher installation, run:
-
-```powershell
-.\Build-Plugin.ps1 -Configuration Release
-```
-
-This builds both solution projects serially. To publish the standalone native
-capture engine, use Build-CaptureEngine.ps1. The supplied capture EXE remains
-the existing validated 0.42.4 engine; the Workbench changes are in the plugin.
-
-```text
-dotnet run --project Tests/MidiWorkbenchTests.csproj --configuration Release
-dotnet run --project Tests/MidiTrackMetadataSmokeTest.csproj --configuration Release
-```
-
-The full solution builds with zero errors. Workbench regression tests include
-real MIDI export / re-import, tempo changes, lyrics, named percussion, octave
-metadata, undo / redo and preservation of the source file. The compiled DLL is
-also checked for x64, version, memory-loaded configuration and actual Workbench
-MIDI export. The in-game UI and audio device playback still need verification
-in FFXIV on Windows.

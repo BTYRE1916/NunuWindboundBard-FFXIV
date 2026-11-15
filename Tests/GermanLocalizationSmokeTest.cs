@@ -42,11 +42,12 @@ Check(Loc.T("PLAY ENSEMBLE") == "ENSEMBLE ABSPIELEN", "German ensemble command l
 Check(Loc.T("Lute") == "Laute" && Loc.T("Violin") == "Violine", "Instrument names translated");
 Check(Loc.T("No song loaded") == "Kein Song geladen", "German runtime statuses");
 Check(Loc.T("Output not ARMed") == "Ausgabe nicht scharfgeschaltet", "German ready-state diagnostics");
-Check(Loc.GermanTranslationCount >= Loc.FrenchTranslationCount && Loc.GermanTranslationCount == 951, "Complete French catalogue coverage plus extra German labels");
+const int ExpectedGermanTranslationCount = 954;
+Check(Loc.GermanTranslationCount >= Loc.FrenchTranslationCount && Loc.GermanTranslationCount == ExpectedGermanTranslationCount, "Complete French catalogue coverage plus extra German labels");
 
 var field = typeof(Loc).GetField("German", BindingFlags.NonPublic | BindingFlags.Static);
 var german = field?.GetValue(null) as Dictionary<string, string>;
-Check(german is not null && german.Count == 951, "German dictionary available");
+Check(german is not null && german.Count == ExpectedGermanTranslationCount, "German dictionary available");
 foreach (var (english, translation) in german!)
 {
     if (string.IsNullOrWhiteSpace(translation))

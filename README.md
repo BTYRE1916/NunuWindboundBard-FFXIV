@@ -1,6 +1,10 @@
-# Windbound MIDI Suite v0.43.0.0
+# Windbound MIDI Suite v0.43.1.0
 
-Open **STUDIO → MIDI Workbench** for the new native MIDI editor.
+**Hide Game Performance HUD** in the main Windbound window hides FFXIV's Performance keyboard, guitar tone selector, and metronome during playback. **Show Game Performance HUD** restores them. The toggle starts off whenever Windbound loads.
+
+See [START-HERE-v0.43.1.md](START-HERE-v0.43.1.md) for the release files, build steps, and GitHub publishing order.
+
+Open **STUDIO → MIDI Workbench** for the native MIDI editor.
 See [START-HERE-v0.43.0.md](START-HERE-v0.43.0.md) for its tools, export behavior, build instructions and release publishing order.
 
 [Start here for 0.42.4 MP4 and HD preview](START-HERE-v0.42.4.md)

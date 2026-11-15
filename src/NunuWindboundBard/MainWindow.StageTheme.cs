@@ -48,6 +48,14 @@ public sealed partial class MainWindow
             ImGui.EndCombo();
         }
 
+        string nativeHudLabel = plugin.HideNativePerformanceHud
+            ? "Show Game Performance HUD"
+            : "Hide Game Performance HUD";
+        if (ImGui.SmallButton(Loc.T(nativeHudLabel) + "###nativePerformanceHud"))
+            plugin.HideNativePerformanceHud = !plugin.HideNativePerformanceHud;
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Loc.T("Toggle the game's keyboard, guitar tones and metronome display."));
+
         if (cfg.DarkStageThemeEnabled) DrawStageStatusRail();
         else
         {
@@ -92,7 +100,11 @@ public sealed partial class MainWindow
             "SONG  " + StageUiTruncate(string.IsNullOrEmpty(loaded) ? "No MIDI loaded" : Path.GetFileName(loaded),
                 width < 540 ? 28 : 57));
         if (width > 570)
-            draw.AddText(top + new Vector2(width - 108, 14), ImGui.ColorConvertFloat4ToU32(accent), plugin.Player.IsPlaying ? "v0.40.2  LIVE" : "v0.40.2  READY");
+        {
+            string version = Plugin.PluginInterface.Manifest.AssemblyVersion.ToString(3);
+            string state = plugin.Player.IsPlaying ? "LIVE" : "READY";
+            draw.AddText(top + new Vector2(width - 108, 14), ImGui.ColorConvertFloat4ToU32(accent), $"v{version}  {state}");
+        }
         float shimmer = cfg.StageUiMotionEnabled
             ? .65f + .27f * (float)(.5d + .5d * Math.Sin(Environment.TickCount64 / 650d))
             : .8f;

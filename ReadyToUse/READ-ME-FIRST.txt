@@ -1,6 +1,4 @@
-Windbound Bard 0.42.4 - MP4 and HD preview
+Windbound Bard v0.43.1.0
 
-Open START-HERE-v0.42.4.md.
-Ready-to-use plugin: Plugin/NunuWindboundBard.dll
-Keep its CaptureEngine subfolder with the plugin.
-Stop outputs and shut down the idle old engine before updating.
+The Plugin folder contains the compiled Dalamud plugin and native capture engine.
+Keep its contents together. See START-HERE-v0.43.1.md at the project root.

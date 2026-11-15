@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Distribute these generated capture binaries and archives through GitHub Releases.
+/ReadyToUse/Plugin/CaptureEngine/WindboundCaptureEngine.exe
+/ReadyToUse/Plugin/CaptureEngine/ffmpeg.exe
+/FFXIVMIDIPLAYER-BY-NUNU-v*.zip
+/NunuWindboundBard-v*-FullProject*.zip
