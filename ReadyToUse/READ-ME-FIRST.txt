@@ -1,4 +1,0 @@
-Windbound Bard v0.43.1.0
-
-The Plugin folder contains the compiled Dalamud plugin and native capture engine.
-Keep its contents together. See START-HERE-v0.43.1.md at the project root.
