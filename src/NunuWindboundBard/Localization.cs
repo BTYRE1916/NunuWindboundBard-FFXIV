@@ -15,6 +15,9 @@ public static partial class Loc
     private static string selectedLanguage = "en";
     private static readonly Dictionary<string, string> French = new(StringComparer.Ordinal)
     {
+        ["Low-render follower camera"] = "Caméra allégée pour le barde suiveur",
+        ["Aims the camera at the ground while this follower performs in the background. Focus this window to restore the view."] =
+            "Oriente la caméra vers le sol pendant que ce barde joue en arrière-plan. Réactivez cette fenêtre pour retrouver la vue normale.",
         ["Enable Visual Stage Designer (experimental)"] = "Activer l'éditeur visuel de scène (expérimental)",
         ["EMERGENCY: Reset stuck playback"] = "URGENCE : réinitialiser la lecture bloquée",
         ["Also: /windbound recover"] = "Ou : /windbound recover",

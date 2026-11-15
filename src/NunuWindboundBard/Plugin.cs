@@ -47,16 +47,24 @@ public sealed class Plugin : IDalamudPlugin
     private readonly MainWindow main;
     private readonly PerformanceHudWindow hud;
     private readonly NativePerformanceHud nativePerformanceHud;
+    private readonly FollowerCamera followerCamera = new();
     internal readonly CapturePreviewWindow CapturePreview;
     private volatile bool performing;
     private volatile bool expandedKeyboard;
     private volatile bool hideNativePerformanceHud;
+    private volatile bool reduceFollowerRendering;
     internal bool IsPerforming => performing;
     internal bool IsExpandedKeyboard => expandedKeyboard;
     internal bool HideNativePerformanceHud
     {
         get => hideNativePerformanceHud;
         set => hideNativePerformanceHud = value;
+    }
+
+    internal bool ReduceFollowerRendering
+    {
+        get => reduceFollowerRendering;
+        set => reduceFollowerRendering = value;
     }
 
     public Plugin()
@@ -486,6 +494,7 @@ public sealed class Plugin : IDalamudPlugin
             Instruments.InProgress, Config.LiveMidiTranspose,
             Config.LiveMidiFoldToRange, Config.LiveMidiSustain, Config.LiveMidiChannel);
         Player.Update(performing && expandedKeyboard);
+        UpdateFollowerCamera();
         try { nativePerformanceHud.Update(performing && hideNativePerformanceHud); }
         catch (Exception error)
         {
@@ -511,6 +520,26 @@ public sealed class Plugin : IDalamudPlugin
         // Never uses network I/O on the Dalamud framework thread.
         try { main.PollConcertCaptureSongTitle(); }
         catch (Exception error) { Log.Warning("Concert title overlay update failed: " + error.GetType().Name); }
+    }
+
+    private void UpdateFollowerCamera()
+    {
+        if (reduceFollowerRendering &&
+            (Config.EnsembleMode != (int)EnsembleRole.Follower || !ClientState.IsLoggedIn))
+            reduceFollowerRendering = false;
+
+        try
+        {
+            followerCamera.Update(reduceFollowerRendering && performing &&
+                !Conditions[ConditionFlag.BetweenAreas] && !Conditions[ConditionFlag.BetweenAreas51] &&
+                !Conditions[ConditionFlag.WatchingCutscene] && !Conditions[ConditionFlag.WatchingCutscene78] &&
+                !Conditions[ConditionFlag.OccupiedInCutSceneEvent]);
+        }
+        catch (Exception error)
+        {
+            reduceFollowerRendering = false;
+            Log.Warning("Could not update the follower camera: " + error.Message);
+        }
     }
 
     private void Draw()
@@ -580,6 +609,13 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         Framework.Update -= OnFrameworkUpdate;
+        try
+        {
+            if (!Framework.IsFrameworkUnloading &&
+                !Framework.Run(() => followerCamera.Update(false)).Wait(TimeSpan.FromSeconds(2)))
+                Log.Warning("Timed out waiting for follower camera restoration.");
+        }
+        catch (Exception error) { Log.Warning("Could not restore the follower camera: " + error.Message); }
         try
         {
             if (!Framework.IsFrameworkUnloading &&

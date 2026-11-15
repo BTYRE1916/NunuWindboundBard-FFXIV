@@ -1602,6 +1602,14 @@ public sealed partial class MainWindow : Window, IDisposable
             cfg.Save();
         }
         DrawLocalBandSongSync((EnsembleRole)cfg.EnsembleMode);
+        if (cfg.EnsembleMode == (int)EnsembleRole.Follower)
+        {
+            bool reduceRendering = plugin.ReduceFollowerRendering;
+            if (ImGui.Checkbox(Loc.T("Low-render follower camera"), ref reduceRendering))
+                plugin.ReduceFollowerRendering = reduceRendering;
+            if (reduceRendering)
+                ImGui.TextWrapped(Loc.T("Aims the camera at the ground while this follower performs in the background. Focus this window to restore the view."));
+        }
         if (mode == (int)EnsembleRole.Conductor)
         {
             int lead = cfg.EnsembleLeadMilliseconds;
@@ -1732,6 +1740,8 @@ public sealed partial class MainWindow : Window, IDisposable
             }
         }
         cfg.EnsembleMode = (int)role;
+        if (role != EnsembleRole.Follower)
+            plugin.ReduceFollowerRendering = false;
         waitingForEnsembleCue = false;
         songFlow.Cancel();
         ensembleStatus = role switch

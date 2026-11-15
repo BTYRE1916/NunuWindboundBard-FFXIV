@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Every smoke test is a separate executable. Shared obj/apphost files can
+         otherwise run the wrong test when projects build close together. -->
+    <BaseIntermediateOutputPath>obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/$(MSBuildProjectName)/</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildThisFileDirectory)obj/**;$(MSBuildThisFileDirectory)bin/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

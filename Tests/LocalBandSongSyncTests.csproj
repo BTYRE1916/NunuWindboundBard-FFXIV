@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="LocalBandSongSyncTests.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/LocalBandSongSync.cs" Link="LocalBandSongSync.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MidiFileReader.cs" Link="MidiFileReader.cs" />
+    <None Include="../Samples/*.mid" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

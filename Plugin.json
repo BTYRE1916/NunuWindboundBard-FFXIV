@@ -3,9 +3,9 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.44.1.0",
+    "AssemblyVersion": "0.44.2.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
-    "Description": "Windbound Bard MIDI suite with a full piano roll, MIDI event editing, hardware input and output, and local SoundFont audition. Includes same-PC ensemble song sharing, MIDI Workbench, Soulweaver Studio, Showmaster, the native Performance HUD toggle, and MP4 concert capture.",
+    "Description": "Windbound Bard MIDI suite with a full piano roll, MIDI event editing, hardware input and output, and local SoundFont audition. Includes same-PC ensemble song sharing, a low-render camera for background followers, MIDI Workbench, Soulweaver Studio, Showmaster, the native Performance HUD toggle, and MP4 concert capture.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.1/FFXIVMIDIPLAYER-BY-NUNU-v0.44.1.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.1/FFXIVMIDIPLAYER-BY-NUNU-v0.44.1.zip",
-    "LastUpdate": "1794731590",
-    "Changelog": "Added opt-in same-PC song sharing. When the conductor adds a MIDI, followers on the same Windows account and Ensemble stage receive a copy in their active Ensemble playlist. Each follower keeps their own playlist and identical MIDI files are added once."
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.2/FFXIVMIDIPLAYER-BY-NUNU-v0.44.2.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.2/FFXIVMIDIPLAYER-BY-NUNU-v0.44.2.zip",
+    "LastUpdate": "1794785087",
+    "Changelog": "Added an opt-in low-render follower camera under BAND → Ensemble. It aims the camera at the ground and narrows the view while a follower performs in the background. Focusing the follower window or leaving Performance restores the normal view."
   }
 ]

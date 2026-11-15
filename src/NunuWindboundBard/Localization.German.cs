@@ -12,6 +12,9 @@ public static partial class Loc
 {
     private static readonly Dictionary<string, string> German = new(StringComparer.Ordinal)
     {
+        ["Low-render follower camera"] = "Ressourcenschonende Kamera für Begleitbarden",
+        ["Aims the camera at the ground while this follower performs in the background. Focus this window to restore the view."] =
+            "Richtet die Kamera auf den Boden, wenn dieser Begleitbarde im Hintergrund spielt. Wechsle zu diesem Fenster zurück, um die Ansicht wiederherzustellen.",
         ["Enable Visual Stage Designer (experimental)"] = "Visuellen Bühnenplaner aktivieren (experimentell)",
         ["EMERGENCY: Reset stuck playback"] = "NOTFALL: Hängende Wiedergabe zurücksetzen",
         ["Also: /windbound recover"] = "Auch möglich: /windbound recover",
