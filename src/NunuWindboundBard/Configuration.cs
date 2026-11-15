@@ -135,6 +135,7 @@ public sealed class Configuration : IPluginConfiguration
     // v0.16 playlist metadata, stored independently for every named Solo/Ensemble profile.
     public Dictionary<string, SmartPlaylistState> SmartPlaylistsById { get; set; } = new();
     public string EnsembleGroup { get; set; } = "NunuStage";
+    public bool LocalSongSyncEnabled { get; set; }
     // Opt-in private TCP duet mode, never automatically connects on plugin startup.
     // Private session code is intentionally held only in memory, not saved in config.
     public bool MultiDeviceEnabled { get; set; } = false;

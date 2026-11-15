@@ -13,6 +13,8 @@ public sealed class SavedPlaylist
     public string Name { get; set; } = "New playlist";
     public int Purpose { get; set; } // 0 solo, 1 ensemble
     public List<string> Files { get; set; } = new();
+    // Remember imports so a member can remove a shared song from their own playlist.
+    public List<string> LocalSongSyncHashes { get; set; } = new();
 }
 
 public sealed class PlaylistFile
@@ -45,6 +47,7 @@ public static class SavedPlaylistLibrary
             if (string.IsNullOrWhiteSpace(profile.Name)) profile.Name = "Untitled";
             profile.Purpose = profile.Purpose == 1 ? 1 : 0;
             profile.Files ??= new List<string>();
+            profile.LocalSongSyncHashes ??= new List<string>();
         }
         if (cfg.SavedPlaylists.Count == 0)
         {

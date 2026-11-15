@@ -630,6 +630,10 @@ public sealed partial class MainWindow
             }
             else if (!file.LoadRequested)
             {
+                bool sharing = cfg.LocalSongSyncEnabled && localSongSyncContext?.Role == EnsembleRole.Follower;
+                if (sharing && localSongSyncCuePaths.TryGetValue(file.Cue.Hash, out string? sharedPath) &&
+                    !file.Candidates.Contains(sharedPath, StringComparer.OrdinalIgnoreCase))
+                    file.Candidates.Insert(file.SearchCursor, sharedPath);
                 int inspected = 0;
                 while (inspected++ < 4 && file.SearchCursor < file.Candidates.Count)
                 {
@@ -645,7 +649,10 @@ public sealed partial class MainWindow
                     }
                     catch (Exception) { /* Ignore unreadable individual candidate; try the next. */ }
                 }
-                if (!file.LoadRequested && file.SearchCursor >= file.Candidates.Count)
+                // If the conductor selects the song immediately after adding it, give
+                // the local copy a moment to reach this follower's playlist.
+                if (!file.LoadRequested && file.SearchCursor >= file.Candidates.Count &&
+                    (!sharing || now - file.CreatedQpc >= 8 * Stopwatch.Frequency))
                     FailFollowerFile(file, "NOTFOUND", "The conductor's exact MIDI isn't in any local saved playlist.");
             }
             else if (!songFlow.HasPending && !plugin.Player.IsPlaying &&

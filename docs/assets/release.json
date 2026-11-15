@@ -1,11 +1,11 @@
 {
-  "assemblyVersion": "0.44.0.0",
-  "tag": "0.44.0",
+  "assemblyVersion": "0.44.1.0",
+  "tag": "0.44.1",
   "published": null,
-  "download": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.0/FFXIVMIDIPLAYER-BY-NUNU-v0.44.0.zip",
-  "release": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/tag/0.44.0",
-  "assetName": "FFXIVMIDIPLAYER-BY-NUNU-v0.44.0.zip",
-  "assetBytes": 79450460,
-  "sha256": "c15a3add431b1efb3c605cdfc404dc91056d36faedca23270ffcf2800854aa0f",
+  "download": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.1/FFXIVMIDIPLAYER-BY-NUNU-v0.44.1.zip",
+  "release": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/tag/0.44.1",
+  "assetName": "FFXIVMIDIPLAYER-BY-NUNU-v0.44.1.zip",
+  "assetBytes": 79336276,
+  "sha256": "43cdf46e759d93338a3a1100da00b50da529526d16f54c4660b2e23c2e5412db",
   "docsUpdated": "2026-11-15"
 }

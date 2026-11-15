@@ -80,6 +80,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
+        DisposeLocalBandSongSync();
         editorDevices.Dispose();
         plugin.AudioPreview.Stop();
         plugin.LiveMidi.PracticeMidiReceived = null;
@@ -301,6 +302,7 @@ public sealed partial class MainWindow : Window, IDisposable
     // window is closed or FFXIV is in the background. Never advance from Draw().
     public void PollSongTransitions()
     {
+        PollLocalBandSongSync();
         SongFlowAction action = songFlow.Poll(plugin.Player.IsPlaying,
             plugin.Player.CompletedSuccessfully, cfg.AutoNext,
             (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Solo);
@@ -1592,11 +1594,14 @@ public sealed partial class MainWindow : Window, IDisposable
         ImGui.SetNextItemWidth(260);
         if (ImGui.InputText(Loc.T("Ensemble stage / group"), ref group, 50))
         {
+            if (!string.Equals(cfg.EnsembleGroup?.Trim(), group.Trim(), StringComparison.OrdinalIgnoreCase))
+                cfg.LocalSongSyncEnabled = false;
             cfg.EnsembleGroup = group;
             waitingForEnsembleCue = false; // re-arm when changing groups
             plugin.Network.Stop(); // must re-pair with the new stage
             cfg.Save();
         }
+        DrawLocalBandSongSync((EnsembleRole)cfg.EnsembleMode);
         if (mode == (int)EnsembleRole.Conductor)
         {
             int lead = cfg.EnsembleLeadMilliseconds;
