@@ -254,7 +254,7 @@ public sealed class ShortcutBarSettings
     };
 }
 
-internal enum ShortcutStepKind { Command, Wait, Macro }
+internal enum ShortcutStepKind { Command, Wait, Macro, PartyMacro }
 internal readonly record struct ShortcutStep(ShortcutStepKind Kind, string Command = "", int Macro = 0, float Seconds = 0);
 internal sealed record ShortcutSequence(ShortcutStep[] Steps, bool Locked);
 
@@ -276,6 +276,12 @@ internal static class ShortcutCommands
             if (line.StartsWith("//m", StringComparison.OrdinalIgnoreCase) &&
                 int.TryParse(line.AsSpan(3), out int slot) && slot is >= 0 and < 200)
                 steps.Add(new(ShortcutStepKind.Macro, Macro: slot));
+            else if (line.Length is >= 5 and <= 7 && line.StartsWith("//pm", StringComparison.OrdinalIgnoreCase) &&
+                !line.Any(char.IsControl) &&
+                int.TryParse(line.AsSpan(4), System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out int partySlot) &&
+                partySlot is >= 0 and < 200)
+                steps.Add(new(ShortcutStepKind.PartyMacro, Macro: partySlot));
             else if (line.Length < 2 || line[0] != '/' || line[1] == '/' ||
                      line.Any(char.IsControl) || Encoding.UTF8.GetByteCount(line) > 500)
                 continue;

@@ -10,7 +10,7 @@ internal sealed partial class ShortcutBarsUi(Plugin plugin, Action openEditor)
 {
     private const int RadialPageSize = 8;
     private ShortcutBarSettings Settings => plugin.Config.ShortcutBars;
-    private readonly ShortcutBarRuntime runtime = new();
+    private readonly ShortcutBarRuntime runtime = new(plugin);
     private readonly Dictionary<string, int> cyclePositions = new(StringComparer.Ordinal);
     private bool allBarsVisible = true;
     private string selectedBar = "";
@@ -30,6 +30,7 @@ internal sealed partial class ShortcutBarsUi(Plugin plugin, Action openEditor)
     }
 
     internal void Update() => runtime.Update(Settings.Bars.Count > 0);
+    internal void ReceivePartyMacro(PartyCueEnvelope envelope) => runtime.ReceivePartyMacro(envelope);
     internal void ToggleVisibility() => allBarsVisible = !allBarsVisible;
 
     internal void DrawOverlay()

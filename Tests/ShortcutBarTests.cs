@@ -30,6 +30,19 @@ Check(ShortcutCommands.Parse(macro, ShortcutMode.Random, 0).Steps.Single().Kind 
 Check(ShortcutCommands.Parse("/wait Infinity\n/wait -1\n/m\u0000status", ShortcutMode.All, 0).Steps.Length == 0,
     "Malformed waits and control characters are ignored");
 
+var partySequence = ShortcutCommands.Parse("//pm07\n//PM107\n//m107\n/wait 2\n//pm199", ShortcutMode.All, 0);
+Check(partySequence.Steps.Select(step => (step.Kind, step.Macro)).SequenceEqual(new[]
+{
+    (ShortcutStepKind.PartyMacro, 7), (ShortcutStepKind.PartyMacro, 107),
+    (ShortcutStepKind.Macro, 107), (ShortcutStepKind.Wait, 0), (ShortcutStepKind.PartyMacro, 199),
+}), "Party slots and local macros retain their target and sequence order");
+Check(ShortcutCommands.Parse("//pm7\n//m7", ShortcutMode.Cycle, 0).Steps.Single().Kind == ShortcutStepKind.PartyMacro &&
+    ShortcutCommands.Parse("//pm7\n//m7", ShortcutMode.Cycle, 1).Steps.Single().Kind == ShortcutStepKind.Macro,
+    "Cycle can select party or local macro steps independently");
+Check(ShortcutCommands.Parse("//pm0\n//pm99\n//pm100", ShortcutMode.All, 0).Steps.Length == 3 &&
+    ShortcutCommands.Parse("//pm200\n//pm-1\n//pm+7\n//pm7 /echo injection\n//pm7\u0000", ShortcutMode.All, 0).Steps.Length == 0,
+    "Party macro steps enforce the native slot range and reject additional text");
+
 var model = new ShortcutBarSettings();
 var bar = ShortcutBarSettings.CreateExample();
 bar.FunctionKey = 3;

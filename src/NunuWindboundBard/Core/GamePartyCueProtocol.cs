@@ -13,14 +13,14 @@ public enum GamePartyCueKind { Song, Stop, Start, Prepare, Ready, Failed,
     StageProbe, StageReport, NativeArmAll, NativeArmReady, NativeArmFailed,
     FormationCapture, FormationPosition, FormationMove, FormationArrived,
     FormationFailed, FormationStop, ShowmasterStart, ShowmasterStop,
-    ShowmasterStartV2, ShowmasterCheck, ShowmasterAvailabilityReply }
+    ShowmasterStartV2, ShowmasterCheck, ShowmasterAvailabilityReply, PartyMacro }
 public readonly record struct GamePartyCue(GamePartyCueKind Kind, int PlaylistIndex, string Hash,
     long StartUnixMs = 0, int SpeedThousand = 0, string Nonce = "",
     string RosterTag = "", string PackedAssignments = "", string PackedInstruments = "",
     int StageFlags = 0, int StageInstrument = 0, int StageLanes = 0,
     int TargetSlot = 0, bool ArmRequested = false, int ArmReplyCode = 0,
     uint FormationTerritory = 0, Vector3 FormationPosition = default, float FormationHeading = 0,
-    string ShowmasterSteps = "", int ShowmasterMask = 0);
+    string ShowmasterSteps = "", int ShowmasterMask = 0, int MacroSlot = -1);
 
 /// <summary>
 /// A deliberately compact, strictly validated FFXIV party-chat protocol.
@@ -260,6 +260,15 @@ public static class GamePartyCueProtocol
         IsHex(nonce,16) ? $"{Prefix} showstop {nonce.ToUpperInvariant()}" :
         throw new ArgumentException("Invalid show-stop nonce.");
 
+    public static string PartyMacro(string nonce, string rosterTag, long sentUnixMs, int slot)
+    {
+        if (!IsHex(nonce, 16) || !IsHex(rosterTag, 8) ||
+            sentUnixMs is < 1577836800000L or > 4102444800000L || slot is < 0 or >= 200)
+            throw new ArgumentException("Invalid party macro cue.");
+        return FormattableString.Invariant(
+            $"{Prefix} macro {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {sentUnixMs} {slot}");
+    }
+
     // v0.30: positioning is a SEPARATE, opt-in stage utility, never a music START.
     // Coordinates are visible to members of the in-game party. A full performer
     // formation is saved locally on the conductor only; no private data is sent.
@@ -347,6 +356,19 @@ public static class GamePartyCueProtocol
         if (string.IsNullOrWhiteSpace(text) || text.Length > 150) return false;
         string[] p = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (p.Length < 2 || !p[0].Equals(Prefix, StringComparison.OrdinalIgnoreCase)) return false;
+        if (p.Length == 6 && p[1].Equals("macro", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||
+                !long.TryParse(p[4], NumberStyles.None, CultureInfo.InvariantCulture, out long sent) ||
+                sent is < 1577836800000L or > 4102444800000L ||
+                p[5].Length is < 1 or > 3 || !p[5].All(char.IsAsciiDigit) ||
+                !int.TryParse(p[5], NumberStyles.None, CultureInfo.InvariantCulture, out int slot) ||
+                slot is < 0 or >= 200)
+                return false;
+            cue = new GamePartyCue(GamePartyCueKind.PartyMacro, -1, "", StartUnixMs: sent,
+                Nonce: p[2].ToUpperInvariant(), RosterTag: p[3].ToUpperInvariant(), MacroSlot: slot);
+            return true;
+        }
         if (p.Length == 6 && p[1].Equals("show2", StringComparison.OrdinalIgnoreCase))
         {
             if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||

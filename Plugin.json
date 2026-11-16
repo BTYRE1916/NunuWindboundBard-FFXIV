@@ -3,9 +3,9 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.45.0.0",
+    "AssemblyVersion": "0.45.1.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
-    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Concert Director adds same-PC next-bar rejoin, whole-set preflight, timing reports, assigned-part rehearsal and portable concert packs. Includes customizable shortcut bars and same-PC song sharing.",
+    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Includes Concert Director with same-PC next-bar rejoin, setlist preflight, timing reports and rehearsal. Shortcut Bars can cue saved FFXIV macros across the party.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.0/FFXIVMIDIPLAYER-BY-NUNU-v0.45.0.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.0/FFXIVMIDIPLAYER-BY-NUNU-v0.45.0.zip",
-    "LastUpdate": "1794798429",
-    "Changelog": "Concert Director adds same-PC next-bar rejoin, whole-Ensemble restart, timing reports, setlist preflight, assigned-part SoundFont rehearsal and portable concert packs."
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.1/FFXIVMIDIPLAYER-BY-NUNU-v0.45.1.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.1/FFXIVMIDIPLAYER-BY-NUNU-v0.45.1.zip",
+    "LastUpdate": "1794830625",
+    "Changelog": "Shortcut Bars can cue saved FFXIV macros across the conductor’s party. Followers opt in for their current party."
   }
 ]

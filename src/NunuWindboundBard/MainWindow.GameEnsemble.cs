@@ -180,6 +180,8 @@ public sealed partial class MainWindow
                 continue;
             }
             if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower) continue;
+            if (cue.Kind == GamePartyCueKind.PartyMacro)
+            { plugin.Shortcuts.ReceivePartyMacro(envelope); continue; }
             if (cue.Kind is GamePartyCueKind.ShowmasterStart or GamePartyCueKind.ShowmasterStartV2)
             { ReceiveShowmasterStart(cue); continue; }
             if (cue.Kind == GamePartyCueKind.ShowmasterCheck)

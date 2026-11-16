@@ -8,8 +8,9 @@ using GameFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework
 
 namespace NunuWindboundBard.Core;
 
-internal sealed class ShortcutBarRuntime
+internal sealed partial class ShortcutBarRuntime
 {
+    private readonly Plugin plugin;
     private ShortcutSequence? requested;
     private ShortcutSequence? running;
     private volatile string status = "";
@@ -17,6 +18,8 @@ internal sealed class ShortcutBarRuntime
     private int stepIndex;
     private int clearRequested;
     private long readyAt;
+
+    internal ShortcutBarRuntime(Plugin plugin) => this.plugin = plugin;
 
     internal string Status => status;
     internal bool CanActivate => canActivate;
@@ -71,6 +74,7 @@ internal sealed class ShortcutBarRuntime
 
     internal void Update(bool hasBars)
     {
+        RefreshPartyMacroPermission();
         canActivate = hasBars && IsReadyForInput();
         var next = Interlocked.Exchange(ref requested, null);
         if (Interlocked.Exchange(ref clearRequested, 0) != 0)
@@ -116,6 +120,11 @@ internal sealed class ShortcutBarRuntime
 
         try
         {
+            if (step.Kind == ShortcutStepKind.PartyMacro)
+            {
+                BroadcastPartyMacro(step.Macro);
+                return;
+            }
             if (step.Kind == ShortcutStepKind.Macro)
                 ExecuteMacro(step.Macro);
             else
@@ -141,14 +150,20 @@ internal sealed class ShortcutBarRuntime
         finally { message->Dtor(true); }
     }
 
-    private static unsafe void ExecuteMacro(int index)
+    private static unsafe RaptureMacroModule.Macro* FindMacro(int index)
     {
         var macros = RaptureMacroModule.Instance();
-        var shell = RaptureShellModule.Instance();
-        if (macros == null || shell == null) throw new InvalidOperationException("FFXIV macros are unavailable.");
+        if (macros == null) throw new InvalidOperationException("FFXIV macros are unavailable.");
         var macro = macros->GetMacro((uint)(index / 100), (uint)(index % 100));
         if (macro == null || macros->GetLineCount(macro) == 0)
             throw new InvalidOperationException("That FFXIV macro slot is empty.");
-        shell->ExecuteMacro(macro);
+        return macro;
+    }
+
+    private static unsafe void ExecuteMacro(int index)
+    {
+        var shell = RaptureShellModule.Instance();
+        if (shell == null) throw new InvalidOperationException("FFXIV macros are unavailable.");
+        shell->ExecuteMacro(FindMacro(index));
     }
 }

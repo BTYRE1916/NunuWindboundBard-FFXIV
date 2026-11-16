@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
@@ -15,7 +16,7 @@ namespace NunuWindboundBard.Core;
 /// Only a verified party leader can request file/instrument changes. Replies
 /// must resolve to a unique party member, including cross-world player links.
 /// </summary>
-public readonly record struct PartyCueEnvelope(GamePartyCue Cue, ulong SenderContentId);
+public readonly record struct PartyCueEnvelope(GamePartyCue Cue, ulong SenderContentId, long ReceivedAt = 0);
 
 public sealed unsafe class GamePartyChatSync : IDisposable
 {
@@ -107,7 +108,7 @@ public sealed unsafe class GamePartyChatSync : IDisposable
             { Reject("Command sender is a party member, but is NOT the actual party leader."); return; }
             if (isReply && senderId == 0)
             { Reject("Could not verify the follower sending the READY/FAIL reply."); return; }
-            pending.Enqueue(new PartyCueEnvelope(cue, senderId));
+            pending.Enqueue(new PartyCueEnvelope(cue, senderId, Stopwatch.GetTimestamp()));
             accepted++;
             Status = "Accepted verified " + (cue.Kind switch
             {
