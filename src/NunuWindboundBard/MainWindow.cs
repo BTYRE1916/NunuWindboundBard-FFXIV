@@ -1439,8 +1439,15 @@ public sealed partial class MainWindow : Window, IDisposable
     private void DrawPartyAssignmentControls(EnsembleRole role)
     {
         if (role == EnsembleRole.Solo) return;
-        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f), Loc.T("PARTY-ROSTER TRACK ASSIGNMENTS"));
-        var choices = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
+        bool relay = IsRelayBandEnabled;
+        if (relay && role == EnsembleRole.Follower)
+        {
+            ImGui.TextDisabled(Loc.T("Hosted Band assigns your parts from the conductor's connected roster."));
+            return;
+        }
+        ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f),
+            Loc.T(relay ? "BAND TRACK ASSIGNMENTS" : "PARTY-ROSTER TRACK ASSIGNMENTS"));
+        var choices = relay ? GetConnectedBandChoices() : PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
         // Portraits are now managed in the dedicated Band Portraits tab,
         // available even while Solo is selected. Track thumbnails remain here.
         ImGui.TextDisabled(Loc.T("Manage member pictures in the Band Portraits tab."));
@@ -1448,7 +1455,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             if (song is null)
             {
-                ImGui.TextDisabled(Loc.T("Load an Ensemble MIDI to choose party members for each part."));
+                ImGui.TextDisabled(Loc.T("Load an Ensemble MIDI to choose a performer for each part."));
                 return;
             }
             if (choices.Count == 0)
@@ -1464,7 +1471,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 if (DrawMemberPortraitThumbnail(selected, 27f)) ImGui.SameLine(0f, 5f);
                 ImGui.SetNextItemWidth(Math.Min(330, Math.Max(190, ImGui.GetContentRegionAvail().X)));
                 string label = selected == 0 ? "Unassigned / silent" :
-                    choices.FirstOrDefault(x => x.ContentId == selected)?.Name ?? "Player no longer in party";
+                    choices.FirstOrDefault(x => x.ContentId == selected)?.Name ?? "Performer unavailable";
                 if (ImGui.BeginCombo($"##PartyForTrack{lane.Key.Track}_{lane.Key.Channel}", Loc.T(label)))
                 {
                     if (ImGui.Selectable(Loc.T("Unassigned / silent"), selected == 0)) SetPartyAssignment(lane.Key, 0);
@@ -1501,6 +1508,7 @@ public sealed partial class MainWindow : Window, IDisposable
             if (ImGui.SmallButton(Loc.T("Publish assignments")))
             {
                 TryPublishPartyAssignments();
+                if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting) TryShareNetworkSession();
                 if (NativeSyncEnabled) BroadcastNativeFile();
             }
             if (NativeSyncEnabled)
@@ -1999,18 +2007,30 @@ public sealed partial class MainWindow : Window, IDisposable
         bool multi = cfg.MultiDeviceEnabled;
         if (ImGui.Checkbox(Loc.T("Enable Multi-Device (two or more PCs)"), ref multi))
         {
-            plugin.Network.Stop();
+            ResetNetworkConnection();
             cfg.MultiDeviceEnabled = multi;
-            waitingForEnsembleCue = false;
-            networkRevision = 0;
-            networkSongHash = "";
-            networkArrangement = null;
             networkStatus = multi ? "Multi-Device enabled. Host or join a private stage below." : "Local same-PC ensemble mode.";
             cfg.Save();
         }
         if (!multi)
         {
             ImGui.TextDisabled(Loc.T("LOCAL mode: all Windbound Bard clients share the same Windows PC. No network connection required."));
+            return;
+        }
+        bool relay = cfg.MultiDeviceUseRelay;
+        ImGui.BeginDisabled(plugin.Network.IsHosting || plugin.Network.IsConnected || plugin.Network.IsJoining);
+        if (ImGui.Checkbox(Loc.T("Use hosted band with join code"), ref relay))
+        {
+            ResetNetworkConnection();
+            cfg.MultiDeviceUseRelay = relay;
+            networkStatus = "";
+            cfg.Save();
+        }
+        ImGui.EndDisabled();
+        if (relay)
+        {
+            DrawRelayBandControls(role);
+            DrawNetworkStatus();
             return;
         }
         ImGui.TextColored(new Vector4(.58f, .94f, .98f, 1f), Loc.T("PRIVATE MULTI-DEVICE ENSEMBLE"));
@@ -2051,15 +2071,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 }
                 ImGui.SameLine();
                 if (ImGui.SmallButton(Loc.T("Send updated MIDI + assignments"))) TryShareNetworkSession();
-                ImGui.TextUnformatted(Loc.T("Connected Windbound performers:"));
-                var performers = plugin.Network.Performers;
-                if (performers.Count == 0) ImGui.TextDisabled(Loc.T("No followers connected yet."));
-                foreach (var peer in performers)
-                {
-                    var color = peer.Ready ? new Vector4(.45f, .96f, .58f, 1f) : new Vector4(1f, .77f, .38f, 1f);
-                    ImGui.TextColored(color, Loc.T($"{peer.Character} — {(peer.Ready ? "READY" : "WAITING")} (rev {peer.Revision})"));
-                    if (!peer.Ready) ImGui.TextWrapped(Loc.T("   " + peer.Detail));
-                }
+                DrawNetworkPerformers();
             }
         }
         else if (role == EnsembleRole.Follower)
@@ -2094,8 +2106,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ImGui.TextDisabled(Loc.T("MIDI is received into your plugin cache, never added to your saved Solo/Ensemble playlists."));
         }
         else ImGui.TextDisabled(Loc.T("Choose Conductor to HOST or Follower to JOIN."));
-        ImGui.TextWrapped(Loc.T(plugin.Network.Status));
-        if (!string.IsNullOrEmpty(networkStatus)) ImGui.TextWrapped(Loc.T(networkStatus));
+        DrawNetworkStatus();
         ImGui.TextDisabled(Loc.T("Connection code is only kept in memory. Reconnect after restarting FFXIV. Never expose TCP port publicly."));
     }
 
@@ -2105,8 +2116,8 @@ public sealed partial class MainWindow : Window, IDisposable
         if (song is null || arranged is null || string.IsNullOrWhiteSpace(loaded))
             throw new InvalidOperationException("Load a MIDI first.");
         if (partyAssignments.Count == 0)
-            throw new InvalidOperationException("Assign the MIDI tracks to yourself and Edea in the party dropdowns first.");
-        if (plugin.Player.IsPlaying) throw new InvalidOperationException("STOP the current song before starting another duet.");
+            throw new InvalidOperationException("Assign MIDI tracks to your performers before cueing the band.");
+        if (plugin.Player.IsPlaying) throw new InvalidOperationException("STOP the current song before starting another.");
         if (!TryShareNetworkSession())
             throw new InvalidOperationException("MIDI/assignment sharing failed: " + networkStatus);
         if (!plugin.Network.CanCue(out string reason))
@@ -2165,6 +2176,12 @@ public sealed partial class MainWindow : Window, IDisposable
                 switch (notice.Kind)
                 {
                     case NetworkNoticeKind.Connected:
+                        if (IsRelayBandEnabled && plugin.Network.IsHosting)
+                            TryShareNetworkSession();
+                        else if (IsRelayBandEnabled && plugin.Network.IsConnected)
+                            relayBandCode = "";
+                        networkStatus = notice.Detail;
+                        break;
                     case NetworkNoticeKind.Error:
                         networkStatus = notice.Detail;
                         break;

@@ -32,13 +32,11 @@ public sealed record NetworkPerformer(string Character, ulong ContentId, bool Re
     double AgeSeconds, long Revision);
 
 /// <summary>
-/// Authenticated, private-network, cross-device ensemble transport. The wire protocol is
-/// framed JSON over TCP. Session code is authenticated by challenge/response HMAC (never
-/// sent in the clear). MIDI and other messages are NOT encrypted: use a trusted LAN or
-/// an encrypted private network such as Tailscale; NEVER forward this TCP port publicly.
+/// Clock and MIDI protocol used by direct private-network connections and hosted bands.
+/// Direct TCP requires a trusted network. Hosted bands use a TLS stream over the relay.
 /// Does not use game chat, SendInput, or any MIDI playback API.
 /// </summary>
-public sealed class MultiDeviceEnsemble : IDisposable
+public sealed partial class MultiDeviceEnsemble : IDisposable
 {
     public const int DefaultPort = 47542;
     public const int MaxMidiBytes = 4 * 1024 * 1024;
@@ -51,8 +49,6 @@ public sealed class MultiDeviceEnsemble : IDisposable
     private TcpListener? listener;
     private Peer? hostPeer;
     private int nextPeerId;
-    private string sessionCode = "";
-    private string group = "";
     private string status = "Multi-device disconnected.";
     private bool hosting;
     private bool joining;
@@ -108,10 +104,9 @@ public sealed class MultiDeviceEnsemble : IDisposable
         public int SpeedThousand { get; set; } = 1000;
     }
 
-    private sealed class Peer(TcpClient client, string name, ulong contentId, int id)
+    private sealed class Peer(Stream stream, string name, ulong contentId, int id)
     {
-        public TcpClient Client { get; } = client;
-        public NetworkStream Stream { get; } = client.GetStream();
+        public Stream Stream { get; } = stream;
         public string Name { get; } = name;
         public ulong ContentId { get; } = contentId;
         public int Id { get; } = id;
@@ -125,7 +120,7 @@ public sealed class MultiDeviceEnsemble : IDisposable
         public void Close()
         {
             Outgoing.Writer.TryComplete();
-            try { Client.Close(); } catch { /* closing */ }
+            try { Stream.Dispose(); } catch { /* closing */ }
         }
     }
 
@@ -192,10 +187,10 @@ public sealed class MultiDeviceEnsemble : IDisposable
         lock (gate)
         {
             cancel = cts; listener = l; hosting = true; joining = false;
-            group = stage; sessionCode = code; revision = 0;
+            revision = 0;
             status = $"Hosting private stage '{stage}' on TCP {port}. Waiting for a follower...";
         }
-        _ = AcceptLoopAsync(l, cts.Token);
+        _ = AcceptLoopAsync(l, stage, code, cts.Token);
     }
 
     public void Join(string address, int port, string stage, string code, string character, ulong contentId)
@@ -210,10 +205,11 @@ public sealed class MultiDeviceEnsemble : IDisposable
         var cts = new CancellationTokenSource();
         lock (gate)
         {
-            cancel = cts; hosting = false; joining = true; group = stage; sessionCode = code;
+            cancel = cts; hosting = false; joining = true;
             status = $"Connecting to {address}:{port}...";
         }
-        _ = JoinLoopAsync(address.Trim(), port, stage, code, character, contentId, cts.Token);
+        _ = JoinLoopAsync(ct => ConnectDirectAsync(address.Trim(), port, ct),
+            stage, code, character, contentId, cts.Token);
     }
 
     private static void ValidateStageAndCode(string stage, string code)
@@ -224,7 +220,22 @@ public sealed class MultiDeviceEnsemble : IDisposable
             throw new ArgumentException("A session code of at least 8 characters is required.");
     }
 
-    private async Task AcceptLoopAsync(TcpListener l, CancellationToken ct)
+    private static async Task<Stream> ConnectDirectAsync(string address, int port, CancellationToken ct)
+    {
+        var client = new TcpClient { NoDelay = true };
+        try
+        {
+            await client.ConnectAsync(address, port, ct).ConfigureAwait(false);
+            return client.GetStream();
+        }
+        catch
+        {
+            client.Dispose();
+            throw;
+        }
+    }
+
+    private async Task AcceptLoopAsync(TcpListener l, string stage, string code, CancellationToken ct)
     {
         try
         {
@@ -232,7 +243,7 @@ public sealed class MultiDeviceEnsemble : IDisposable
             {
                 TcpClient client = await l.AcceptTcpClientAsync(ct).ConfigureAwait(false);
                 client.NoDelay = true;
-                _ = HostPeerAsync(client, ct);
+                _ = HostPeerAsync(client.GetStream(), stage, code, ct);
             }
         }
         catch (OperationCanceledException) { }
@@ -240,30 +251,34 @@ public sealed class MultiDeviceEnsemble : IDisposable
         catch (Exception ex) { if (!ct.IsCancellationRequested) notices.Enqueue(new(NetworkNoticeKind.Error, "Host listen failed: " + ex.Message)); }
     }
 
-    private async Task HostPeerAsync(TcpClient client, CancellationToken ct)
+    private async Task HostPeerAsync(Stream stream, string stage, string code, CancellationToken ct)
     {
         Peer? peer = null;
         try
         {
-            NetworkStream stream = client.GetStream();
             using var handshakeTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             handshakeTimeout.CancelAfter(TimeSpan.FromSeconds(10));
             string nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
             await WriteAsync(stream, new Wire { Type = "Challenge", Nonce = nonce }, handshakeTimeout.Token).ConfigureAwait(false);
             var hello = await ReadAsync(stream, handshakeTimeout.Token).ConfigureAwait(false);
-            if (hello.Type != "Hello" || hello.Stage != group || hello.ContentId == 0 ||
+            if (hello.Type != "Hello" || hello.Stage != stage || hello.ContentId == 0 ||
                 hello.Character.Length is < 1 or > 100 || hello.ClientNonce.Length != 48 ||
-                !ProofMatches(hello.Proof, ComputeProof(sessionCode, "client", nonce, hello.ClientNonce,
-                    group, hello.ContentId)))
+                !ProofMatches(hello.Proof, ComputeProof(code, "client", nonce, hello.ClientNonce,
+                    stage, hello.ContentId)))
                 throw new UnauthorizedAccessException("Invalid session code/stage or player identity.");
-            string proof = ComputeProof(sessionCode, "server", nonce, hello.ClientNonce, group, hello.ContentId);
+            string proof = ComputeProof(code, "server", nonce, hello.ClientNonce, stage, hello.ContentId);
             await WriteAsync(stream, new Wire { Type = "Welcome", Proof = proof }, handshakeTimeout.Token).ConfigureAwait(false);
-            peer = new Peer(client, hello.Character, hello.ContentId, Interlocked.Increment(ref nextPeerId));
-            peers[peer.Id] = peer;
-            notices.Enqueue(new(NetworkNoticeKind.Connected, $"{peer.Name} joined the stage."));
-            Wire? session;
-            lock (gate) session = currentSession;
-            if (session is not null) peer.Send(session);
+            lock (gate)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (cancel is null || cancel.Token != ct) return;
+                if (peers.Values.Any(existing => existing.ContentId == hello.ContentId))
+                    throw new InvalidOperationException("That character already joined the stage.");
+                peer = new Peer(stream, hello.Character, hello.ContentId, Interlocked.Increment(ref nextPeerId));
+                peers[peer.Id] = peer;
+                if (currentSession is { } session) peer.Send(session);
+                notices.Enqueue(new(NetworkNoticeKind.Connected, $"{peer.Name} joined the stage."));
+            }
             await RunPeerAsync(peer, ct, isHostSide: true).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { }
@@ -279,25 +294,24 @@ public sealed class MultiDeviceEnsemble : IDisposable
             if (peer is not null)
             {
                 peers.TryRemove(peer.Id, out _);
-                notices.Enqueue(new(NetworkNoticeKind.Disconnected, $"{peer.Name} disconnected."));
+                if (!ct.IsCancellationRequested)
+                    notices.Enqueue(new(NetworkNoticeKind.Disconnected, $"{peer.Name} disconnected."));
                 peer.Close();
             }
-            else client.Dispose();
+            else stream.Dispose();
         }
     }
 
-    private async Task JoinLoopAsync(string address, int port, string stage, string code,
+    private async Task JoinLoopAsync(Func<CancellationToken, Task<Stream>> connect, string stage, string code,
         string character, ulong contentId, CancellationToken ct)
     {
-        TcpClient? client = null;
+        Stream? stream = null;
         Peer? peer = null;
         try
         {
-            client = new TcpClient { NoDelay = true };
             using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            connectTimeout.CancelAfter(TimeSpan.FromSeconds(9));
-            await client.ConnectAsync(address, port, connectTimeout.Token).ConfigureAwait(false);
-            var stream = client.GetStream();
+            connectTimeout.CancelAfter(TimeSpan.FromSeconds(12));
+            stream = await connect(connectTimeout.Token).ConfigureAwait(false);
             var challenge = await ReadAsync(stream, connectTimeout.Token).ConfigureAwait(false);
             if (challenge.Type != "Challenge" || challenge.Nonce.Length != 48)
                 throw new InvalidDataException("Conductor did not send a valid challenge.");
@@ -312,8 +326,15 @@ public sealed class MultiDeviceEnsemble : IDisposable
             if (welcome.Type != "Welcome" || !ProofMatches(welcome.Proof,
                     ComputeProof(code, "server", challenge.Nonce, clientNonce, stage, contentId)))
                 throw new UnauthorizedAccessException("The conductor's session code does not match.");
-            peer = new Peer(client, "Conductor", 0, 0);
-            lock (gate) { hostPeer = peer; status = "Connected! Synchronising clocks and receiving MIDI..."; }
+            lock (gate)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (cancel is null || cancel.Token != ct) return;
+                peer = new Peer(stream, "Conductor", 0, 0);
+                hostPeer = peer;
+                joining = false;
+                status = "Connected! Synchronising clocks and receiving MIDI...";
+            }
             notices.Enqueue(new(NetworkNoticeKind.Connected, "Connected to conductor."));
             await RunPeerAsync(peer, ct, isHostSide: false).ConfigureAwait(false);
         }
@@ -331,12 +352,15 @@ public sealed class MultiDeviceEnsemble : IDisposable
         finally
         {
             peer?.Close();
-            client?.Dispose();
+            if (peer is null) stream?.Dispose();
             lock (gate)
             {
-                if (ReferenceEquals(hostPeer, peer)) hostPeer = null;
-                hostClockOffsetMs = null; clockSamples.Clear(); joining = false;
-                if (!ct.IsCancellationRequested) status = "Disconnected from conductor.";
+                if (cancel is not null && cancel.Token == ct)
+                {
+                    hostPeer = null;
+                    hostClockOffsetMs = null; clockSamples.Clear(); joining = false;
+                    status = "Disconnected from conductor.";
+                }
             }
             if (!ct.IsCancellationRequested) notices.Enqueue(new(NetworkNoticeKind.Disconnected,
                 "Connection to conductor lost. Ensemble stopped."));
@@ -491,9 +515,14 @@ public sealed class MultiDeviceEnsemble : IDisposable
                 Data = Convert.ToBase64String(data), Arrangement = normalized,
                 Assignments = ordered, Revision = newRev };
             currentSession = newSession;
-            foreach (var peer in peers.Values) { peer.Ready = false; peer.ReadyRevision = 0; peer.ReadyDetail = "Applying updated song/parts..."; }
+            foreach (var peer in peers.Values)
+            {
+                peer.Ready = false;
+                peer.ReadyRevision = 0;
+                peer.ReadyDetail = "Applying updated song/parts...";
+                peer.Send(newSession);
+            }
         }
-        foreach (var peer in peers.Values) peer.Send(newSession);
         return true;
     }
 
@@ -558,7 +587,7 @@ public sealed class MultiDeviceEnsemble : IDisposable
             old = cancel; cancel = null; oldListener = listener; listener = null;
             oldHost = hostPeer; hostPeer = null;
             hosting = false; joining = false; status = "Multi-device disconnected.";
-            sessionCode = ""; group = ""; currentSession = null; sessionFingerprint = "";
+            relayJoinCode = ""; currentSession = null; sessionFingerprint = "";
             hostClockOffsetMs = null; clockSamples.Clear(); roundTripMs = 0;
         }
         try { old?.Cancel(); } catch { /* ignore */ }

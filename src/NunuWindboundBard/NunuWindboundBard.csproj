@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <Version>0.45.3.0</Version>
+    <Version>0.46.0.0</Version>
     <Author>Real Nunu</Author>
     <Name>Nunu's Windbound Bard</Name>
     <Punchline>MIDI Editor, Bard Workbench, native ensembles, and concert capture.</Punchline>
@@ -14,6 +14,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/OrchestraRelayProtocol.cs" Link="Core/OrchestraRelayProtocol.cs" />
+  </ItemGroup>
   <ItemGroup>
     <!-- Local rehearsal only: MeltySynth renders SF2; NAudio WinMM plays 16-bit PCM.
          NuGet dependencies are distributed beside the plugin DLL by the SDK build. -->
