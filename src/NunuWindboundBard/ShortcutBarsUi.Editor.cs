@@ -10,7 +10,6 @@ internal sealed partial class ShortcutBarsUi
     private ShortcutBarSettings.Share? pendingImport;
     private string editorStatus = "";
     private bool showIcons;
-    private int iconPage = 580;
     private string? customIconsDirectory;
     private string CustomIconsDirectory => customIconsDirectory ??=
         Path.Combine(Plugin.PluginInterface.GetPluginConfigDirectory(), "ShortcutIcons");
@@ -286,8 +285,9 @@ internal sealed partial class ShortcutBarsUi
             changed |= ImGui.InputText("Tooltip", ref tip, 512);
             changed |= EnumCombo("Mode", ref mode);
             changed |= ImGui.InputInt("Game icon ID", ref icon, 1, 100);
-            if (ImGui.SmallButton(showIcons ? "Close icon browser" : "Browse game icons")) showIcons = !showIcons;
-            if (showIcons && DrawIconBrowser(ref icon)) changed = true;
+            bool toggleIcons = ImGui.SmallButton(showIcons ? "Close icon browser" : "Browse game icons");
+            if (toggleIcons) showIcons = !showIcons;
+            if (showIcons && DrawIconBrowser(ref icon, toggleIcons)) changed = true;
             changed |= ImGui.InputText("Custom PNG filename", ref customIcon, 128);
             if (customIcon.Length > 0 && ShortcutBarSettings.CleanIconName(customIcon).Length == 0)
                 ImGui.TextDisabled("Use a PNG filename with no folder path.");
@@ -318,42 +318,6 @@ internal sealed partial class ShortcutBarsUi
             plugin.Config.Save();
         }
         ImGui.PopID();
-    }
-
-    private bool DrawIconBrowser(ref int selectedIcon)
-    {
-        const int pageSize = 32;
-        int first = iconPage;
-        if (ImGui.SmallButton("Previous icons")) first -= pageSize;
-        ImGui.SameLine();
-        if (ImGui.SmallButton("Next icons")) first += pageSize;
-        ImGui.SetNextItemWidth(130);
-        ImGui.InputInt("First icon ID", ref first);
-        iconPage = Math.Clamp(first, 1, 999999 - pageSize);
-        bool changed = false;
-        int columns = Math.Clamp((int)(ImGui.GetContentRegionAvail().X / 43), 3, 12);
-        for (int i = 0; i < pageSize; i++)
-        {
-            int id = iconPage + i;
-            if (i % columns != 0) ImGui.SameLine();
-            if (ImGui.Button("###Icon" + id, new Vector2(34, 34)))
-            {
-                selectedIcon = id;
-                changed = true;
-            }
-            if (TryGameIcon(id, out var icon) && icon is not null)
-            {
-                Vector2 at = ImGui.GetItemRectMin() + new Vector2(2);
-                ImGui.GetWindowDrawList().AddImage(icon.Handle, at, at + new Vector2(30));
-            }
-            else
-            {
-                var at = ImGui.GetItemRectMin() + new Vector2(9, 8);
-                ImGui.GetWindowDrawList().AddText(at, 0xFFD6C4E3, "?");
-            }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Game icon {id}");
-        }
-        return changed;
     }
 
     private void DrawConditions()
