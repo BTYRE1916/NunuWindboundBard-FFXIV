@@ -22,6 +22,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static IObjectTable Objects { get; private set; } = null!;
+    [PluginService] internal static ITargetManager Targets { get; private set; } = null!;
     [PluginService] internal static IPartyList Party { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IChatGui Chat { get; private set; } = null!;

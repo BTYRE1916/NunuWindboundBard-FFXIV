@@ -46,6 +46,41 @@ try
         !GamePartyCueProtocol.TryParse($"!windbound macro {nonce} bad {sentAt} 7", out _) &&
         !GamePartyCueProtocol.TryParse($"!windbound macro {nonce} {roster} 0 7", out _),
         "party macro cues require a nonce, roster tag and plausible timestamp");
-    Console.WriteLine("PASS: song, stop and party macro protocol, invalid commands and bounds.");
+    const uint zone = 339;
+    string follow = GamePartyCueProtocol.PartyFollow(nonce, roster, zone, sentAt);
+    Check(follow.Length <= GamePartyCueProtocol.MaxChatCharacters, "follow fits party chat");
+    Check(GamePartyCueProtocol.TryParse(follow, out var followCue) &&
+        followCue.Kind == GamePartyCueKind.PartyFollow && followCue.FormationTerritory == zone &&
+        followCue.StartUnixMs == sentAt && followCue.RosterTag == "AABBCCDD" &&
+        followCue.Nonce == "1234567890ABCDEF", "follow round trip");
+    foreach (string bad in new[]
+    {
+        $"!windbound follow {nonce} {roster} 0 {sentAt}",
+        $"!windbound follow {nonce} {roster} 65536 {sentAt}",
+        $"!windbound follow {nonce} {roster} 339 0",
+        $"!windbound follow {nonce} {roster} 339 {sentAt} /teleport",
+        $"!windbound follow {nonce} {roster} 339\u0000 {sentAt}",
+    })
+        Check(!GamePartyCueProtocol.TryParse(bad, out _), "reject an invalid follow cue");
+
+    var permission = new PartyFollowPermission();
+    var scope = new PartyFollowScope(30, 5, "AABBCCDD");
+    Check(!permission.TryAccept(followCue, 5, 100, scope, zone, sentAt), "follow requires opt-in");
+    permission.Set(scope, 100);
+    Check(!permission.TryAccept(followCue, 5, 99, scope, zone, sentAt), "follow ignores cues queued before opt-in");
+    Check(!permission.TryAccept(followCue, 6, 101, scope, zone, sentAt), "follow rejects non-leader sender");
+    Check(!permission.TryAccept(followCue, 5, 101, scope with { RosterTag = "AABBCCEE" }, zone, sentAt),
+        "follow rejects changed party roster");
+    Check(!permission.TryAccept(followCue, 5, 101, scope, zone + 1, sentAt), "follow rejects another territory");
+    Check(!permission.TryAccept(followCue, 5, 101, scope, zone, sentAt + 15_001), "follow rejects expired cues");
+    Check(!permission.TryAccept(followCue, 5, 101, scope, zone, sentAt - 15_001), "follow rejects far-future cues");
+    Check(permission.TryAccept(followCue, 5, 101, scope, zone, sentAt), "follow accepts consented leader cue");
+    Check(!permission.TryAccept(followCue, 5, 102, scope, zone, sentAt), "follow ignores replayed cue");
+    permission.Set(null, 103);
+    var nextCue = followCue with { Nonce = "FEDCBA0987654321" };
+    Check(!permission.TryAccept(nextCue, 5, 104, scope, zone, sentAt), "revoking permission blocks later cues");
+    permission.Set(scope, 105);
+    Check(permission.TryAccept(nextCue, 5, 106, scope, zone, sentAt), "can follow again on a fresh leader cue");
+    Console.WriteLine("PASS: song, stop, party macro and follow protocol, follow consent and replay guards.");
 }
 finally { try { File.Delete(midi); } catch { } }

@@ -13,7 +13,7 @@ public enum GamePartyCueKind { Song, Stop, Start, Prepare, Ready, Failed,
     StageProbe, StageReport, NativeArmAll, NativeArmReady, NativeArmFailed,
     FormationCapture, FormationPosition, FormationMove, FormationArrived,
     FormationFailed, FormationStop, ShowmasterStart, ShowmasterStop,
-    ShowmasterStartV2, ShowmasterCheck, ShowmasterAvailabilityReply, PartyMacro }
+    ShowmasterStartV2, ShowmasterCheck, ShowmasterAvailabilityReply, PartyMacro, PartyFollow }
 public readonly record struct GamePartyCue(GamePartyCueKind Kind, int PlaylistIndex, string Hash,
     long StartUnixMs = 0, int SpeedThousand = 0, string Nonce = "",
     string RosterTag = "", string PackedAssignments = "", string PackedInstruments = "",
@@ -269,6 +269,15 @@ public static class GamePartyCueProtocol
             $"{Prefix} macro {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {sentUnixMs} {slot}");
     }
 
+    public static string PartyFollow(string nonce, string rosterTag, uint territory, long sentUnixMs)
+    {
+        if (!IsHex(nonce, 16) || !IsHex(rosterTag, 8) || territory is < 1 or > 65535 ||
+            sentUnixMs is < 1577836800000L or > 4102444800000L)
+            throw new ArgumentException("Invalid party follow cue.");
+        return FormattableString.Invariant(
+            $"{Prefix} follow {nonce.ToUpperInvariant()} {rosterTag.ToUpperInvariant()} {territory} {sentUnixMs}");
+    }
+
     // v0.30: positioning is a SEPARATE, opt-in stage utility, never a music START.
     // Coordinates are visible to members of the in-game party. A full performer
     // formation is saved locally on the conductor only; no private data is sent.
@@ -356,6 +365,18 @@ public static class GamePartyCueProtocol
         if (string.IsNullOrWhiteSpace(text) || text.Length > 150) return false;
         string[] p = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (p.Length < 2 || !p[0].Equals(Prefix, StringComparison.OrdinalIgnoreCase)) return false;
+        if (p.Length == 6 && p[1].Equals("follow", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||
+                p[4].Length > 5 || !p[4].All(char.IsAsciiDigit) || !ValidTerritory(p[4], out uint territory) ||
+                p[5].Length != 13 || !p[5].All(char.IsAsciiDigit) ||
+                !long.TryParse(p[5], NumberStyles.None, CultureInfo.InvariantCulture, out long sent) ||
+                sent is < 1577836800000L or > 4102444800000L)
+                return false;
+            cue = new GamePartyCue(GamePartyCueKind.PartyFollow, -1, "", StartUnixMs: sent,
+                Nonce: p[2].ToUpperInvariant(), RosterTag: p[3].ToUpperInvariant(), FormationTerritory: territory);
+            return true;
+        }
         if (p.Length == 6 && p[1].Equals("macro", StringComparison.OrdinalIgnoreCase))
         {
             if (!IsHex(p[2], 16) || !IsHex(p[3], 8) ||

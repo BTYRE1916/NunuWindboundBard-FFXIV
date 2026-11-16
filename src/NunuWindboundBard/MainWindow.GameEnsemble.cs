@@ -75,6 +75,7 @@ public sealed partial class MainWindow
             ImGui.TextColored(new Vector4(.55f, .95f, .82f, 1f),
                 Loc.T("FOLLOWER: No Play or Confirm click. Wait for FFXIV's native Ready Check."));
         }
+        DrawPartyFollowControls(role);
 
         if (ImGui.TreeNode(Loc.T("Native Ensemble diagnostics / manual fallback")))
         {
@@ -150,6 +151,7 @@ public sealed partial class MainWindow
     /// <summary>Called on framework thread even while plugin UI is closed or player has alt-tabbed.</summary>
     public void PollGamePartyChat()
     {
+        RefreshPartyFollowPermission();
         for (int i = 0; i < 12 && plugin.PartyChat.TryDequeue(out var envelope); i++)
         {
             var cue = envelope.Cue;
@@ -180,6 +182,8 @@ public sealed partial class MainWindow
                 continue;
             }
             if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower) continue;
+            if (cue.Kind == GamePartyCueKind.PartyFollow)
+            { ReceivePartyFollow(envelope); continue; }
             if (cue.Kind == GamePartyCueKind.PartyMacro)
             { plugin.Shortcuts.ReceivePartyMacro(envelope); continue; }
             if (cue.Kind is GamePartyCueKind.ShowmasterStart or GamePartyCueKind.ShowmasterStartV2)

@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="GamePartyCueProtocolTests.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/GamePartyCueProtocol.cs" Link="GamePartyCueProtocol.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/PartyFollowPermission.cs" Link="PartyFollowPermission.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/Showmaster.cs" Link="Showmaster.cs" />
   </ItemGroup>
 </Project>
