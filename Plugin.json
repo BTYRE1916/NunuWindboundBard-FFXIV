@@ -3,7 +3,7 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.45.3.0",
+    "AssemblyVersion": "0.46.0.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
     "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Includes Concert Director with same-PC next-bar rejoin, opt-in party follow, and Shortcut Bars with game icon search and saved party macro cues.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
@@ -19,8 +19,8 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.3/FFXIVMIDIPLAYER-BY-NUNU-v0.45.3.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.3/FFXIVMIDIPLAYER-BY-NUNU-v0.45.3.zip",
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.0/NunuWindboundBard-v0.46.0-Orchestra-Test.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.0/NunuWindboundBard-v0.46.0-Orchestra-Test.zip",
     "LastUpdate": "1794841024",
     "Changelog": "The conductor can cue opted-in, nearby followers to follow the FFXIV party leader from the Ensemble panel."
   }
