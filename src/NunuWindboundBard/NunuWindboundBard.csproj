@@ -7,7 +7,7 @@
     <Author>Real Nunu</Author>
     <Name>Nunu's Windbound Bard</Name>
     <Punchline>MIDI Editor, Bard Workbench, native ensembles, and concert capture.</Punchline>
-    <Description>Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Includes Concert Director with same-PC next-bar rejoin, opt-in party follow, and Shortcut Bars with game icon search and saved party macro cues.</Description>
+    <Description>Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band adds join-code sessions with a connected roster and scheduled playback. Includes Concert Director, opt-in party follow, and Shortcut Bars.</Description>
     <Tags>bard;midi;performance;music</Tags>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64</Platforms>

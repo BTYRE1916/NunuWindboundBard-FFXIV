@@ -63,6 +63,7 @@ public sealed partial class MainWindow
                 cfg.MultiDeviceRelayAddress = address;
                 cfg.Save();
             }
+            ImGui.TextWrapped(Loc.T("Enter your hosted relay's wss:// address. Followers only need the join code."));
             if (ImGui.Button(Loc.T("Host Band")))
             {
                 try

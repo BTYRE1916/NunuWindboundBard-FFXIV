@@ -1,0 +1,16 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /source
+COPY NuGet.Config ./
+COPY src/Shared/OrchestraRelayProtocol.cs src/Shared/
+COPY src/WindboundOrchestraRelay/WindboundOrchestraRelay.csproj src/WindboundOrchestraRelay/
+RUN dotnet restore src/WindboundOrchestraRelay/WindboundOrchestraRelay.csproj
+COPY src/WindboundOrchestraRelay/Program.cs src/WindboundOrchestraRelay/RelayRooms.cs src/WindboundOrchestraRelay/
+RUN dotnet publish src/WindboundOrchestraRelay/WindboundOrchestraRelay.csproj -c Release --no-restore -p:UseAppHost=false -o /publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+COPY --from=build /publish ./
+ENV ASPNETCORE_URLS=http://+:10000
+EXPOSE 10000
+USER app
+ENTRYPOINT ["dotnet", "WindboundOrchestraRelay.dll"]
