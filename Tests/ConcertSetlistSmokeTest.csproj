@@ -5,5 +5,6 @@
     <Compile Include="../src/NunuWindboundBard/Core/ConcertSetlist.cs" Link="ConcertSetlist.cs"/>
     <Compile Include="../src/NunuWindboundBard/Core/SmartPlaylistManager.cs" Link="SmartPlaylistManager.cs"/>
     <Compile Include="../src/NunuWindboundBard/Core/GamePartyCueProtocol.cs" Link="GamePartyCueProtocol.cs"/>
+    <Compile Include="../src/NunuWindboundBard/Core/Showmaster.cs" Link="Showmaster.cs"/>
   </ItemGroup>
 </Project>

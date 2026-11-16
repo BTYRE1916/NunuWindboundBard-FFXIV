@@ -3,9 +3,9 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.44.3.0",
+    "AssemblyVersion": "0.45.0.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
-    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, same-PC ensemble song sharing, a low-render follower camera, Showmaster, and MP4 concert capture. Includes customizable shortcut bars with commands, macros, radial menus, condition sets and shareable layouts.",
+    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Concert Director adds same-PC next-bar rejoin, whole-set preflight, timing reports, assigned-part rehearsal and portable concert packs. Includes customizable shortcut bars and same-PC song sharing.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.3/FFXIVMIDIPLAYER-BY-NUNU-v0.44.3.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.44.3/FFXIVMIDIPLAYER-BY-NUNU-v0.44.3.zip",
-    "LastUpdate": "1794786696",
-    "Changelog": "Added Shortcut Bars with dockable layouts, nested categories, spacer labels, game and custom icons, clickable command and macro buttons, radial hotkeys, condition sets and clipboard sharing."
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.0/FFXIVMIDIPLAYER-BY-NUNU-v0.45.0.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.45.0/FFXIVMIDIPLAYER-BY-NUNU-v0.45.0.zip",
+    "LastUpdate": "1794798429",
+    "Changelog": "Concert Director adds same-PC next-bar rejoin, whole-Ensemble restart, timing reports, setlist preflight, assigned-part SoundFont rehearsal and portable concert packs."
   }
 ]

@@ -1902,6 +1902,9 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         try
         {
+            ResetConcertTake();
+            restartHash = "";
+            restartPreparesArm = false;
             RecoverStageAfterFailure("Manual playback recovery requested.");
             plugin.LiveMidi.Panic();
             plugin.AudioPreview.Stop("Preview stopped for playback recovery.");
@@ -1930,6 +1933,9 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public void StopPlayback()
     {
+        ResetConcertTake();
+        restartHash = "";
+        restartPreparesArm = false;
         ConcertCancelPreparation("Conductor STOP. Concert preparation cancelled.");
         ConcertCancelSetlist("Concert STOP. Automatic next-song preparation cancelled.");
         plugin.LiveMidi.Panic();

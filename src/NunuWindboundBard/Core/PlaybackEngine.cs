@@ -12,6 +12,9 @@ public sealed record BardPlaybackSettings(bool SendToGame,
     bool EnableGuitarOverrides = false,
     IReadOnlyDictionary<MidiLaneKey, int>? GuitarTones = null);
 
+public readonly record struct EnsembleDispatchTiming(long OriginQpc, int Count, double FirstMs,
+    double LastMs, double WorstMs, double MeanMs);
+
 /// <summary>
 /// Frame-driven, timestamp-based MIDI event scheduler. Does NOT await each note.
 /// Starts every member of a MIDI chord at its scheduled timestamp, and handles
@@ -43,6 +46,12 @@ public sealed class PlaybackEngine : IDisposable
     private double testOffAtMs;
     private int testHoldMs;
     private bool testPressed;
+    private long timingOrigin;
+    private int timedNotes;
+    private double firstDispatchDelay;
+    private double lastDispatchDelay;
+    private double worstDispatchDelay;
+    private double totalDispatchDelay;
 
     private readonly record struct ScheduledEvent(double AtMs, int Pitch,
         bool KeyDown, int Id, int Velocity, int Track, int Channel);
@@ -60,6 +69,14 @@ public sealed class PlaybackEngine : IDisposable
     public double PositionMs { get { lock (sync) return positionMs; } }
     public string Status { get { lock (sync) return status; } }
     public bool CompletedSuccessfully { get { lock (sync) return completedSuccessfully; } }
+    public EnsembleDispatchTiming Timing
+    {
+        get
+        {
+            lock (sync) return new(timingOrigin, timedNotes, firstDispatchDelay,
+                lastDispatchDelay, worstDispatchDelay, timedNotes > 0 ? totalDispatchDelay / timedNotes : 0);
+        }
+    }
 
     public void Start(IReadOnlyList<BardNote> notes, BardPlaybackSettings options, Func<bool> canSend,
         long? ensembleStartQpc = null)
@@ -76,6 +93,7 @@ public sealed class PlaybackEngine : IDisposable
             settings = options with { GuitarTones = options.GuitarTones is null
                 ? null : new Dictionary<MidiLaneKey, int>(options.GuitarTones) };
             scheduledStartQpc = ensembleStartQpc;
+            ResetTiming(ensembleStartQpc ?? 0);
             ensembleStarted = false;
             // Keep original note timestamps; do not quantise/serialize chords.
             events = new List<ScheduledEvent>(notes.Count * 2);
@@ -110,6 +128,48 @@ public sealed class PlaybackEngine : IDisposable
             else clock.Restart();
             running = true;
         }
+    }
+
+    /// <summary>On the framework thread, release held notes and join the conductor's
+    /// timeline at a bar boundary. Earlier onsets and sustained notes are skipped.</summary>
+    internal bool Rejoin(IReadOnlyList<BardNote> notes, BardPlaybackSettings options, Func<bool> canSend,
+        long expectedLocalOrigin, long leaderOrigin, double barMs)
+    {
+        if (options.SendToGame && !canSend()) return false;
+        lock (sync)
+        {
+            if (stopRequested || rewindRequested || testPitch.HasValue ||
+                (running && (scheduledStartQpc != expectedLocalOrigin || settings.Speed != options.Speed)) ||
+                !notes.Any(n => n.TimeMs >= barMs - 0.001))
+                return false;
+            if (!running)
+                Start(notes, options, canSend, leaderOrigin);
+            else
+                ReleaseAll();
+
+            int first = 0, last = events.Count;
+            while (first < last)
+            {
+                int mid = first + (last - first) / 2;
+                if (events[mid].AtMs < barMs - 0.001) first = mid + 1;
+                else last = mid;
+            }
+            eventIndex = first;
+            scheduledStartQpc = leaderOrigin;
+            ensembleStarted = true;
+            currentGuitarTone = null;
+            positionMs = barMs;
+            ResetTiming(leaderOrigin);
+            status = "Rejoined the conductor's timeline at the bar boundary.";
+            return true;
+        }
+    }
+
+    private void ResetTiming(long origin)
+    {
+        timingOrigin = origin;
+        timedNotes = 0;
+        firstDispatchDelay = lastDispatchDelay = worstDispatchDelay = totalDispatchDelay = 0;
     }
 
     public void Update(bool canSend)
@@ -215,6 +275,15 @@ public sealed class PlaybackEngine : IDisposable
                             if (heldPitches.ContainsKey(evt.Pitch)) PerformanceOutput.NoteOff(evt.Pitch);
                             PerformanceOutput.NoteOn(evt.Pitch);
                             heldPitches[evt.Pitch] = evt.Id;
+                            if (scheduledStartQpc is { } origin)
+                            {
+                                double delay = (Stopwatch.GetTimestamp() - origin) * 1000.0 / Stopwatch.Frequency -
+                                    evt.AtMs / settings.Speed;
+                                if (timedNotes++ == 0) firstDispatchDelay = delay;
+                                lastDispatchDelay = delay;
+                                worstDispatchDelay = Math.Max(worstDispatchDelay, delay);
+                                totalDispatchDelay += delay;
+                            }
                         }
                         notesPlayed++;
                     }

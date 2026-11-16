@@ -482,6 +482,8 @@ public sealed class Plugin : IDalamudPlugin
         main.PollConcertDirector();
         main.PollNativeReadyChecks();
         main.PollGameEnsemble();
+        try { main.PollConcertLive(); }
+        catch (Exception error) { Log.Warning("Concert recovery update failed: " + error.Message); }
         main.PollOneClickInstrumentPreparation();
         // Both new modules run independently of live FFXIV MIDI note playback.
         // Never let rehearsal or a broken emote prevent a game note-off tick.

@@ -76,6 +76,7 @@ static class Program
         Require(flow.Poll(false, p.CompletedSuccessfully, true, true).Kind == SongFlowActionKind.None,
             "Auto Next fired after manual reset.");
         Console.WriteLine("PASS: rewind after finish, new MIDI, active MIDI, note-off thread, STOP, ensemble countdown and Auto Next cancel.");
+        ConcertRecoveryChecks.Run();
         return 0;
     }
 
@@ -100,8 +101,9 @@ namespace NunuWindboundBard.Core
     {
         public static int OnCalls { get; private set; }
         public static int OffCalls { get; private set; }
-        public static void Clear() { OnCalls = 0; OffCalls = 0; }
-        public static void NoteOn(int _) => OnCalls++;
+        public static List<int> Pressed { get; } = new();
+        public static void Clear() { OnCalls = 0; OffCalls = 0; Pressed.Clear(); }
+        public static void NoteOn(int pitch) { OnCalls++; Pressed.Add(pitch); }
         public static void NoteOff(int _) => OffCalls++;
         public static bool TrySetGuitarTone(int _) => true;
     }

@@ -65,7 +65,8 @@ public static class Program
         };
         ConcertSnapshotFormat.Validate(s);
         string json = ConcertSnapshotFormat.ExportToJson(s);
-        Check(json.Contains("Nunu + Edea") && json.Contains("HoldAfter"), "all fields export");
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        Check(document.RootElement.GetProperty("Name").GetString() == s.Name && json.Contains("HoldAfter"), "all fields export");
         var imported = ConcertSnapshotFormat.ImportFromJson(json);
         Check(imported.Id != s.Id, "fresh imported snapshot ID");
         Check(imported.Name == s.Name && imported.Songs.Count == 2, "JSON roundtrip");

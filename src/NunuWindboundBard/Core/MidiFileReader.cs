@@ -24,6 +24,67 @@ public sealed record MidiSong(string FileName, IReadOnlyList<MidiNote> Notes,
 {
     // Additive metadata keeps old readers/tests/source consumers compatible.
     public IReadOnlyList<MidiLaneInstrument> LaneInstruments { get; init; } = Array.Empty<MidiLaneInstrument>();
+    public MidiBarClock? Bars { get; init; }
+}
+
+public readonly record struct MidiBar(long Number, double TimeMs);
+
+/// <summary>Bar boundaries on the same tempo timeline the player uses for MIDI notes.</summary>
+public sealed class MidiBarClock
+{
+    internal readonly record struct Tempo(long Tick, double Ms, int Microseconds);
+    internal readonly record struct Meter(long Tick, int Count, int Power);
+    private readonly record struct Section(double Tick, double Length, long FirstBar);
+    private readonly double denominator;
+    private readonly Tempo[] tempos;
+    private readonly Section[] sections;
+
+    internal MidiBarClock(int ppq, IEnumerable<Tempo> tempo, IEnumerable<Meter> meter)
+    {
+        denominator = ppq * 1000.0;
+        tempos = tempo.ToArray();
+        var changes = meter.OrderBy(m => m.Tick).GroupBy(m => m.Tick).Select(g => g.Last());
+        var result = new List<Section>();
+        foreach (var change in changes)
+        {
+            long first = result.Count == 0 ? 1 :
+                result[^1].FirstBar + (long)Math.Ceiling((change.Tick - result[^1].Tick) / result[^1].Length);
+            result.Add(new Section(change.Tick, ppq * 4d * change.Count / (1 << change.Power), first));
+        }
+        sections = result.ToArray();
+    }
+
+    public MidiBar? Next(double atLeastMs, double endExclusiveMs)
+    {
+        if (!double.IsFinite(atLeastMs) || !double.IsFinite(endExclusiveMs) || endExclusiveMs <= atLeastMs) return null;
+        var point = tempos[Last(tempos.Length, i => tempos[i].Ms <= atLeastMs)];
+        double tick = point.Tick + Math.Max(0, atLeastMs - point.Ms) * denominator / point.Microseconds;
+        int index = Last(sections.Length, i => sections[i].Tick <= tick);
+        var section = sections[index];
+        long offset = (long)Math.Ceiling(Math.Max(0, tick - section.Tick) / section.Length - 1e-9);
+        double candidate = section.Tick + offset * section.Length;
+        if (index + 1 < sections.Length && candidate >= sections[index + 1].Tick)
+        {
+            section = sections[index + 1];
+            candidate = section.Tick;
+            offset = 0;
+        }
+        var tempo = tempos[Last(tempos.Length, i => tempos[i].Tick <= candidate)];
+        double ms = tempo.Ms + (candidate - tempo.Tick) * tempo.Microseconds / denominator;
+        return ms < endExclusiveMs ? new MidiBar(section.FirstBar + offset, ms) : null;
+    }
+
+    private static int Last(int count, Func<int, bool> before)
+    {
+        int first = 0, last = count;
+        while (first + 1 < last)
+        {
+            int mid = (first + last) / 2;
+            if (before(mid)) first = mid;
+            else last = mid;
+        }
+        return first;
+    }
 }
 
 /// <summary>
@@ -66,6 +127,7 @@ public static class MidiFileReader
 
         List<RawNote> rawNotes = new();
         List<TempoChange> tempoChanges = new();
+        List<MidiBarClock.Meter> meters = [new(0, 4, 2)];
         List<MidiTrack> tracks = new();
         List<MidiLaneInstrument> laneInstruments = new();
         // Cross-track program events are a common SMF format-1 export pattern:
@@ -139,6 +201,13 @@ public static class MidiFileReader
                     {
                         int mpqn = (reader.ReadByte() << 16) | (reader.ReadByte() << 8) | reader.ReadByte();
                         if (mpqn > 0) tempoChanges.Add(new TempoChange(ticks, mpqn, tempoOrder++));
+                    }
+                    else if (meta == 0x58 && length == 4)
+                    {
+                        int count = reader.ReadByte();
+                        int power = reader.ReadByte();
+                        stream.Position += 2;
+                        if (count > 0 && power <= 7) meters.Add(new(ticks, count, power));
                     }
                     else
                     {
@@ -243,6 +312,7 @@ public static class MidiFileReader
         double elapsedMicroseconds = 0;
         int currentMpqn = 500_000;
         int initialMpqn = 500_000;
+        List<MidiBarClock.Tempo> barTempos = [new(0, 0, 500_000)];
         foreach (TimelineEvent point in timeline)
         {
             elapsedMicroseconds += (point.Tick - previousTick) * (double)currentMpqn / timeDivision;
@@ -250,6 +320,7 @@ public static class MidiFileReader
             if (point.Kind == 0)
             {
                 currentMpqn = point.Tempo;
+                barTempos.Add(new(point.Tick, elapsedMicroseconds / 1000.0, currentMpqn));
                 if (point.Tick == 0) initialMpqn = point.Tempo;
             }
             else if (point.Note is { } note)
@@ -281,7 +352,8 @@ public static class MidiFileReader
         double duration = notes.Max(n => n.TimeMs + n.DurationMs) + 180;
         return new MidiSong(Path.GetFileName(path), notes, tracks, duration, 60_000_000d / initialMpqn)
         {
-            LaneInstruments = laneInstruments
+            LaneInstruments = laneInstruments,
+            Bars = new MidiBarClock(timeDivision, barTempos, meters)
         };
     }
 

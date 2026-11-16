@@ -400,6 +400,7 @@ public sealed partial class MainWindow
     {
         if (!NativeSyncEnabled || cfg.EnsembleMode != (int)EnsembleRole.Follower) return;
         if (!processedNativeStowNonces.Add(cue.Nonce)) return;
+        ResetConcertTake();
         if (processedNativeStowNonces.Count > 128) processedNativeStowNonces.Clear();
         CancelOneClickInstrumentPreparation();
         CancelPendingInstrumentStart();

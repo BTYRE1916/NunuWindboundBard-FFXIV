@@ -307,6 +307,7 @@ public sealed partial class MainWindow
         {
             if (plugin.Player.IsPlaying)
                 plugin.Player.Stop();
+            ConcertRememberNativeSignal(nativeSignal.LocalQpc);
             gameStartGate.Capture(nativeSignal);
             gameEnsembleStatus = gameStartGate.LastOutcome;
         }
@@ -329,7 +330,10 @@ public sealed partial class MainWindow
         {
             gameEnsembleStatus = decision.Reason;
             if (decision.Kind == GameEnsembleDecisionKind.Silent)
+            {
+                ConcertSetNativeOrigin(liveTake?.Signal ?? 0);
                 ConcertOnNativeStarted(); // silent conductors also know when setlist music begins
+            }
             return;
         }
         if (decision.Kind != GameEnsembleDecisionKind.Play) return;
@@ -339,6 +343,7 @@ public sealed partial class MainWindow
             // Anchor to this CLIENT's native event timestamp. QPC is never sent
             // across the network or compared between the two PCs.
             StartSongCore(decision.StartQpc);
+            ConcertSetNativeOrigin(decision.StartQpc);
             ConcertOnNativeStarted();
             gameEnsembleStatus = decision.Reason + " Native playback started: " + Path.GetFileName(loaded) + ".";
             ensembleStatus = gameEnsembleStatus;

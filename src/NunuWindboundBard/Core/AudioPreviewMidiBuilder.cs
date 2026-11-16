@@ -22,7 +22,8 @@ public static class AudioPreviewMidiBuilder
     private readonly record struct MidiEvent(long Tick, int Priority, int Channel, byte[] Data);
 
     public static byte[] Build(MidiSong song, BardArrangement? arrangement, AudioPreviewMode mode,
-        MidiLaneKey? selected, IReadOnlyList<MidiLanePlan>? plans = null, bool applyOctaves = true)
+        MidiLaneKey? selected, IReadOnlyList<MidiLanePlan>? plans = null, bool applyOctaves = true,
+        double minimumDurationMs = 0)
     {
         if (mode == AudioPreviewMode.OriginalFile)
             throw new ArgumentException("Original MIDI preview opens the existing file, it does not rebuild it.", nameof(mode));
@@ -99,7 +100,8 @@ public static class AudioPreviewMidiBuilder
                 writer.Write(e.Data);
                 prev = e.Tick;
             }
-            writer.Write(new byte[] { 0x00, 0xFF, 0x2F, 0x00 });
+            WriteVlq(writer, Math.Max(0, ToTick(minimumDurationMs) - prev));
+            writer.Write(new byte[] { 0xFF, 0x2F, 0x00 });
         }
         using var result = new MemoryStream();
         using (var writer = new BinaryWriter(result, Encoding.ASCII, leaveOpen: true))

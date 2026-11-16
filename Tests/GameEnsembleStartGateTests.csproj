@@ -4,8 +4,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="GameEnsembleStartGateTests.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/GameEnsembleStartGate.cs" Link="GameEnsembleStartGate.cs" />
   </ItemGroup>
 </Project>

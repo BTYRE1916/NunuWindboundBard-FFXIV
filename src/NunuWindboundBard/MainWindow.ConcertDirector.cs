@@ -290,16 +290,23 @@ public sealed partial class MainWindow
         ImGui.TextColored(new Vector4(.98f,.60f,.84f,1f), Loc.T("CONCERT DIRECTOR — ORCHESTRA STAGE MANAGER"));
         if ((EnsembleRole)cfg.EnsembleMode != EnsembleRole.Conductor)
         {
+            DrawConcertLocalOptIn();
             ImGui.TextDisabled(Loc.T("Follower: status requests from your conductor are answered automatically."));
             return;
         }
+        DrawConcertLive();
         if (ImGui.Button(Loc.T("PREPARE ENTIRE ORCHESTRA"))) ConcertPrepareOrchestra();
         ImGui.SameLine();
         if (ImGui.Button(Loc.T("ARM ALL BARDS##directorArm"))) ConductorArmParty(true);
         ImGui.SameLine();
         if (ImGui.Button(Loc.T("Refresh Stage Status"))) ConcertRequestStageStatus();
         ImGui.SameLine();
-        if (ImGui.Button(Loc.T("Cancel Preparation"))) ConcertCancelPreparation("Preparation cancelled. No music was started.");
+        if (ImGui.Button(Loc.T("Cancel Preparation")))
+        {
+            restartHash = "";
+            restartPreparesArm = false;
+            ConcertCancelPreparation("Preparation cancelled. No music was started.");
+        }
         ImGui.TextWrapped(Loc.T(concertStatus));
         ImGui.TextWrapped(Loc.T("Party ARM: " + nativeArmStatus));
         string desired = !string.IsNullOrEmpty(nativeLoadedSha) ? nativeLoadedSha : concertHash;

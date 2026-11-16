@@ -108,7 +108,7 @@ public sealed class AudioPreviewPlayer : IDisposable
         }
     }
 
-    public void Start(string midiPath, string soundFontPath, byte[]? preparedMidi = null)
+    public void Start(string midiPath, string soundFontPath, byte[]? preparedMidi = null, bool loop = false)
     {
         Stop("Preparing preview...");
         if (string.IsNullOrWhiteSpace(soundFontPath) || !File.Exists(soundFontPath))
@@ -137,7 +137,7 @@ public sealed class AudioPreviewPlayer : IDisposable
                 using var stream = bytes is null ? (Stream)File.OpenRead(midi) : new MemoryStream(bytes, writable: false);
                 var file = new MidiFile(stream);
                 var seq = new MidiFileSequencer(synth);
-                seq.Play(file, false);
+                seq.Play(file, loop);
                 return new PreparedPreview(file, synth, seq, Path.GetFileName(midi));
             });
         }
