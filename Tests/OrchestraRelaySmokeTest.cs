@@ -63,6 +63,50 @@ try
         bard.SendReady(session.Revision, session.Hash, true, "Ready");
     }
     await Until(() => host.CanCue(out _), "host receives ready status for all eight followers");
+    Require(host.Performers.All(p => p.SupportsBandSetup), "all updated followers advertise band setup");
+    var instruments = Enumerable.Range(0, followers.Length).ToDictionary(i => (ulong)(i + 2), i => i + 1);
+    long revisionBeforeRetry = host.SessionRevision;
+    Require(host.RetryBandMember(2), "targeted retry accepted");
+    var retry = await WaitNotice(followers[0], NetworkNoticeKind.Session);
+    Require(retry.SetupSequence > 0 && retry.Revision == revisionBeforeRetry &&
+        retry.Midi!.SequenceEqual(File.ReadAllBytes(midiPath)), "targeted retry preserves the MIDI and revision");
+    Require(host.Performers.Count(p => p.Ready) == 7, "only the retried bard loses readiness");
+    followers[0].SendReady(retry.Revision, retry.Hash, true, "Ready", retry.SetupSequence);
+    await Until(() => host.CanCue(out _), "retry acknowledged");
+    foreach (var action in new[] { BandSetupAction.Prepare, BandSetupAction.Disarm, BandSetupAction.SetInstruments,
+                                   BandSetupAction.Unequip, BandSetupAction.Arm })
+    {
+        Require(host.SendBandSetup(action, instruments) == followers.Length, "setup reaches all eight followers");
+        Require(!host.CanCue(out _), "previous readiness invalid after setup");
+        for (int i = 0; i < followers.Length; i++)
+        {
+            var bard = followers[i];
+            var setup = await WaitNotice(bard, NetworkNoticeKind.BandSetup);
+            Require(setup.Setup == action && setup.Instrument == i + 1 && setup.Revision == host.SessionRevision &&
+                setup.Hash == host.SharedSongHash && setup.ConnectionId == bard.RelayFollowerConnectionId,
+                "command targeted to this bard, connection and song");
+            bard.SendReady(setup.Revision, setup.Hash, true, "stale", setup.SetupSequence - 1);
+            // Keep one stale ACK outstanding while the other followers report ready.
+            if (i != followers.Length - 1) bard.SendReady(setup.Revision, setup.Hash, true, "Ready", setup.SetupSequence);
+            else
+            {
+                await Until(() => host.Performers.Count(p => p.Ready) == followers.Length - 1, "seven current ACKs");
+                Require(!host.CanCue(out _), "old ACK cannot release the last follower");
+                bard.SendReady(setup.Revision, setup.Hash, true, "Ready", setup.SetupSequence);
+            }
+        }
+        await Until(() => host.CanCue(out _), "post-setup readiness");
+    }
+    Require(host.PublishSession(midiPath, arrangement, assignments, resend: true) && host.SessionRevision > revisionBeforeRetry,
+        "manual MIDI and track sync sends again even when the file is unchanged");
+    foreach (var bard in followers)
+    {
+        var fresh = await WaitNotice(bard, NetworkNoticeKind.Session);
+        Require(fresh.SetupSequence == 0, "new revision clears setup acknowledgements");
+        bard.SendReady(fresh.Revision, fresh.Hash, true, "Ready");
+    }
+    await Until(() => host.CanCue(out _), "all eight acknowledge fresh sync");
+    Console.WriteLine("PASS: hosted prepare, instruments, ARM/DISARM, unequip, targeted retry, resend and stale readiness.");
     double start = MultiDeviceEnsemble.NowMs() + 5000;
     host.BroadcastStart(start, 1000);
     foreach (var bard in followers)

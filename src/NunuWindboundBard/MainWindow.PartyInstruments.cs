@@ -89,16 +89,16 @@ public sealed partial class MainWindow
         cfg.Save();
     }
 
-    private void DrawConductorInstrumentPlan()
+    private void DrawConductorInstrumentPlan(bool hosted = false)
     {
         ImGui.Separator();
-        ImGui.TextColored(new Vector4(.99f, .58f, .84f, 1f), Loc.T("PARTY INSTRUMENTS — CONDUCTOR CHOICE"));
-        ImGui.TextWrapped(Loc.T(cfg.GameEnsembleOneClick
+        ImGui.TextColored(new Vector4(.99f, .58f, .84f, 1f), Loc.T(hosted ? "BAND INSTRUMENTS — CONDUCTOR CHOICE" : "PARTY INSTRUMENTS — CONDUCTOR CHOICE"));
+        ImGui.TextWrapped(Loc.T(hosted ? "Choose an instrument for each connected Bard, then select Set band instruments." : cfg.GameEnsembleOneClick
             ? "Choose a party instrument per Bard. The legacy one-click mode will prepare everyone."
             : "Choose the instrument for each Bard, then press SET PARTY INSTRUMENTS. " +
               "Followers switch automatically, then the game synchronises START via native Ready Check."));
         var selected = GetPartyInstrumentChoices();
-        var members = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
+        var members = hosted ? GetConnectedBandChoices() : PartyRoster.GetChoices(Plugin.Objects, Plugin.Party);
         if (cfg.AutoDetectMidiTrackInstruments && partyAssignments.Count == 0)
             ImGui.TextDisabled(Loc.T("Assign MIDI tracks to party members first to infer their instruments."));
         ImGui.BeginChild("##ConductorInstrumentRoster", new Vector2(0,
@@ -131,7 +131,7 @@ public sealed partial class MainWindow
         ImGui.EndChild();
         DrawMidiMetadataControls();
         ImGui.TextDisabled(Loc.T("Selections are saved per MIDI. 'Keep current' requires the Bard already in Performance."));
-        ImGui.TextWrapped(Loc.T(partyInstrumentStatus));
+        if (!hosted) ImGui.TextWrapped(Loc.T(partyInstrumentStatus));
     }
 
     /// <summary>Invoked from the one-click Play button; automatically prepares

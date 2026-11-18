@@ -25,6 +25,7 @@ public sealed partial class MainWindow
     {
         if (plugin.Player.IsEnsemblePlayback) plugin.Player.Stop();
         plugin.Network.Stop();
+        ClearHostedSetup();
         waitingForEnsembleCue = false;
         networkRevision = 0;
         networkSongHash = "";
@@ -53,7 +54,6 @@ public sealed partial class MainWindow
                     networkStatus = "Band closed.";
                     return;
                 }
-                DrawNetworkPerformers();
                 return;
             }
             var address = cfg.MultiDeviceRelayAddress ?? "";
@@ -68,6 +68,7 @@ public sealed partial class MainWindow
             {
                 try
                 {
+                    ClearHostedSetup();
                     plugin.Network.HostBand(address, cfg.EnsembleGroup);
                     networkStatus = "";
                 }
@@ -98,6 +99,7 @@ public sealed partial class MainWindow
             {
                 var local = Plugin.Objects.LocalPlayer;
                 ulong contentId = PartyRoster.GetLocalContentId(Plugin.Objects, Plugin.Party);
+                ClearHostedSetup();
                 plugin.Network.JoinBand(relayBandCode, local?.Name.TextValue ?? "", contentId);
                 networkStatus = "";
             }
@@ -128,7 +130,12 @@ public sealed partial class MainWindow
         {
             var color = peer.Ready ? new Vector4(.45f, .96f, .58f, 1f) : new Vector4(1f, .77f, .38f, 1f);
             ImGui.TextColored(color, Loc.T($"{peer.Character} — {(peer.Ready ? "READY" : "WAITING")} (rev {peer.Revision})"));
-            if (!peer.Ready) ImGui.TextWrapped(Loc.T(peer.Detail));
+            if (!peer.Ready || IsRelayBandEnabled) ImGui.TextWrapped(Loc.T(peer.Detail));
+            if (IsRelayBandEnabled && peer.SupportsBandSetup && !peer.Ready && !HostedPlaybackBusy &&
+                plugin.Network.SessionRevision > 0 && ImGui.SmallButton(Loc.T("Retry MIDI + tracks##relayRetry") + peer.ContentId))
+                networkStatus = plugin.Network.RetryBandMember(peer.ContentId) ? "Sent the current MIDI and parts to " + peer.Character : "Performer disconnected.";
+            if (IsRelayBandEnabled && !peer.SupportsBandSetup)
+                ImGui.TextDisabled(Loc.T("This follower needs v0.46.3 for conductor instrument and ARM commands."));
         }
     }
 

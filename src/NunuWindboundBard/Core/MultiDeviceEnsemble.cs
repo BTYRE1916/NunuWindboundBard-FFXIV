@@ -16,7 +16,9 @@ using System.Diagnostics;
 
 namespace NunuWindboundBard.Core;
 
-public enum NetworkNoticeKind { Connected, Disconnected, Session, Cue, Stop, Error }
+public enum NetworkNoticeKind { Connected, Disconnected, Session, Cue, Stop, Error, BandSetup }
+
+public enum BandSetupAction { None, SetInstruments, Arm, Disarm, Prepare, Unequip }
 
 public sealed record RemoteArrangementSettings(bool RepairOctaves, int ChordStrategy,
     int GlobalTranspose, int MinimumGapMs, int ArpeggioSpacingMs,
@@ -26,10 +28,11 @@ public sealed record NetworkNotice(NetworkNoticeKind Kind, string Detail = "",
     string Name = "", string Hash = "", byte[]? Midi = null,
     RemoteArrangementSettings? Arrangement = null,
     Dictionary<string, ulong>? Assignments = null,
-    long Revision = 0, double HostStartMs = 0, int SpeedThousand = 1000);
+    long Revision = 0, double HostStartMs = 0, int SpeedThousand = 1000, BandSetupAction Setup = BandSetupAction.None,
+    int Instrument = 0, long SetupSequence = 0, int ConnectionId = 0);
 
 public sealed record NetworkPerformer(string Character, ulong ContentId, bool Ready, string Detail,
-    double AgeSeconds, long Revision);
+    double AgeSeconds, long Revision, bool SupportsBandSetup = false);
 
 /// <summary>
 /// Clock and MIDI protocol used by direct private-network connections and hosted bands.
@@ -59,6 +62,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     private double roundTripMs;
     private readonly List<(double When, double Offset, double Rtt)> clockSamples = new();
 
+    public int RelayFollowerConnectionId { get { lock (gate) return activeRelay is null ? 0 : hostPeer?.Id ?? 0; } }
     public string Status { get { lock (gate) return status; } }
     public bool IsHosting { get { lock (gate) return hosting; } }
     public bool IsConnected { get { lock (gate) return hostPeer is not null; } }
@@ -69,7 +73,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     public string SharedSongHash { get { lock (gate) return currentSession?.Hash ?? ""; } }
     public IReadOnlyList<NetworkPerformer> Performers => peers.Values
         .Select(p => new NetworkPerformer(p.Name, p.ContentId, p.Ready,
-            p.ReadyDetail, Math.Max(0, NowMs() - p.LastSeenMs) / 1000.0, p.ReadyRevision))
+            p.ReadyDetail, Math.Max(0, NowMs() - p.LastSeenMs) / 1000.0, p.ReadyRevision, p.SupportsBandSetup))
         .OrderBy(p => p.Character, StringComparer.OrdinalIgnoreCase).ToArray();
 
     public static double NowMs() => Stopwatch.GetTimestamp() * 1000d / Stopwatch.Frequency;
@@ -78,10 +82,14 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
 
     public bool TryDequeue(out NetworkNotice item) => notices.TryDequeue(out item!);
 
-    private sealed class Wire
+    private sealed record Wire
     {
         public Wire() { }
         public int Version { get; set; } = ProtocolVersion;
+        public bool SupportsBandSetup { get; set; }
+        public BandSetupAction Setup { get; set; }
+        public int Instrument { get; set; }
+        public long SetupSequence { get; set; }
         public string Type { get; set; } = "";
         public string Stage { get; set; } = "";
         public string Nonce { get; set; } = "";
@@ -110,6 +118,8 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         public string Name { get; } = name;
         public ulong ContentId { get; } = contentId;
         public int Id { get; } = id;
+        public bool SupportsBandSetup { get; init; }
+        public long SetupSequence;
         public Channel<Wire> Outgoing { get; } = Channel.CreateUnbounded<Wire>(
             new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
         public volatile bool Ready;
@@ -281,7 +291,8 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                     trace?.Note("Duplicate character already connected.");
                     throw new InvalidOperationException("That character already joined the stage.");
                 }
-                peer = new Peer(stream, hello.Character, hello.ContentId, Interlocked.Increment(ref nextPeerId));
+                peer = new Peer(stream, hello.Character, hello.ContentId, Interlocked.Increment(ref nextPeerId))
+                { SupportsBandSetup = trace is not null && hello.SupportsBandSetup };
                 peers[peer.Id] = peer;
                 if (currentSession is { } session) peer.Send(session);
                 notices.Enqueue(new(NetworkNoticeKind.Connected, $"{peer.Name} joined the stage."));
@@ -339,7 +350,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             string clientNonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
             await WriteAsync(stream, new Wire
             {
-                Type = "Hello", Stage = stage, Character = character, ContentId = contentId,
+                Type = "Hello", SupportsBandSetup = trace is not null, Stage = stage, Character = character, ContentId = contentId,
                 ClientNonce = clientNonce,
                 Proof = ComputeProof(code, "client", challenge.Nonce, clientNonce, stage, contentId)
             }, connectTimeout.Token).ConfigureAwait(false);
@@ -351,7 +362,8 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             {
                 ct.ThrowIfCancellationRequested();
                 if (cancel is null || cancel.Token != ct) return;
-                peer = new Peer(stream, "Conductor", 0, 0);
+                peer = new Peer(stream, "Conductor", 0, Interlocked.Increment(ref nextPeerId))
+                { SupportsBandSetup = trace is not null };
                 hostPeer = peer;
                 joining = false;
                 status = "Connected! Synchronising clocks and receiving MIDI...";
@@ -439,13 +451,15 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                             HostReceiveMs = received, HostSendMs = NowMs() });
                         break;
                     case "Ready":
-                        Wire? active;
-                        lock (gate) active = currentSession;
-                        peer.Ready = message.Ready && active is not null &&
-                            message.Revision == active.Revision &&
-                            string.Equals(message.Hash, active.Hash, StringComparison.OrdinalIgnoreCase);
-                        peer.ReadyRevision = message.Revision;
-                        peer.ReadyDetail = message.Detail.Length > 200 ? message.Detail[..200] : message.Detail;
+                        lock (gate)
+                        {
+                            if (currentSession is not { } active || message.Revision != active.Revision ||
+                                message.SetupSequence != peer.SetupSequence ||
+                                !string.Equals(message.Hash, active.Hash, StringComparison.OrdinalIgnoreCase)) break;
+                            peer.Ready = message.Ready;
+                            peer.ReadyRevision = message.Revision;
+                            peer.ReadyDetail = message.Detail.Length > 200 ? message.Detail[..200] : message.Detail;
+                        }
                         break;
                 }
             }
@@ -464,14 +478,22 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                             throw new InvalidDataException("MIDI validation failed. Song ignored.");
                         notices.Enqueue(new(NetworkNoticeKind.Session, "Conductor shared an ensemble MIDI.",
                             message.Name, message.Hash, midi, message.Arrangement,
-                            message.Assignments, message.Revision));
+                            message.Assignments, message.Revision, SetupSequence: message.SetupSequence, ConnectionId: peer.Id));
+                        break;
+                    case "BandSetup":
+                        if (peer.SupportsBandSetup && message.Setup is >= BandSetupAction.SetInstruments and <= BandSetupAction.Unequip &&
+                            message.Revision > 0 && IsHexHash(message.Hash) && message.SetupSequence > 0 &&
+                            message.Instrument is >= 0 and <= 255)
+                            notices.Enqueue(new(NetworkNoticeKind.BandSetup, Hash: message.Hash, Revision: message.Revision,
+                                Setup: message.Setup, Instrument: message.Instrument, SetupSequence: message.SetupSequence,
+                                ConnectionId: peer.Id));
                         break;
                     case "Start":
                         notices.Enqueue(new(NetworkNoticeKind.Cue, "Conductor sent START.", Hash: message.Hash,
                             Revision: message.Revision, HostStartMs: message.HostStartMs,
                             SpeedThousand: message.SpeedThousand));
                         break;
-                    case "Stop": notices.Enqueue(new(NetworkNoticeKind.Stop, "Conductor sent STOP.")); break;
+                    case "Stop": notices.Enqueue(new(NetworkNoticeKind.Stop, "Conductor sent STOP.", ConnectionId: peer.Id)); break;
                 }
             }
         }
@@ -534,7 +556,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     /// Returns true when a NEW revision was published (followers must become ready again).
     /// </summary>
     public bool PublishSession(string midiPath, RemoteArrangementSettings arrangement,
-        IReadOnlyDictionary<string, ulong> assignments)
+        IReadOnlyDictionary<string, ulong> assignments, bool resend = false)
     {
         if (!IsHosting) throw new InvalidOperationException("Host Multi-Device first.");
         byte[] data = File.ReadAllBytes(midiPath);
@@ -550,7 +572,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         Wire newSession;
         lock (gate)
         {
-            if (identity == sessionFingerprint) return false;
+            if (identity == sessionFingerprint && !resend) return false;
             sessionFingerprint = identity;
             long newRev = ++revision;
             newSession = new Wire { Type = "Session", Name = name, Hash = hash,
@@ -561,11 +583,50 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             {
                 peer.Ready = false;
                 peer.ReadyRevision = 0;
+                peer.SetupSequence = 0;
                 peer.ReadyDetail = "Applying updated song/parts...";
                 peer.Send(newSession);
             }
         }
         return true;
+    }
+
+    // Setup requests are scoped to the current song and currently connected performers.
+    // Rejoining receives the song snapshot, never a previous ARM or instrument command.
+    public int SendBandSetup(BandSetupAction action, IReadOnlyDictionary<ulong, int> instruments)
+    {
+        if (action is < BandSetupAction.SetInstruments or > BandSetupAction.Unequip)
+            throw new ArgumentOutOfRangeException(nameof(action));
+        lock (gate)
+        {
+            if (activeRelay is null || !hosting || currentSession is not { } session)
+                throw new InvalidOperationException("Host a band and share a MIDI first.");
+            int sent = 0;
+            foreach (var peer in peers.Values)
+            {
+                if (!peer.SupportsBandSetup) continue;
+                peer.Ready = false;
+                peer.ReadyDetail = "Waiting for follower to process band setup.";
+                peer.Send(new Wire { Type = "BandSetup", Setup = action, Instrument = instruments.GetValueOrDefault(peer.ContentId),
+                    SetupSequence = ++peer.SetupSequence, Hash = session.Hash, Revision = session.Revision });
+                sent++;
+            }
+            return sent;
+        }
+    }
+
+    public bool RetryBandMember(ulong contentId)
+    {
+        lock (gate)
+        {
+            if (!hosting || activeRelay is null || currentSession is not { } session) return false;
+            var peer = peers.Values.FirstOrDefault(p => p.ContentId == contentId);
+            if (peer is null || !peer.SupportsBandSetup) return false;
+            peer.Ready = false;
+            peer.ReadyDetail = "Retrying MIDI and track assignments.";
+            peer.Send(session with { SetupSequence = ++peer.SetupSequence });
+            return true;
+        }
     }
 
     public bool CanCue(out string detail)
@@ -610,13 +671,13 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         foreach (var peer in peers.Values) peer.Send(new Wire { Type = "Stop" });
     }
 
-    public void SendReady(long revision, string hash, bool ready, string detail)
+    public void SendReady(long revision, string hash, bool ready, string detail, long setupSequence = 0)
     {
         Peer? peer;
         lock (gate) peer = hostPeer;
         if (peer is null) return;
         peer.Send(new Wire { Type = "Ready", Revision = revision, Hash = hash,
-            Ready = ready, Detail = detail.Length > 200 ? detail[..200] : detail });
+            Ready = ready, SetupSequence = setupSequence, Detail = detail.Length > 200 ? detail[..200] : detail });
     }
 
     public void Stop()

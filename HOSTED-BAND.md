@@ -1,13 +1,24 @@
-# Windbound Bard v0.46.2 hosted bands
+# Windbound Bard v0.46.3 hosted bands
 
 ## Join a band
 
 1. Update Windbound Bard on each performer through the Dalamud repository. Open **BAND → Ensemble**, turn off **Use FFXIV native Ensemble**, then turn on **Enable Multi-Device** and **Use hosted band with join code**.
 2. Set the host to **Conductor**. Enter the band relay's `wss://` address once, choose a stage name, click **Host Band**, then click **Copy band join code**. Share the code privately with the band.
 3. Set other performers to **Follower**. Paste the code in **Band join code** and click **Join with Code**. The code includes the relay address. Performers can stay outside the FFXIV party.
-4. Load a MIDI on the conductor and assign parts under **Band Track Assignments**. On each performing client, equip the instrument, open the expanded Performance keyboard, and ARM note output. Followers select **Wait for conductor cue**. When all participants show **READY**, the conductor clicks **Cue ensemble start**.
+4. Open **Concert Director — Hosted Band** under the connection controls to prepare the performers.
 
 The relay supports one conductor and up to fifteen followers per room. The transport test covered nine clients. For a first in-game test above eight, give each part a distinctive entrance and listen from a nearby audience character.
+
+## Concert Director in Hosted Band
+
+On **BAND → Ensemble**, select **Conductor**, enable **Multi-Device** and **Use hosted band with join code**, and choose **Host Band**. **Concert Director — Hosted Band** appears below the connection controls. You can choose a song and see the setup panel before hosting. Band commands become available after hosting and loading a MIDI.
+
+1. Join the followers, choose the Ensemble MIDI, then use **Band track assignments** and **Band instruments** to pick each connected bard’s parts and instrument.
+2. On each follower that should accept remote setup, enable **Allow this conductor to change my instrument and arm me for cues** after joining. This applies to that connection. A follower can also set up locally with **ARM output on this Bard** and **Wait for conductor cue**.
+3. Choose **Prepare entire band** to share the current MIDI and assignments, request the selected instruments, and arm participating bards. **Set band instruments**, **ARM all bards** and **DISARM all bards** also work independently. Check each performer’s readiness and open the expanded Performance keyboard where prompted.
+4. Use **Sync MIDI + track assignments** to resend the MIDI to everyone, or **Retry MIDI + tracks** beside a waiting performer to resend just to that bard. Once ready, choose **Start ensemble**. Use **Stop connected bards** to stop playback or **Stop ensemble + unequip band** to have consenting performers put away their instruments after notes release.
+
+Update the conductor and followers to v0.46.3 for remote setup. Older followers can still join and prepare locally. The existing v0.46.1 relay serves both versions. Hosted Band uses its own roster and scheduled start. The in-game Ready Check and Follow Party Leader use FFXIV party membership. Live rejoin on the next bar uses the native same-PC concert recovery mode.
 
 ## Run the included relay
 

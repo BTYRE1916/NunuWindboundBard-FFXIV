@@ -681,6 +681,7 @@ public sealed partial class MainWindow : Window, IDisposable
             CancelPendingInstrumentStart();
             if (plugin.Player.IsPlaying) plugin.Player.Stop();
             networkArrangement = null;
+            relayInstrumentOverride = null;
             string full = Path.GetFullPath(path.Trim().Trim('"'));
             if (plugin.AudioPreview.IsPlaying || plugin.AudioPreview.IsLoading)
                 plugin.AudioPreview.Stop("MIDI selection changed; start a new audio preview.");
@@ -707,10 +708,10 @@ public sealed partial class MainWindow : Window, IDisposable
             LoadPartyAssignmentsForFile();
             partyAssignmentsReceivedForCurrentMidi = false;
             nativeConductorTrackMapExplicit = false;
-            if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor && partyAssignments.Count > 0)
+            if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor && (partyAssignments.Count > 0 || IsRelayBandEnabled))
             {
                 ApplyPartyAssignmentsToLocal();
-                if (!suppressSnapshotSync) TryPublishPartyAssignments();
+                if (!suppressSnapshotSync && !IsRelayBandEnabled) TryPublishPartyAssignments();
             }
             Rebuild();
             if (arranged is null)
@@ -938,6 +939,10 @@ public sealed partial class MainWindow : Window, IDisposable
     private int GetInstrumentChoice()
     {
         if (string.IsNullOrWhiteSpace(loaded)) return 0;
+        if (IsRelayBandEnabled && relayInstrumentOverride.HasValue &&
+            (plugin.Network.IsHosting || (plugin.Network.RelayFollowerConnectionId != 0 &&
+            plugin.Network.RelayFollowerConnectionId == relaySetupConnection)))
+            return relayInstrumentOverride.Value;
         if (cfg.InstrumentsByFile.TryGetValue(loaded, out int id) && InstrumentCatalog.Valid(id))
             return id; // Explicitly chosen by user: retain the manual preference.
         return GetMidiSoloInstrumentSuggestion();
@@ -1389,7 +1394,9 @@ public sealed partial class MainWindow : Window, IDisposable
                 EnsembleRole.Follower => partyAssignmentsReceivedForCurrentMidi,
                 _ => false
             });
-        bool assignmentsAuthoritative = nativeLeaderMap || oneClickMapping || (!cfg.GameEnsembleEnabled && (partyAssignments.Count > 0 ||
+        bool relayMap = IsRelayBandEnabled && (cfg.EnsembleMode == (int)EnsembleRole.Conductor ||
+            (cfg.EnsembleMode == (int)EnsembleRole.Follower && partyAssignmentsReceivedForCurrentMidi));
+        bool assignmentsAuthoritative = relayMap || nativeLeaderMap || oneClickMapping || (!cfg.GameEnsembleEnabled && (partyAssignments.Count > 0 ||
             ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower &&
              cfg.FollowConductorAssignments && partyAssignmentsReceivedForCurrentMidi)));
         lanes = lanes.Select(lane =>
@@ -1409,6 +1416,8 @@ public sealed partial class MainWindow : Window, IDisposable
             (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Conductor) return false;
         try
         {
+            if (IsRelayBandEnabled)
+                return plugin.Network.IsHosting && TryShareNetworkSession();
             var revision = plugin.Assignments.Publish(cfg.EnsembleGroup, currentSongHash, partyAssignments);
             assignmentStatus = $"Published {partyAssignments.Count} MIDI part assignment(s) to local Ensemble Stage (rev {revision}).";
             return true;
@@ -1433,7 +1442,7 @@ public sealed partial class MainWindow : Window, IDisposable
         RememberCurrentPartyLineup();
         ApplyPartyAssignmentsToLocal();
         TryPublishPartyAssignments();
-        if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting) TryShareNetworkSession();
+        if (cfg.MultiDeviceEnabled && !IsRelayBandEnabled && plugin.Network.IsHosting) TryShareNetworkSession();
     }
 
     private void DrawPartyAssignmentControls(EnsembleRole role)
@@ -1442,7 +1451,10 @@ public sealed partial class MainWindow : Window, IDisposable
         bool relay = IsRelayBandEnabled;
         if (relay && role == EnsembleRole.Follower)
         {
-            ImGui.TextDisabled(Loc.T("Hosted Band assigns your parts from the conductor's connected roster."));
+            ImGui.TextUnformatted(Loc.T("Band track assignments"));
+            ImGui.TextWrapped(Loc.T(networkRevision > 0
+                ? $"{relaySongName} — {lanes.Count(lane => lane.Include)} part(s) assigned to me."
+                : "Waiting for the conductor to share a MIDI and assign parts."));
             return;
         }
         ImGui.TextColored(new Vector4(.9f, .65f, 1f, 1f),
@@ -1459,7 +1471,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 return;
             }
             if (choices.Count == 0)
-                ImGui.TextDisabled(Loc.T("No party members detected. Enter a party or log in as a character."));
+                ImGui.TextDisabled(Loc.T(relay ? "Log in and connect your performers to the hosted band." : "No party members detected. Enter a party or log in as a character."));
             DrawReusablePartyLineupControls();
             ImGui.BeginChild("##ConductorPartyAssignments", new Vector2(0, Math.Min(265f, 44f + 46f * lanes.Count)), true);
             foreach (var lane in lanes)
@@ -1499,16 +1511,17 @@ public sealed partial class MainWindow : Window, IDisposable
                 }
             }
             ImGui.SameLine();
-            if (ImGui.SmallButton(Loc.T("Clear party assignments")) && !plugin.Player.IsPlaying)
+            if (ImGui.SmallButton(Loc.T(relay ? "Clear band assignments" : "Clear party assignments")) && !plugin.Player.IsPlaying)
             {
                 partyAssignments.Clear();
                 StorePartyAssignments(); ApplyPartyAssignmentsToLocal(); TryPublishPartyAssignments();
             }
             ImGui.SameLine();
-            if (ImGui.SmallButton(Loc.T("Publish assignments")))
+            if (ImGui.SmallButton(Loc.T(relay ? "Send track assignments" : "Publish assignments")))
             {
-                TryPublishPartyAssignments();
-                if (cfg.MultiDeviceEnabled && plugin.Network.IsHosting) TryShareNetworkSession();
+                if (relay) TryShareNetworkSession(resend: true);
+                else TryPublishPartyAssignments();
+                if (cfg.MultiDeviceEnabled && !IsRelayBandEnabled && plugin.Network.IsHosting) TryShareNetworkSession();
                 if (NativeSyncEnabled) BroadcastNativeFile();
             }
             if (NativeSyncEnabled)
@@ -1621,7 +1634,9 @@ public sealed partial class MainWindow : Window, IDisposable
         if (mode == (int)EnsembleRole.Conductor)
         {
             int lead = cfg.EnsembleLeadMilliseconds;
-            if (ImGui.SliderInt(Loc.T("Count-in before start (ms)"), ref lead, 2000, 15000))
+            int minimumLead = IsRelayBandEnabled ? 5000 : 2000;
+            lead = Math.Max(lead, minimumLead);
+            if (ImGui.SliderInt(Loc.T("Count-in before start (ms)"), ref lead, minimumLead, 15000))
             {
                 cfg.EnsembleLeadMilliseconds = lead; cfg.Save();
             }
@@ -1631,12 +1646,18 @@ public sealed partial class MainWindow : Window, IDisposable
         DrawConcertDirector();
         if (!cfg.GameEnsembleEnabled) DrawMultiDeviceControls((EnsembleRole)mode);
         ImGui.Separator();
-        DrawPartyAssignmentControls((EnsembleRole)mode);
+        if (!IsRelayBandEnabled) DrawPartyAssignmentControls((EnsembleRole)mode);
         ImGui.Separator();
         ImGui.TextUnformatted(Loc.T("Parts assigned to THIS Bard client:"));
-        if (partyAssignments.Count > 0 && mode != 0 && !cfg.GameEnsembleEnabled)
+        if (partyAssignments.Count > 0 && mode != 0 && !cfg.GameEnsembleEnabled && !IsRelayBandEnabled)
             ImGui.TextDisabled(Loc.T("Party assignments are active; conductor controls the note lanes. Manual checkboxes may be replaced."));
-        if (song is null) ImGui.TextDisabled(Loc.T("Load a song first; each PC must have the SAME MIDI for FFXIV Game Ensemble."));
+        if (IsRelayBandEnabled && mode != 0)
+        {
+            foreach (var lane in lanes.Where(l => l.Include))
+                ImGui.TextUnformatted($"{song?.Tracks.FirstOrDefault(t => t.Index == lane.Key.Track)?.Name} (T{lane.Key.Track + 1} / Ch{lane.Key.Channel + 1})");
+            if (!lanes.Any(l => l.Include)) ImGui.TextDisabled(Loc.T("No parts assigned to this Bard."));
+        }
+        else if (song is null) ImGui.TextDisabled(Loc.T("Load a song first; each PC must have the SAME MIDI for FFXIV Game Ensemble."));
         else
         {
             for (int i = 0; i < lanes.Count; i++)
@@ -1661,7 +1682,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ImGui.TextDisabled(Loc.T($"{lanes.Count(x => x.Include)} part(s) enabled; per-file selection saved separately for each client."));
         }
         ImGui.Separator();
-        if (mode == (int)EnsembleRole.Conductor)
+        if (!IsRelayBandEnabled && mode == (int)EnsembleRole.Conductor)
         {
             if (ImGui.Button(Loc.T(cfg.GameEnsembleEnabled
                 ? "START ENSEMBLE (FFXIV native)"
@@ -1673,7 +1694,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 ? "FFXIV Ready Check auto-accepts on prepared participants; game sends the synchronised START. No party-chat timers."
                 : "All performers must arm output before the conductor cues the local or TCP ensemble."));
         }
-        if (mode == (int)EnsembleRole.Follower)
+        if (!IsRelayBandEnabled && mode == (int)EnsembleRole.Follower)
         {
             if (cfg.GameEnsembleEnabled)
             {
@@ -1693,7 +1714,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ImGui.TextDisabled(Loc.T("ARM in Songs & Playback; expanded Performance keyboard must be open."));
         }
         if (mode == 0) ImGui.TextDisabled(Loc.T("Switch to Conductor or Follower to use synchronized starts."));
-        ImGui.TextWrapped(Loc.T(ensembleStatus));
+        if (!IsRelayBandEnabled || mode != (int)EnsembleRole.Conductor) ImGui.TextWrapped(Loc.T(ensembleStatus));
         if (ImGui.SmallButton(Loc.T("Copy ensemble diagnostics")))
         {
             ImGui.SetClipboardText($"Mode: {(EnsembleRole)cfg.EnsembleMode}\nStage: {cfg.EnsembleGroup}\n" +
@@ -1724,6 +1745,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (cfg.EnsembleMode != (int)role)
         {
             plugin.Network.Stop();
+            ClearHostedSetup();
             networkRevision = 0;
             networkSongHash = "";
             networkArrangement = null;
@@ -1941,6 +1963,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     public void StopPlayback()
     {
+        hostedTakeEndsMs = 0;
         ResetConcertTake();
         restartHash = "";
         restartPreparesArm = false;
@@ -1989,13 +2012,13 @@ public sealed partial class MainWindow : Window, IDisposable
         cfg.RepairOctaves, cfg.ChordStrategy, cfg.GlobalTranspose, cfg.MinimumGapMs,
         cfg.ArpeggioSpacingMs, lanes.ToDictionary(l => PartKey(l.Key), l => l.OctaveShift));
 
-    private bool TryShareNetworkSession()
+    private bool TryShareNetworkSession(bool resend = false)
     {
         if (!cfg.MultiDeviceEnabled || !plugin.Network.IsHosting || song is null || string.IsNullOrEmpty(loaded)) return false;
         try
         {
             bool changed = plugin.Network.PublishSession(loaded, GetNetworkArrangement(),
-                partyAssignments.ToDictionary(p => PartKey(p.Key), p => p.Value));
+                partyAssignments.ToDictionary(p => PartKey(p.Key), p => p.Value), resend);
             if (changed) networkStatus = "MIDI/part map sent; followers must acknowledge the updated revision.";
             return true;
         }
@@ -2031,6 +2054,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             DrawRelayBandControls(role);
             DrawNetworkStatus();
+            DrawHostedEnsemble(role);
             DrawRelayDiagnostics();
             return;
         }
@@ -2113,7 +2137,9 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void CueNetworkEnsemble()
     {
-        if (!plugin.Network.IsHosting) throw new InvalidOperationException("HOST a private ensemble first.");
+        if (!plugin.Network.IsHosting) throw new InvalidOperationException("Host an ensemble first.");
+        if (IsRelayBandEnabled && HostedPlaybackBusy)
+            throw new InvalidOperationException("Stop the current take before cueing another.");
         if (song is null || arranged is null || string.IsNullOrWhiteSpace(loaded))
             throw new InvalidOperationException("Load a MIDI first.");
         if (partyAssignments.Count == 0)
@@ -2132,12 +2158,16 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             if (!outputArmed || !plugin.IsGameOutputSafe())
                 throw new InvalidOperationException("ARM output and open the full Bard Performance keyboard.");
+            if (IsRelayBandEnabled && relayInstrumentOverride is int instrument && instrument != 0 &&
+                !plugin.Instruments.IsReadyFor(instrument))
+                throw new InvalidOperationException("Wait for the conductor instrument to finish equipping.");
             StartSong(localStart);
             if (!plugin.Player.IsPlaying)
                 throw new InvalidOperationException("Local playback could not be prepared: " + status);
         }
         try { plugin.Network.BroadcastStart(hostStartMs, (int)Math.Round(cfg.PlaybackSpeed * 1000)); }
         catch { if (plugin.Player.IsPlaying) plugin.Player.Stop(); throw; }
+        if (IsRelayBandEnabled) hostedTakeEndsMs = hostStartMs + song.DurationMs / Math.Max(.5, cfg.PlaybackSpeed);
         ensembleStatus = $"Multi-Device cue sent to {plugin.Network.Performers.Count} follower(s)! Starts in {countIn/1000.0:0.0}s.";
     }
 
@@ -2158,10 +2188,15 @@ public sealed partial class MainWindow : Window, IDisposable
         if (!waitingForEnsembleCue) { why = "Enable Wait for conductor cue."; return false; }
         if (!plugin.Network.HasClockSync) { why = "Synchronising clocks..."; return false; }
         if (plugin.Player.IsPlaying) { why = "Already playing; STOP before cue."; return false; }
-        if (arranged.Notes.Count == 0) { why = "No notes are assigned to your Bard."; return false; }
+        if (arranged.Notes.Count == 0)
+        {
+            if (IsRelayBandEnabled && partyAssignmentsReceivedForCurrentMidi && !lanes.Any(l => l.Include))
+            { why = "Ready (silent, no assigned parts)."; return true; }
+            why = "No notes are assigned to your Bard."; return false;
+        }
         if (!outputArmed || !plugin.IsGameOutputSafe()) { why = "ARM output and open expanded Performance mode."; return false; }
         int wanted = GetInstrumentChoice();
-        if (cfg.AutoSwitchInstrumentBeforePlay && wanted != 0 && !plugin.Instruments.IsReadyFor(wanted))
+        if ((cfg.AutoSwitchInstrumentBeforePlay || (IsRelayBandEnabled && relayInstrumentOverride.HasValue)) && wanted != 0 && !plugin.Instruments.IsReadyFor(wanted))
             { why = $"Equip {InstrumentCatalog.Display(wanted)} before cue."; return false; }
         why = "Ready to perform.";
         return true;
@@ -2174,6 +2209,8 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             try
             {
+                if (IsRelayBandEnabled && notice.ConnectionId != 0 &&
+                    notice.ConnectionId != plugin.Network.RelayFollowerConnectionId) continue;
                 switch (notice.Kind)
                 {
                     case NetworkNoticeKind.Connected:
@@ -2187,6 +2224,11 @@ public sealed partial class MainWindow : Window, IDisposable
                         networkStatus = notice.Detail;
                         break;
                     case NetworkNoticeKind.Disconnected:
+                        if (IsRelayBandEnabled && hostedTakeEndsMs > MultiDeviceEnsemble.NowMs())
+                        {
+                            hostedTakeEndsMs = 0;
+                            if (plugin.Network.IsHosting) plugin.Network.BroadcastStop();
+                        }
                         networkStatus = notice.Detail;
                         if ((EnsembleRole)cfg.EnsembleMode == EnsembleRole.Follower)
                         {
@@ -2201,6 +2243,9 @@ public sealed partial class MainWindow : Window, IDisposable
                             plugin.Network.BroadcastStop();
                             ensembleStatus = "A network performer disconnected; ensemble stopped to avoid an incomplete duet.";
                         }
+                        break;
+                    case NetworkNoticeKind.BandSetup:
+                        ReceiveHostedSetup(notice);
                         break;
                     case NetworkNoticeKind.Session:
                         if (!cfg.MultiDeviceEnabled || (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower ||
@@ -2228,7 +2273,9 @@ public sealed partial class MainWindow : Window, IDisposable
         try
         {
             bool ready = FollowerReady(out string reason);
-            plugin.Network.SendReady(networkRevision, networkSongHash, ready, reason);
+            if (IsRelayBandEnabled && relaySetupFeedback.Length > 0)
+                reason += " " + relaySetupFeedback;
+            plugin.Network.SendReady(networkRevision, networkSongHash, ready, reason, IsRelayBandEnabled ? relaySetupSequence : 0);
             if (!ready) networkStatus = "Follower not ready: " + reason;
             else networkStatus = "READY — received MIDI, assigned parts, synced clock and armed output.";
         }
@@ -2251,6 +2298,9 @@ public sealed partial class MainWindow : Window, IDisposable
         Load(cached);
         if (song is null || currentSongHash != EnsembleCoordinator.FingerprintFile(cached))
             throw new InvalidDataException("Network MIDI failed to load.");
+        relaySetupSequence = notice.SetupSequence;
+        relaySetupFeedback = "";
+        relaySongName = Path.GetFileName(notice.Name);
         networkRevision = notice.Revision;
         networkSongHash = notice.Hash;
         networkArrangement = notice.Arrangement;
@@ -2284,6 +2334,11 @@ public sealed partial class MainWindow : Window, IDisposable
         if (!FollowerReady(out string reason))
         {
             ensembleStatus = "Ignored network START: " + reason;
+            return;
+        }
+        if (IsRelayBandEnabled && !lanes.Any(l => l.Include))
+        {
+            ensembleStatus = "Band started. This Bard has no assigned parts.";
             return;
         }
         if (!plugin.Network.TryConvertHostTimeToLocalQpc(notice.HostStartMs, out long target))

@@ -190,7 +190,7 @@ public sealed partial class MainWindow
             foreach (var suggestion in GetMidiPartySuggestions())
             {
                 if (suggestion.InstrumentId == 0) continue;
-                var member = PartyRoster.GetChoices(Plugin.Objects, Plugin.Party)
+                var member = (IsRelayBandEnabled ? GetConnectedBandChoices() : PartyRoster.GetChoices(Plugin.Objects, Plugin.Party))
                     .FirstOrDefault(x => x.ContentId == suggestion.ContentId);
                 string memberName = member?.Name ?? "Unknown Bard";
                 string conflict = suggestion.ConflictingTracks
