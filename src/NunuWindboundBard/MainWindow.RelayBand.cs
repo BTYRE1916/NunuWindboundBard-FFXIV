@@ -131,6 +131,8 @@ public sealed partial class MainWindow
             var color = peer.Ready ? new Vector4(.45f, .96f, .58f, 1f) : new Vector4(1f, .77f, .38f, 1f);
             ImGui.TextColored(color, Loc.T($"{peer.Character} — {(peer.Ready ? "READY" : "WAITING")} (rev {peer.Revision})"));
             if (!peer.Ready || IsRelayBandEnabled) ImGui.TextWrapped(Loc.T(peer.Detail));
+            if (IsRelayBandEnabled && peer.StartSequence > 0)
+                ImGui.TextWrapped($"START #{peer.StartSequence}: {peer.StartOutcome}");
             if (IsRelayBandEnabled && peer.SupportsBandSetup && !peer.Ready && !HostedPlaybackBusy &&
                 plugin.Network.SessionRevision > 0 && ImGui.SmallButton(Loc.T("Retry MIDI + tracks##relayRetry") + peer.ContentId))
                 networkStatus = plugin.Network.RetryBandMember(peer.ContentId) ? "Sent the current MIDI and parts to " + peer.Character : "Performer disconnected.";

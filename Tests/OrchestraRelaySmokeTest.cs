@@ -109,12 +109,36 @@ try
     Console.WriteLine("PASS: hosted prepare, instruments, ARM/DISARM, unequip, targeted retry, resend and stale readiness.");
     double start = MultiDeviceEnsemble.NowMs() + 5000;
     host.BroadcastStart(start, 1000);
-    foreach (var bard in followers)
+    long startSequence = 0;
+    NetworkNotice? unacknowledged = null;
+    for (int i = 0; i < followers.Length; i++)
     {
+        var bard = followers[i];
         var cue = await WaitNotice(bard, NetworkNoticeKind.Cue);
-        Require(cue.HostStartMs == start && bard.TryConvertHostTimeToLocalQpc(cue.HostStartMs, out _),
-            "each follower receives and converts the same scheduled cue");
+        if (startSequence == 0) startSequence = cue.StartSequence;
+        Require(cue.StartSequence == startSequence && cue.StartSequence > 0 &&
+            cue.ConnectionId == bard.RelayFollowerConnectionId &&
+            cue.HostStartMs == start && bard.TryConvertHostTimeToLocalQpc(cue.HostStartMs, out _),
+            "each follower receives the same correlated downbeat on its own connection");
+        // Simulate one lost acknowledgement and one follower refusing to arm.
+        if (i == 4) unacknowledged = cue;
+        else bard.SendStartAck(cue.StartSequence, cue.Revision, cue.Hash, i != 6,
+            i == 6 ? "Performance keyboard closed" : "Playback scheduled");
     }
+    await Until(() => host.Performers.Count(p => p.StartOutcome.StartsWith("ARMED:")) == 6 &&
+        host.Performers.Count(p => p.StartOutcome.StartsWith("FAILED:")) == 1,
+        "conductor receives seven per-Bard START results");
+    Require(host.Performers.Single(p => p.ContentId == 8).StartOutcome.Contains("Performance keyboard closed"),
+        "per-follower rejection is visible to conductor");
+    var repeated = await WaitNotice(followers[4], NetworkNoticeKind.Cue);
+    Require(repeated.StartSequence == startSequence && repeated.HostStartMs == start &&
+        repeated.Revision == unacknowledged!.Revision, "unconfirmed follower gets same START again, not a new downbeat");
+    followers[4].SendStartAck(repeated.StartSequence, repeated.Revision, repeated.Hash, true, "Playback scheduled");
+    await Until(() => host.Performers.Count(p => p.StartOutcome.StartsWith("ARMED:")) == 7,
+        "lost START result is recovered");
+    Require(host.RelayReport.Contains($"START #{startSequence} retransmitted"),
+        "relay diagnostics include the targeted START retry");
+    Console.WriteLine("PASS: eight-follower broadcast, per-Bard acceptance/failure, missing-ACK retry and shared downbeat.");
     host.BroadcastStop();
     foreach (var bard in followers) await WaitNotice(bard, NetworkNoticeKind.Stop);
     foreach (var bard in followers)

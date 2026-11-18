@@ -1,4 +1,4 @@
-# Windbound Bard v0.46.3 hosted bands
+# Windbound Bard v0.46.4 hosted bands
 
 ## Join a band
 
@@ -18,7 +18,20 @@ On **BAND → Ensemble**, select **Conductor**, enable **Multi-Device** and **Us
 3. Choose **Prepare entire band** to share the current MIDI and assignments, request the selected instruments, and arm participating bards. **Set band instruments**, **ARM all bards** and **DISARM all bards** also work independently. Check each performer’s readiness and open the expanded Performance keyboard where prompted.
 4. Use **Sync MIDI + track assignments** to resend the MIDI to everyone, or **Retry MIDI + tracks** beside a waiting performer to resend just to that bard. Once ready, choose **Start ensemble**. Use **Stop connected bards** to stop playback or **Stop ensemble + unequip band** to have consenting performers put away their instruments after notes release.
 
-Update the conductor and followers to v0.46.3 for remote setup. Older followers can still join and prepare locally. The existing v0.46.1 relay serves both versions. Hosted Band uses its own roster and scheduled start. The in-game Ready Check and Follow Party Leader use FFXIV party membership. Live rejoin on the next bar uses the native same-PC concert recovery mode.
+Update the conductor and followers to v0.46.4 for per-Bard START results, targeted retransmission and duplicate suppression. Older followers can still join and prepare locally, but cannot report whether START was accepted. The existing v0.46.1 relay serves both versions. Hosted Band uses its own roster and scheduled start. The in-game Ready Check and Follow Party Leader use FFXIV party membership. Live rejoin on the next bar uses the native same-PC concert recovery mode.
+
+## v0.46.4 START delivery and playback results
+
+**Start ensemble** still uses one future clock timestamp, shared by all connected performers. The conductor now records a unique START number and a result beside each Bard in the connected-performers roster:
+
+- `START queued; waiting for Bard result.` means START was sent but this client has not reported whether it could arm playback.
+- `ARMED: Playback queued for common downbeat...` means this client accepted the scheduled cue; it is not a guarantee that game audio/note dispatch was successful.
+- `FAILED: ...` gives the local reason (e.g. Performance mode closed, wrong MIDI, not waiting, instrument not ready or cue late).
+- `Legacy Bard` means the follower is not using the acknowledgement protocol. Update it to v0.46.4.
+
+When an updated Bard's reply is missing, the conductor resends **the same START number and the same timestamp** up to three times, while time remains before the downbeat. A follower handles a duplicate by repeating its original result without starting again. The relay itself is unchanged; this coordination takes place between the plugins.
+
+For troubleshooting, open **Relay diagnostics** on conductor and followers, then **Copy relay report**. It records START numbers and whether each connection was armed, rejected or retried, without logging player names or MIDI data. If a follower reports ARMED but is silent in game, inspect the local Performance keyboard, instrument, track assignment and FFXIV note output; the transport confirms cue acceptance, not audible sound.
 
 ## Run the included relay
 

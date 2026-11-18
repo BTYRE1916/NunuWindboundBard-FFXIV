@@ -24,6 +24,7 @@ public sealed partial class MainWindow
         relayInstrumentOverride = null;
         relaySetupFeedback = "";
         relaySongName = "";
+        networkStartFeedback = "";
     }
 
     private void DrawHostedEnsemble(EnsembleRole role)
@@ -52,6 +53,7 @@ public sealed partial class MainWindow
                 ImGui.TextWrapped(Loc.T(reason));
             }
             if (relaySetupFeedback.Length > 0) ImGui.TextWrapped(Loc.T(relaySetupFeedback));
+            if (networkStartFeedback.Length > 0) ImGui.TextWrapped(Loc.T(networkStartFeedback));
             return;
         }
 

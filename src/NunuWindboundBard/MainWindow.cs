@@ -55,6 +55,13 @@ public sealed partial class MainWindow : Window, IDisposable
     private string networkHost = "";
     private string networkStatus = "Not connected. Multi-Device is opt-in.";
     private long networkRevision;
+    private long lastNetworkStartSequence;
+    private long lastNetworkStartRevision;
+    private int lastNetworkStartConnection;
+    private string lastNetworkStartHash = "";
+    private string lastNetworkStartOutcome = "";
+    private bool lastNetworkStartArmed;
+    private string networkStartFeedback = "";
     private string networkSongHash = "";
     private RemoteArrangementSettings? networkArrangement;
     private long lastNetworkReadyQpc;
@@ -2325,45 +2332,65 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void ReceiveNetworkCue(NetworkNotice notice)
     {
-        if (!waitingForEnsembleCue || networkRevision != notice.Revision ||
-            !string.Equals(networkSongHash, notice.Hash, StringComparison.OrdinalIgnoreCase))
+        // All retransmissions carry the same scheduled downbeat. Never start a
+        // follower twice, and repeat the original acknowledgement if it was lost.
+        if (notice.StartSequence > 0 && lastNetworkStartSequence == notice.StartSequence &&
+            lastNetworkStartRevision == notice.Revision &&
+            lastNetworkStartConnection == notice.ConnectionId &&
+            string.Equals(lastNetworkStartHash, notice.Hash, StringComparison.OrdinalIgnoreCase))
         {
-            ensembleStatus = "Ignored network START: follower not waiting, or MIDI revision does not match.";
+            plugin.Network.SendStartAck(notice.StartSequence, notice.Revision, notice.Hash,
+                lastNetworkStartArmed, lastNetworkStartOutcome);
             return;
         }
-        if (!FollowerReady(out string reason))
+
+        bool armed = false;
+        string result;
+        try
         {
-            ensembleStatus = "Ignored network START: " + reason;
-            return;
+            if (!waitingForEnsembleCue || networkRevision != notice.Revision ||
+                !string.Equals(networkSongHash, notice.Hash, StringComparison.OrdinalIgnoreCase))
+                result = "Follower not waiting, or MIDI revision does not match.";
+            else if (!FollowerReady(out string reason))
+                result = reason;
+            else if (!plugin.Network.TryConvertHostTimeToLocalQpc(notice.HostStartMs, out long target))
+                result = "Clock not synchronized.";
+            else if (EnsembleCoordinator.RemainingSeconds(target) < 0.5)
+                result = "START arrived too late for the scheduled downbeat.";
+            else if (notice.SpeedThousand is < 500 or > 2000)
+                result = "Invalid playback speed.";
+            else if (IsRelayBandEnabled && !lanes.Any(l => l.Include))
+            {
+                armed = true;
+                result = "Silent Bard: no assigned parts; downbeat accepted.";
+            }
+            else
+            {
+                cfg.PlaybackSpeed = notice.SpeedThousand / 1000.0f;
+                cfg.Save();
+                StartSong(target);
+                armed = plugin.Player.IsPlaying;
+                result = armed
+                    ? $"Playback queued for common downbeat ({EnsembleCoordinator.RemainingSeconds(target):0.0}s remaining)."
+                    : "Playback rejected locally: " + status;
+            }
         }
-        if (IsRelayBandEnabled && !lanes.Any(l => l.Include))
+        catch (Exception ex)
         {
-            ensembleStatus = "Band started. This Bard has no assigned parts.";
-            return;
+            result = "Local START processing failed: " + ex.Message;
         }
-        if (!plugin.Network.TryConvertHostTimeToLocalQpc(notice.HostStartMs, out long target))
+        ensembleStatus = (armed ? "Network START accepted: " : "Network START failed: ") + result;
+        networkStartFeedback = ensembleStatus;
+        if (notice.StartSequence > 0)
         {
-            ensembleStatus = "Ignored network START: clock not synchronized.";
-            return;
+            lastNetworkStartSequence = notice.StartSequence;
+            lastNetworkStartRevision = notice.Revision;
+            lastNetworkStartConnection = notice.ConnectionId;
+            lastNetworkStartHash = notice.Hash;
+            lastNetworkStartArmed = armed;
+            lastNetworkStartOutcome = result;
+            plugin.Network.SendStartAck(notice.StartSequence, notice.Revision, notice.Hash, armed, result);
         }
-        double remaining = EnsembleCoordinator.RemainingSeconds(target);
-        if (remaining < 0.5)
-        {
-            ensembleStatus = "START cue arrived late; ask conductor for a longer count-in.";
-            return;
-        }
-        float speed = notice.SpeedThousand / 1000.0f;
-        if (speed is < 0.5f or > 2f)
-        {
-            ensembleStatus = "Ignored network START: invalid playback speed.";
-            return;
-        }
-        cfg.PlaybackSpeed = speed;
-        cfg.Save();
-        StartSong(target);
-        ensembleStatus = plugin.Player.IsPlaying
-            ? $"Network ensemble starting in {remaining:0.0}s (clock RTT {plugin.Network.RoundTripMs:0}ms)!"
-            : "Could not start network ensemble: " + status;
     }
 
     private void DrawRoll()
