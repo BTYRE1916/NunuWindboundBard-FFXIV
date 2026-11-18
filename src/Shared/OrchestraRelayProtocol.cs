@@ -7,6 +7,8 @@ internal static class RelayProtocol
     internal const string HostPath = "/v1/host";
     internal const string JoinPath = "/v1/join";
     internal const string AttachPath = "/v1/attach";
+    internal const string TraceHeader = "X-Windbound-Trace";
+    internal const int AttachTimeoutCloseCode = 4001;
     internal const int TokenLength = 48;
     internal const int MaxFollowers = 15;
 

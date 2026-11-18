@@ -251,12 +251,16 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         catch (Exception ex) { if (!ct.IsCancellationRequested) notices.Enqueue(new(NetworkNoticeKind.Error, "Host listen failed: " + ex.Message)); }
     }
 
-    private async Task HostPeerAsync(Stream stream, string stage, string code, CancellationToken ct)
+    private async Task HostPeerAsync(Stream stream, string stage, string code, CancellationToken ct, RelayTrace? trace = null)
     {
         Peer? peer = null;
+        CancellationToken deadline = default;
+        string? failure = null;
         try
         {
+            trace?.Step("Checking follower band credentials");
             using var handshakeTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            deadline = handshakeTimeout.Token;
             handshakeTimeout.CancelAfter(TimeSpan.FromSeconds(10));
             string nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
             await WriteAsync(stream, new Wire { Type = "Challenge", Nonce = nonce }, handshakeTimeout.Token).ConfigureAwait(false);
@@ -273,13 +277,26 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                 ct.ThrowIfCancellationRequested();
                 if (cancel is null || cancel.Token != ct) return;
                 if (peers.Values.Any(existing => existing.ContentId == hello.ContentId))
+                {
+                    trace?.Note("Duplicate character already connected.");
                     throw new InvalidOperationException("That character already joined the stage.");
+                }
                 peer = new Peer(stream, hello.Character, hello.ContentId, Interlocked.Increment(ref nextPeerId));
                 peers[peer.Id] = peer;
                 if (currentSession is { } session) peer.Send(session);
                 notices.Enqueue(new(NetworkNoticeKind.Connected, $"{peer.Name} joined the stage."));
             }
-            await RunPeerAsync(peer, ct, isHostSide: true).ConfigureAwait(false);
+            handshakeTimeout.CancelAfter(Timeout.InfiniteTimeSpan);
+            trace?.Step("Connected band traffic");
+            await RunPeerAsync(peer, ct, isHostSide: true, trace).ConfigureAwait(false);
+        }
+        catch (Exception error) when (trace is not null)
+        {
+            if (!ct.IsCancellationRequested)
+            {
+                failure = trace.Failed(error, deadline);
+                if (peer is null) notices.Enqueue(new(NetworkNoticeKind.Error, failure));
+            }
         }
         catch (OperationCanceledException) { }
         catch (EndOfStreamException) { }
@@ -295,7 +312,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             {
                 peers.TryRemove(peer.Id, out _);
                 if (!ct.IsCancellationRequested)
-                    notices.Enqueue(new(NetworkNoticeKind.Disconnected, $"{peer.Name} disconnected."));
+                    notices.Enqueue(new(NetworkNoticeKind.Disconnected, $"{peer.Name} disconnected. {failure}".TrimEnd()));
                 peer.Close();
             }
             else stream.Dispose();
@@ -303,15 +320,19 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     }
 
     private async Task JoinLoopAsync(Func<CancellationToken, Task<Stream>> connect, string stage, string code,
-        string character, ulong contentId, CancellationToken ct)
+        string character, ulong contentId, CancellationToken ct, RelayTrace? trace = null)
     {
+        CancellationToken deadline = default;
+        string? failure = null;
         Stream? stream = null;
         Peer? peer = null;
         try
         {
             using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            deadline = connectTimeout.Token;
             connectTimeout.CancelAfter(TimeSpan.FromSeconds(12));
             stream = await connect(connectTimeout.Token).ConfigureAwait(false);
+            trace?.Step("Checking conductor band credentials");
             var challenge = await ReadAsync(stream, connectTimeout.Token).ConfigureAwait(false);
             if (challenge.Type != "Challenge" || challenge.Nonce.Length != 48)
                 throw new InvalidDataException("Conductor did not send a valid challenge.");
@@ -336,7 +357,13 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                 status = "Connected! Synchronising clocks and receiving MIDI...";
             }
             notices.Enqueue(new(NetworkNoticeKind.Connected, "Connected to conductor."));
-            await RunPeerAsync(peer, ct, isHostSide: false).ConfigureAwait(false);
+            connectTimeout.CancelAfter(Timeout.InfiniteTimeSpan);
+            trace?.Step("Connected band traffic");
+            await RunPeerAsync(peer, ct, isHostSide: false, trace).ConfigureAwait(false);
+        }
+        catch (Exception error) when (trace is not null)
+        {
+            if (!ct.IsCancellationRequested) failure = trace.Failed(error, deadline);
         }
         catch (OperationCanceledException) { }
         catch (EndOfStreamException)
@@ -359,79 +386,94 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                 {
                     hostPeer = null;
                     hostClockOffsetMs = null; clockSamples.Clear(); joining = false;
-                    status = "Disconnected from conductor.";
+                    activeRelay = null;
+                    status = failure ?? "Disconnected from conductor.";
                 }
             }
             if (!ct.IsCancellationRequested) notices.Enqueue(new(NetworkNoticeKind.Disconnected,
-                "Connection to conductor lost. Ensemble stopped."));
+                failure ?? "Connection to conductor lost. Ensemble stopped."));
         }
     }
 
-    private async Task RunPeerAsync(Peer peer, CancellationToken ct, bool isHostSide)
+    private async Task RunPeerAsync(Peer peer, CancellationToken ct, bool isHostSide, RelayTrace? trace)
     {
         using var socketLife = CancellationTokenSource.CreateLinkedTokenSource(ct);
         CancellationToken token = socketLife.Token;
         Task sendTask = SendLoopAsync(peer, token);
         Task pingTask = isHostSide ? Task.CompletedTask : PingLoopAsync(peer, token);
+        Task receiveTask = ReceivePeerAsync(peer, token, isHostSide);
         try
         {
-            while (!token.IsCancellationRequested)
+            Task first = await Task.WhenAny(receiveTask, sendTask).ConfigureAwait(false);
+            if (first.IsFaulted && !ct.IsCancellationRequested && trace is not null)
             {
-                Wire message = await ReadAsync(peer.Stream, token).ConfigureAwait(false);
-                peer.LastSeenMs = NowMs();
-                if (isHostSide)
-                {
-                    switch (message.Type)
-                    {
-                        case "Ping":
-                            double received = NowMs();
-                            peer.Send(new Wire { Type = "Pong", ClientTimeMs = message.ClientTimeMs,
-                                HostReceiveMs = received, HostSendMs = NowMs() });
-                            break;
-                        case "Ready":
-                            Wire? active;
-                            lock (gate) active = currentSession;
-                            peer.Ready = message.Ready && active is not null &&
-                                message.Revision == active.Revision &&
-                                string.Equals(message.Hash, active.Hash, StringComparison.OrdinalIgnoreCase);
-                            peer.ReadyRevision = message.Revision;
-                            peer.ReadyDetail = message.Detail.Length > 200 ? message.Detail[..200] : message.Detail;
-                            break;
-                    }
-                }
-                else
-                {
-                    switch (message.Type)
-                    {
-                        case "Pong": UpdateClock(message); break;
-                        case "Session":
-                            if (message.Data.Length > MaxMidiBytes * 4 / 3 + 128 ||
-                                !IsHexHash(message.Hash) || message.Revision <= 0 || message.Arrangement is null)
-                                throw new InvalidDataException("Conductor sent invalid MIDI metadata.");
-                            byte[] midi = Convert.FromBase64String(message.Data);
-                            if (midi.Length is < 14 or > MaxMidiBytes || !midi.AsSpan(0, 4).SequenceEqual("MThd"u8) ||
-                                !string.Equals(Sha256(midi), message.Hash, StringComparison.OrdinalIgnoreCase))
-                                throw new InvalidDataException("MIDI validation failed. Song ignored.");
-                            notices.Enqueue(new(NetworkNoticeKind.Session, "Conductor shared an ensemble MIDI.",
-                                message.Name, message.Hash, midi, message.Arrangement,
-                                message.Assignments, message.Revision));
-                            break;
-                        case "Start":
-                            notices.Enqueue(new(NetworkNoticeKind.Cue, "Conductor sent START.", Hash: message.Hash,
-                                Revision: message.Revision, HostStartMs: message.HostStartMs,
-                                SpeedThousand: message.SpeedThousand));
-                            break;
-                        case "Stop": notices.Enqueue(new(NetworkNoticeKind.Stop, "Conductor sent STOP.")); break;
-                    }
-                }
+                string direction = first == receiveTask ? "receive" : "send";
+                double quietSeconds = Math.Max(0, NowMs() - Volatile.Read(ref peer.LastSeenMs)) / 1000;
+                trace.Note($"First band {direction} failure, {quietSeconds:0.0}s since the last received frame or handshake.");
             }
+            await first.ConfigureAwait(false);
         }
         finally
         {
             socketLife.Cancel();
             peer.Close();
-            try { await sendTask.ConfigureAwait(false); } catch (OperationCanceledException) { }
-            try { await pingTask.ConfigureAwait(false); } catch (OperationCanceledException) { }
+            // The other direction can fail during teardown. Keep the original failure.
+            try { await Task.WhenAll(receiveTask, sendTask, pingTask).ConfigureAwait(false); }
+            catch (Exception) when (token.IsCancellationRequested) { }
+        }
+    }
+
+    private async Task ReceivePeerAsync(Peer peer, CancellationToken token, bool isHostSide)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            Wire message = await ReadAsync(peer.Stream, token).ConfigureAwait(false);
+            Volatile.Write(ref peer.LastSeenMs, NowMs());
+            if (isHostSide)
+            {
+                switch (message.Type)
+                {
+                    case "Ping":
+                        double received = NowMs();
+                        peer.Send(new Wire { Type = "Pong", ClientTimeMs = message.ClientTimeMs,
+                            HostReceiveMs = received, HostSendMs = NowMs() });
+                        break;
+                    case "Ready":
+                        Wire? active;
+                        lock (gate) active = currentSession;
+                        peer.Ready = message.Ready && active is not null &&
+                            message.Revision == active.Revision &&
+                            string.Equals(message.Hash, active.Hash, StringComparison.OrdinalIgnoreCase);
+                        peer.ReadyRevision = message.Revision;
+                        peer.ReadyDetail = message.Detail.Length > 200 ? message.Detail[..200] : message.Detail;
+                        break;
+                }
+            }
+            else
+            {
+                switch (message.Type)
+                {
+                    case "Pong": UpdateClock(message); break;
+                    case "Session":
+                        if (message.Data.Length > MaxMidiBytes * 4 / 3 + 128 ||
+                            !IsHexHash(message.Hash) || message.Revision <= 0 || message.Arrangement is null)
+                            throw new InvalidDataException("Conductor sent invalid MIDI metadata.");
+                        byte[] midi = Convert.FromBase64String(message.Data);
+                        if (midi.Length is < 14 or > MaxMidiBytes || !midi.AsSpan(0, 4).SequenceEqual("MThd"u8) ||
+                            !string.Equals(Sha256(midi), message.Hash, StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidDataException("MIDI validation failed. Song ignored.");
+                        notices.Enqueue(new(NetworkNoticeKind.Session, "Conductor shared an ensemble MIDI.",
+                            message.Name, message.Hash, midi, message.Arrangement,
+                            message.Assignments, message.Revision));
+                        break;
+                    case "Start":
+                        notices.Enqueue(new(NetworkNoticeKind.Cue, "Conductor sent START.", Hash: message.Hash,
+                            Revision: message.Revision, HostStartMs: message.HostStartMs,
+                            SpeedThousand: message.SpeedThousand));
+                        break;
+                    case "Stop": notices.Enqueue(new(NetworkNoticeKind.Stop, "Conductor sent STOP.")); break;
+                }
+            }
         }
     }
 
@@ -584,6 +626,8 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         Peer? oldHost;
         lock (gate)
         {
+            activeRelay?.Note("Connection stopped on this client.");
+            activeRelay = null;
             old = cancel; cancel = null; oldListener = listener; listener = null;
             oldHost = hostPeer; hostPeer = null;
             hosting = false; joining = false; status = "Multi-device disconnected.";

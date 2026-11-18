@@ -9,6 +9,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="MultiDeviceTransportSmokeTest.cs" />
-    <Compile Include="../src/NunuWindboundBard/Core/MultiDeviceEnsemble.cs" Link="MultiDeviceEnsemble.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MultiDeviceEnsemble*.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/RelayDiagnostics.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/RelayBandConnection.cs" />
+    <Compile Include="../src/Shared/OrchestraRelayProtocol.cs" />
   </ItemGroup>
 </Project>

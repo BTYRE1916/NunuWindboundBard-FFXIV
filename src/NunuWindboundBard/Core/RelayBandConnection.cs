@@ -56,9 +56,10 @@ internal static class RelayBandConnection
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(5));
     }
 
-    internal static async Task<Stream> OpenAsync(Uri relay, string path, string? bearer, CancellationToken ct)
+    internal static async Task<Stream> OpenAsync(Uri relay, string path, string? bearer, CancellationToken ct, RelayTrace? trace = null)
     {
         var socket = new ClientWebSocket();
+        socket.Options.CollectHttpResponseDetails = true;
         socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
         socket.Options.KeepAliveTimeout = TimeSpan.FromSeconds(15);
         if (bearer is not null) socket.Options.SetRequestHeader("Authorization", "Bearer " + bearer);
@@ -66,13 +67,33 @@ internal static class RelayBandConnection
         {
             var target = new Uri(relay.AbsoluteUri.TrimEnd('/') + path);
             await socket.ConnectAsync(target, ct).ConfigureAwait(false);
-            return new WebSocketStream(socket);
+            RecordResponse(socket, trace);
+            return new WebSocketStream(socket, trace);
         }
         catch
         {
+            RecordResponse(socket, trace);
             socket.Dispose();
             throw;
         }
+    }
+
+    private static void RecordResponse(ClientWebSocket socket, RelayTrace? trace)
+    {
+        if (trace is null || (int)socket.HttpStatusCode == 0) return;
+        string reference = "";
+        if (socket.HttpResponseHeaders?.TryGetValue(RelayProtocol.TraceHeader, out var values) == true &&
+            values.FirstOrDefault() is { Length: 12 } id && id.All(Uri.IsHexDigit))
+            reference = $" | relay ref {id}";
+        string detail = (int)socket.HttpStatusCode switch
+        {
+            404 => " (room, pairing request or route not found)",
+            409 => " (room has reached its follower limit)",
+            429 => " (room creation rate limit)",
+            503 => " (service unavailable or at capacity)",
+            _ => ""
+        };
+        trace.Note($"HTTP {(int)socket.HttpStatusCode}{detail}{reference}");
     }
 
     internal static async Task<string> ReadTokenAsync(Stream control, CancellationToken ct)
@@ -84,9 +105,11 @@ internal static class RelayBandConnection
     }
 
     internal static async Task<Stream> AcceptBandPeerAsync(Uri relay, string key, X509Certificate2 certificate,
-        CancellationToken ct)
+        CancellationToken ct, RelayTrace? trace = null)
     {
-        Stream socket = await OpenAsync(relay, RelayProtocol.AttachPath, key, ct).ConfigureAwait(false);
+        trace?.Step("Opening conductor attachment /v1/attach");
+        Stream socket = await OpenAsync(relay, RelayProtocol.AttachPath, key, ct, trace).ConfigureAwait(false);
+        trace?.Step("Conductor TLS handshake");
         var tls = new SslStream(socket);
         try
         {
@@ -104,16 +127,22 @@ internal static class RelayBandConnection
         }
     }
 
-    internal static async Task<Stream> JoinBandAsync(RelayBandInvite invite, CancellationToken ct)
+    internal static async Task<Stream> JoinBandAsync(RelayBandInvite invite, CancellationToken ct, RelayTrace? trace = null)
     {
         byte[] pin = Convert.FromHexString(invite.Certificate);
-        Stream socket = await OpenAsync(ReadRelayAddress(invite.Relay), RelayProtocol.JoinPath, invite.Room, ct)
+        trace?.Step("Opening follower connection /v1/join");
+        Stream socket = await OpenAsync(ReadRelayAddress(invite.Relay), RelayProtocol.JoinPath, invite.Room, ct, trace)
             .ConfigureAwait(false);
         // The outer wss:// connection uses normal certificate validation. This
         // inner connection trusts only the conductor certificate in the invite.
+        trace?.Step("Follower TLS handshake");
         var tls = new SslStream(socket, false, (_, certificate, _, _) =>
-            certificate is not null &&
-            CryptographicOperations.FixedTimeEquals(pin, certificate.GetCertHash(HashAlgorithmName.SHA256)));
+        {
+            bool matches = certificate is not null &&
+                CryptographicOperations.FixedTimeEquals(pin, certificate.GetCertHash(HashAlgorithmName.SHA256));
+            if (!matches) trace?.Note("Conductor certificate did not match the join code.");
+            return matches;
+        });
         try
         {
             await tls.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
@@ -130,7 +159,7 @@ internal static class RelayBandConnection
         }
     }
 
-    private sealed class WebSocketStream(WebSocket socket) : Stream
+    private sealed class WebSocketStream(WebSocket socket, RelayTrace? trace) : Stream
     {
         public override bool CanRead => true;
         public override bool CanWrite => true;
@@ -156,7 +185,21 @@ internal static class RelayBandConnection
             while (true)
             {
                 var chunk = await socket.ReceiveAsync(buffer, ct).ConfigureAwait(false);
-                if (chunk.MessageType == WebSocketMessageType.Close) return 0;
+                if (chunk.MessageType == WebSocketMessageType.Close)
+                {
+                    string reason = (int?)socket.CloseStatus switch
+                    {
+                        RelayProtocol.AttachTimeoutCloseCode => "WebSocket close 4001, conductor did not attach within 10 seconds",
+                        1000 => "WebSocket close 1000, normal closure",
+                        1001 => "WebSocket close 1001, endpoint going away",
+                        1011 => "WebSocket close 1011, server error",
+                        1012 => "WebSocket close 1012, service restart",
+                        int code => $"WebSocket close {code}",
+                        null => "WebSocket closed without a status code"
+                    };
+                    trace?.Note(reason);
+                    throw new RelayProtocolException(reason);
+                }
                 if (chunk.MessageType != WebSocketMessageType.Binary) throw new InvalidDataException("Expected binary data.");
                 if (chunk.Count > 0) return chunk.Count;
             }

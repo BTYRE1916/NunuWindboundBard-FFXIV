@@ -2031,6 +2031,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             DrawRelayBandControls(role);
             DrawNetworkStatus();
+            DrawRelayDiagnostics();
             return;
         }
         ImGui.TextColored(new Vector4(.58f, .94f, .98f, 1f), Loc.T("PRIVATE MULTI-DEVICE ENSEMBLE"));

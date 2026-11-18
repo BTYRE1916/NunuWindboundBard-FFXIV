@@ -21,7 +21,7 @@ app.UseWebSockets(new WebSocketOptions
 });
 app.UseRateLimiter();
 
-var relay = new RelayRooms();
+var relay = new RelayRooms(app.Logger, app.Lifetime.ApplicationStopping);
 app.MapGet("/healthz", () => Results.Text("ok"));
 app.MapGet(RelayProtocol.HostPath, relay.HostAsync).RequireRateLimiting("HostRoom");
 app.MapGet(RelayProtocol.JoinPath, relay.JoinAsync);

@@ -105,6 +105,20 @@ public sealed partial class MainWindow
         }
     }
 
+    private void DrawRelayDiagnostics()
+    {
+        if (!ImGui.CollapsingHeader(Loc.T("Relay diagnostics"))) return;
+        string report = plugin.Network.RelayReport;
+        if (ImGui.Button(Loc.T("Copy relay report"))) ImGui.SetClipboardText(report);
+        ImGui.TextDisabled(Loc.T("Recent connections in this plugin session (UTC)."));
+        ImGui.BeginChild("##relayHistory", new Vector2(0, ImGui.GetTextLineHeightWithSpacing() * 10));
+        ImGui.PushTextWrapPos(0);
+        ImGui.TextUnformatted(report);
+        ImGui.PopTextWrapPos();
+        if (ImGui.GetScrollY() >= ImGui.GetScrollMaxY()) ImGui.SetScrollHereY(1f);
+        ImGui.EndChild();
+    }
+
     private void DrawNetworkPerformers()
     {
         ImGui.TextUnformatted(Loc.T("Connected Windbound performers:"));

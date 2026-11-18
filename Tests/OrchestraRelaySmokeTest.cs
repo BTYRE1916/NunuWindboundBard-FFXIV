@@ -1,6 +1,7 @@
 using NunuWindboundBard.Core;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 
 if (args.Length != 2) throw new ArgumentException("Supply the web socket relay address and a test MIDI path.");
 string relay = args[0];
@@ -12,9 +13,9 @@ string joinCode = host.RelayJoinCode;
 var invite = RelayBandInvite.Decode(joinCode);
 Require(invite.Stage == "Orchestra smoke", "invite retains the band name");
 
-await RejectJoin(invite with { Certificate = new string('0', 64) }, "wrong conductor certificate");
-await RejectJoin(invite with { Secret = new string('0', 24) }, "wrong band credential");
-await RejectJoin(invite with { Room = new string('0', 48) }, "wrong room");
+await RejectJoin(invite with { Certificate = new string('0', 64) }, "wrong conductor certificate", "Conductor certificate did not match");
+await RejectJoin(invite with { Secret = new string('0', 24) }, "wrong band credential", "Failed at Checking conductor band credentials");
+await RejectJoin(invite with { Room = new string('0', 48) }, "wrong room", "HTTP 404");
 
 var followers = Enumerable.Range(0, 8).Select(_ => new MultiDeviceEnsemble()).ToArray();
 try
@@ -47,8 +48,22 @@ try
     }
     host.BroadcastStop();
     foreach (var bard in followers) await WaitNotice(bard, NetworkNoticeKind.Stop);
+    foreach (var bard in followers)
+    {
+        var reference = Regex.Match(bard.RelayReport, @"relay ref ([A-F0-9]{12})");
+        Require(reference.Success && host.RelayReport.Contains(reference.Value), "both clients record the same relay reference");
+        CheckPrivate(bard.RelayReport, invite);
+    }
+    followers[0].Stop();
+    await Until(() => host.Performers.Count == 7 && host.RelayReport.Contains("Failed at Connected band traffic"),
+        "conductor retains a live follower drop");
+    Require(followers[0].RelayReport.Contains("Connection stopped on this client."), "local leave recorded");
+    Require(followers.Skip(1).All(bard => bard.IsConnected), "other followers remain connected");
     host.Stop();
     await Until(() => followers.All(bard => !bard.IsConnected), "closing room disconnects every follower");
+    Require(followers.Skip(1).All(bard => bard.RelayReport.Contains("Failed at Connected band traffic")),
+        "established disconnects retain the failing phase after cleanup");
+    CheckPrivate(host.RelayReport, invite);
     try
     {
         await RelayBandConnection.JoinBandAsync(invite, new CancellationTokenSource(TimeSpan.FromSeconds(4)).Token);
@@ -77,12 +92,48 @@ directFollower.Join("127.0.0.1", port, "Legacy direct", directCode, "Direct Bard
 await Until(() => directFollower.HasClockSync && directHost.Performers.Count == 1, "direct transport still works");
 Console.WriteLine("PASS: existing direct private-network connection and clock sync.");
 
-static async Task RejectJoin(RelayBandInvite invite, string label)
+// An accepted TCP connection that never upgrades must be recorded as a setup timeout.
+using (var stalled = new TcpListener(IPAddress.Loopback, 0))
+using (var timedOut = new MultiDeviceEnsemble())
+{
+    stalled.Start();
+    int stalledPort = ((IPEndPoint)stalled.LocalEndpoint).Port;
+    timedOut.HostBand($"ws://127.0.0.1:{stalledPort}", "Timeout test");
+    await Until(() => !timedOut.IsJoining, "host timeout did not finish");
+    Require(timedOut.RelayReport.Contains("Failed at Opening room /v1/host") &&
+        timedOut.RelayReport.Contains("connection deadline elapsed"), "timeout phase and cause retained");
+    Require(!timedOut.RelayReport.Contains("Connection stopped on this client"), "timeout misreported as local stop");
+}
+
+// Open a real room whose conductor never answers the relay's attachment request.
+using (var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+using (var silentHost = await RelayBandConnection.OpenAsync(new Uri(relay), "/v1/host", null, lifetime.Token))
+{
+    string silentRoom = await RelayBandConnection.ReadTokenAsync(silentHost, lifetime.Token);
+    await RejectJoin(invite with { Room = silentRoom }, "attachment deadline", "conductor did not attach within 10 seconds");
+}
+
+var journal = new RelayDiagnostics();
+var oldest = journal.Begin("Oldest");
+oldest.Step("initial record");
+for (int i = 0; i < 150; i++) journal.Begin("Recent").Step("record");
+Require(!journal.Report.Contains("initial record") && journal.Report.Split('\n').Length == 121, "bounded report");
+Console.WriteLine("PASS: HTTP failure, TLS pin mismatch, credential rejection, deadline, connected drop, local stop, correlation and report privacy.");
+
+static void CheckPrivate(string report, RelayBandInvite invite)
+{
+    foreach (string field in new[] { invite.Encode(), invite.Room, invite.Secret, invite.Certificate, invite.Stage })
+        Require(!report.Contains(field, StringComparison.Ordinal), "report leaked invitation data");
+}
+
+static async Task RejectJoin(RelayBandInvite invite, string label, string expected)
 {
     using var bard = new MultiDeviceEnsemble();
     bard.JoinBand(invite.Encode(), "Bad invite", 999);
     await Until(() => !bard.IsJoining, label + " did not finish");
     Require(!bard.IsConnected, label + " must be rejected");
+    Require(bard.RelayReport.Contains(expected), label + " should report " + expected + "\n" + bard.RelayReport);
+    CheckPrivate(bard.RelayReport, invite);
 }
 
 static async Task<NetworkNotice> WaitNotice(MultiDeviceEnsemble device, NetworkNoticeKind kind)

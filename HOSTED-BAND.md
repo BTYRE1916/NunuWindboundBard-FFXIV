@@ -1,4 +1,4 @@
-# Windbound Bard v0.46.0 hosted bands
+# Windbound Bard v0.46.1 hosted bands
 
 ## Join a band
 
@@ -36,6 +36,23 @@ Replace the example domain with your actual DNS name. The relay's health check i
 The full source includes `Dockerfile.relay` for container hosts. Build it from the repository root with `docker build -f Dockerfile.relay -t windbound-relay .`. The container listens on port 10000. Direct your host's HTTPS route to that port, with one instance for the shared room directory.
 
 Rooms are held in memory and close when the conductor disconnects, after four hours, or when the relay restarts. The relay sees connection metadata and traffic timing. MIDI, assignments, and cues travel through a separate encrypted connection between the conductor and each follower.
+
+## Diagnose a relay disconnect
+
+Open **BAND → Ensemble → Relay diagnostics** on the affected follower and conductor. Click **Copy relay report** on each before unloading the plugin. The history survives leaving or retrying a connection. UTC timestamps, elapsed time and the attempt label let you follow one connection through the report.
+
+| Report entry | What it tells you |
+| --- | --- |
+| HTTP 404 during /v1/join | The requested room or route was unavailable. Check that the conductor still has the room open and is sharing its current code. |
+| HTTP 101 | That WebSocket upgrade succeeded. Read the following attachment, TLS and band credential entries. |
+| Close 4001 | The relay waited ten seconds for the conductor to attach. Inspect the conductor report and relay log at the same UTC time. |
+| TLS handshake failure | Check both clients for a certificate mismatch or native error code. |
+| Connected band traffic | Pairing completed. The first send or receive failure, last-frame age and transport details describe what the client observed. |
+| Connection stopped on this client | This client closed, cancelled or reset its connection. |
+
+To match both clients to the service logs, redeploy the relay from this release. A successful pair shares a 12-character relay reference. Search for that reference in the relay console or hosting logs. The pairing entry also gives the room reference for looking up a conductor disconnect, service shutdown or room expiry. An older relay still accepts the connection and the plugin records local observations. An upstream proxy can return a status without a relay reference.
+
+Each client retains the last 120 events until the plugin unloads. The report omits the join code, authentication data, relay address, player names, MIDI and server-supplied close text.
 
 ## Run the transport checks from source
 
