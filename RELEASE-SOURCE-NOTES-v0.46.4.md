@@ -19,6 +19,10 @@ Based on the uploaded complete v0.46.3 project source.
 3. Package your compiled Dalamud release as your normal release ZIP. The `Plugin.json` points to `releases/download/0.46.4/FFXIVMIDIPLAYER-BY-NUNU-v0.46.4.zip`, so the GitHub release tag and uploaded asset must match exactly, or adjust the manifest before publishing.
 4. Deploy v0.46.4 to the conductor and all followers before retesting for individual START results; older clients can join but cannot acknowledge START.
 
+## Packaging-only install fix
+
+This source archive includes an install-manifest template and Windows release packaging/check scripts. **Never upload the source ZIP as Dalamud install asset**; see `RELEASE-PACKAGING-FIX-v0.46.4.md`. The installer expects `NunuWindboundBard.dll` and `NunuWindboundBard.json` at the binary release ZIP root.
+
 ## Verification limitations
 
 Source patch and archive-integrity checks only. No .NET SDK is available in this execution environment, so the plugin, tests and release binaries were **not** compiled or runtime-tested here. The reported original bug may have an additional game-side cause; the new START results help identify it.
