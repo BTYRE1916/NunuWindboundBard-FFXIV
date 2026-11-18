@@ -1,11 +1,36 @@
 using NunuWindboundBard.Core;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 
 if (args.Length != 2) throw new ArgumentException("Supply the web socket relay address and a test MIDI path.");
 string relay = args[0];
 string midiPath = args[1];
+// Exercise the production certificate factory before involving the relay.
+using (var certificate = RelayBandConnection.CreateHostCertificate())
+using (var signer = certificate.GetECDsaPrivateKey())
+using (var verifier = certificate.GetECDsaPublicKey())
+{
+    Require(signer is not null && verifier is not null, "host certificate has a signing key");
+    byte[] challenge = RandomNumberGenerator.GetBytes(32);
+    byte[] signature = signer!.SignData(challenge, HashAlgorithmName.SHA256);
+    Require(verifier!.VerifyData(challenge, signature, HashAlgorithmName.SHA256), "certificate signs after import");
+
+    if (OperatingSystem.IsWindows())
+    {
+        Require(signer is ECDsaCng, "Windows host certificate uses CNG");
+        using var key = ((ECDsaCng)signer).Key;
+        Require(!key.IsEphemeral && !key.IsMachineKey && !string.IsNullOrEmpty(key.KeyName),
+            "Schannel can use a named current-user key");
+        using var reopened = CngKey.Open(key.KeyName!, key.Provider!);
+        using var anotherSigner = new ECDsaCng(reopened);
+        Require(verifier.VerifyData(challenge, anotherSigner.SignData(challenge, HashAlgorithmName.SHA256),
+            HashAlgorithmName.SHA256), "the Windows key can be reopened for signing");
+    }
+}
+
 using var host = new MultiDeviceEnsemble();
 host.HostBand(relay, "Orchestra smoke");
 await Until(() => host.IsHosting && host.RelayJoinCode.Length > 0, "host could not open room");

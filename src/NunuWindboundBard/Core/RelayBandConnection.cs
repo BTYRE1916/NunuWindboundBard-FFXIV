@@ -53,7 +53,20 @@ internal static class RelayBandConnection
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var request = new CertificateRequest("CN=windbound-orchestra", key, HashAlgorithmName.SHA256);
-        return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(5));
+        using var generated = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(5));
+
+        // Schannel must be able to reopen the private key during the server handshake.
+        // UserKeySet imports it into a user-scoped container on Windows. The certificate
+        // owns its lifetime because the import does not request PersistKeySet.
+        byte[] pfx = generated.Export(X509ContentType.Pkcs12, string.Empty);
+        try
+        {
+            return X509CertificateLoader.LoadPkcs12(pfx, string.Empty, X509KeyStorageFlags.UserKeySet);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(pfx);
+        }
     }
 
     internal static async Task<Stream> OpenAsync(Uri relay, string path, string? bearer, CancellationToken ct, RelayTrace? trace = null)

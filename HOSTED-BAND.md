@@ -1,4 +1,4 @@
-# Windbound Bard v0.46.1 hosted bands
+# Windbound Bard v0.46.2 hosted bands
 
 ## Join a band
 
@@ -46,6 +46,7 @@ Open **BAND → Ensemble → Relay diagnostics** on the affected follower and co
 | HTTP 404 during /v1/join | The requested room or route was unavailable. Check that the conductor still has the room open and is sharing its current code. |
 | HTTP 101 | That WebSocket upgrade succeeded. Read the following attachment, TLS and band credential entries. |
 | Close 4001 | The relay waited ten seconds for the conductor to attach. Inspect the conductor report and relay log at the same UTC time. |
+| Conductor TLS handshake with native error 0x8009030E on v0.46.1 | Update the conductor to v0.46.2, host a fresh room and use its new code. The existing relay can serve this update. |
 | TLS handshake failure | Check both clients for a certificate mismatch or native error code. |
 | Connected band traffic | Pairing completed. The first send or receive failure, last-frame age and transport details describe what the client observed. |
 | Connection stopped on this client | This client closed, cancelled or reset its connection. |
