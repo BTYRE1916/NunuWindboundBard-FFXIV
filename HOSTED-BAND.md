@@ -1,9 +1,19 @@
-# Windbound Bard v0.46.4 hosted bands
+# Windbound Bard hosted bands
+
+## Public hosted relay for Ensemble Conductors
+
+Use the shared Render relay URL in **BAND → Ensemble → Band relay address** on the **Conductor**:
+
+```text
+wss://nunuwindboundbard-ffxiv.onrender.com
+```
+
+Select **Host Band** to create a new, independent band room. Copy its join code and share it with the followers. The join code contains the relay address, so followers only need to paste the code into **Band join code** and click **Join with Code**. Other conductors using the same public relay host their own rooms, not yours. You do not need to run a local relay service for public-hosted rooms.
 
 ## Join a band
 
 1. Update Windbound Bard on each performer through the Dalamud repository. Open **BAND → Ensemble**, turn off **Use FFXIV native Ensemble**, then turn on **Enable Multi-Device** and **Use hosted band with join code**.
-2. Set the host to **Conductor**. Enter the band relay's `wss://` address once, choose a stage name, click **Host Band**, then click **Copy band join code**. Share the code privately with the band.
+2. Set the host to **Conductor**. Enter `wss://nunuwindboundbard-ffxiv.onrender.com` in **Band relay address**, choose a stage name, click **Host Band**, then click **Copy band join code**. Share the code privately with the band.
 3. Set other performers to **Follower**. Paste the code in **Band join code** and click **Join with Code**. The code includes the relay address. Performers can stay outside the FFXIV party.
 4. Open **Concert Director — Hosted Band** under the connection controls to prepare the performers.
 
