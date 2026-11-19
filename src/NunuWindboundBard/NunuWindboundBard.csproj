@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <Version>0.46.6.0</Version>
+    <Version>0.46.7.0</Version>
     <Author>Real Nunu</Author>
     <Name>Nunu's Windbound Bard</Name>
     <Punchline>MIDI Editor, Bard Workbench, native ensembles, and concert capture.</Punchline>
@@ -13,7 +13,6 @@
     <Platforms>x64</Platforms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Configurations>Debug;Release;NunuWindboundBardMidiSuite</Configurations>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/OrchestraRelayProtocol.cs" Link="Core/OrchestraRelayProtocol.cs" />

@@ -25,6 +25,10 @@ public sealed partial class MainWindow
         relaySetupFeedback = "";
         relaySongName = "";
         networkStartFeedback = "";
+        lastNetworkStartTargetQpc = 0;
+        lastNetworkTimingReportedSequence = 0;
+        lastConductorCueQpc = 0;
+        lastConductorTimingReported = false;
     }
 
     private void DrawHostedEnsemble(EnsembleRole role)

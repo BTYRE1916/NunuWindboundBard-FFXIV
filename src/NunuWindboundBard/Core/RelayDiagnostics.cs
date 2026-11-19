@@ -48,7 +48,7 @@ internal sealed class RelayTrace(RelayDiagnostics history, string label)
     }
 
     public void Note(string text) =>
-        history.Add($"{label} (+{Stopwatch.GetElapsedTime(start).TotalSeconds:0.0}s)  {text}");
+        history.Add($"{label} (connected +{Stopwatch.GetElapsedTime(start).TotalSeconds:0.0}s)  {text}");
 
     public string Failed(Exception error, CancellationToken deadline = default)
     {

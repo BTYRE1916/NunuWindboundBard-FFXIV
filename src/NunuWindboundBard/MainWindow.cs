@@ -61,6 +61,10 @@ public sealed partial class MainWindow : Window, IDisposable
     private string lastNetworkStartHash = "";
     private string lastNetworkStartOutcome = "";
     private bool lastNetworkStartArmed;
+    private long lastNetworkStartTargetQpc;
+    private long lastNetworkTimingReportedSequence;
+    private long lastConductorCueQpc;
+    private bool lastConductorTimingReported;
     private string networkStartFeedback = "";
     private string networkSongHash = "";
     private RemoteArrangementSettings? networkArrangement;
@@ -2174,6 +2178,8 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         try { plugin.Network.BroadcastStart(hostStartMs, (int)Math.Round(cfg.PlaybackSpeed * 1000)); }
         catch { if (plugin.Player.IsPlaying) plugin.Player.Stop(); throw; }
+        lastConductorCueQpc = silent ? 0 : localStart;
+        lastConductorTimingReported = false;
         if (IsRelayBandEnabled) hostedTakeEndsMs = hostStartMs + song.DurationMs / Math.Max(.5, cfg.PlaybackSpeed);
         ensembleStatus = $"Multi-Device cue sent to {plugin.Network.Performers.Count} follower(s)! Starts in {countIn/1000.0:0.0}s.";
     }
@@ -2253,6 +2259,8 @@ public sealed partial class MainWindow : Window, IDisposable
                         break;
                     case NetworkNoticeKind.CueAborted:
                         hostedTakeEndsMs = 0;
+                        lastConductorCueQpc = 0;
+                        lastNetworkStartTargetQpc = 0;
                         if (cfg.MultiDeviceEnabled && (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor &&
                             plugin.Player.IsPlaying)
                             plugin.Player.Stop();
@@ -2279,6 +2287,32 @@ public sealed partial class MainWindow : Window, IDisposable
                 }
             }
             catch (Exception ex) { networkStatus = "Network stage error: " + ex.Message; }
+        }
+        // Capture actual MIDI callback timing once notes have been emitted.
+        // Do not confuse time since relay connection or START ACK delay with drift.
+        if (IsRelayBandEnabled && plugin.Network.IsHosting &&
+            lastConductorCueQpc != 0 && !lastConductorTimingReported &&
+            EnsembleCoordinator.RemainingSeconds(lastConductorCueQpc) < -1.5)
+        {
+            var timing = plugin.Player.Timing;
+            if (timing.OriginQpc == lastConductorCueQpc && timing.Count > 0)
+            {
+                plugin.Network.NoteHostStartTiming(timing.FirstMs, timing.MeanMs, timing.WorstMs, timing.Count);
+                lastConductorTimingReported = true;
+            }
+        }
+        if (IsRelayBandEnabled && plugin.Network.IsConnected && lastNetworkStartArmed &&
+            lastNetworkStartSequence > 0 && lastNetworkTimingReportedSequence != lastNetworkStartSequence &&
+            lastNetworkStartTargetQpc != 0 &&
+            EnsembleCoordinator.RemainingSeconds(lastNetworkStartTargetQpc) < -1.5)
+        {
+            var timing = plugin.Player.Timing;
+            if (timing.OriginQpc == lastNetworkStartTargetQpc && timing.Count > 0)
+            {
+                plugin.Network.SendStartTiming(lastNetworkStartSequence, lastNetworkStartRevision,
+                    lastNetworkStartHash, timing.Count, timing.FirstMs, timing.MeanMs, timing.WorstMs);
+                lastNetworkTimingReportedSequence = lastNetworkStartSequence;
+            }
         }
         if (!cfg.MultiDeviceEnabled || (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower ||
             !plugin.Network.IsConnected) return;
@@ -2352,6 +2386,7 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
+        lastNetworkStartTargetQpc = 0;
         bool armed = false;
         string result;
         try
@@ -2374,13 +2409,23 @@ public sealed partial class MainWindow : Window, IDisposable
             }
             else
             {
-                cfg.PlaybackSpeed = notice.SpeedThousand / 1000.0f;
-                cfg.Save();
-                StartSong(target);
-                armed = plugin.Player.IsPlaying;
-                result = armed
-                    ? $"Playback queued for common downbeat ({EnsembleCoordinator.RemainingSeconds(target):0.0}s remaining)."
-                    : "Playback rejected locally: " + status;
+                // Host time is first translated through clock synchronization.
+                // Per-follower trim is an intentional local audio-calibration offset.
+                int trim = IsRelayBandEnabled ? Math.Clamp(cfg.RelayFollowerTimingTrimMs, -250, 250) : 0;
+                target += (long)Math.Round(trim * Stopwatch.Frequency / 1000.0);
+                if (EnsembleCoordinator.RemainingSeconds(target) < 0.5)
+                    result = "START arrived too late after applying follower timing trim.";
+                else
+                {
+                    cfg.PlaybackSpeed = notice.SpeedThousand / 1000.0f;
+                    cfg.Save();
+                    StartSong(target);
+                    armed = plugin.Player.IsPlaying;
+                    if (armed) lastNetworkStartTargetQpc = target;
+                    result = armed
+                        ? $"Playback queued ({EnsembleCoordinator.RemainingSeconds(target):0.0}s; timing trim {trim:+0;-0;0}ms)."
+                        : "Playback rejected locally: " + status;
+                }
             }
         }
         catch (Exception ex)

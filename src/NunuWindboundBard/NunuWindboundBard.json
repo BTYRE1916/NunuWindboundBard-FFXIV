@@ -4,7 +4,7 @@
   "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
   "Description": "Windbound Bard MIDI suite with piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band supports join-code sessions, remote instrument and ARM controls, scheduled playback, relay diagnostics and all-Bard START confirmation and fail-safe cancellation.",
   "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
-  "ApplicableVersion": "0.45.6",
+  "ApplicableVersion": "any",
   "Tags": [
     "bard",
     "midi",

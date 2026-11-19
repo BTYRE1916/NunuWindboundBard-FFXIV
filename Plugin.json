@@ -3,9 +3,9 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.46.6.0",
+    "AssemblyVersion": "0.46.7.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
-    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band adds join-code sessions with Concert Director, remote instrument and ARM controls, and scheduled playback. Includes copyable relay diagnostics, Concert Director, opt-in party follow, and Shortcut Bars. Hosted STARTs require all performers to confirm they are armed; failed or missing confirmations cancel the downbeat for the whole band.",
+    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band adds join-code sessions with Concert Director, remote instrument and ARM controls, and scheduled playback. Includes copyable relay diagnostics, Concert Director, opt-in party follow, and Shortcut Bars. Hosted STARTs require all performers to confirm they are armed; failed or missing confirmations cancel the downbeat for the whole band. Hosted ensembles now report real note-dispatch timing, RTT and clock stability; followers can fine-tune a local timing offset for duets.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.6/FFXIVMIDIPLAYER-BY-NUNU-v0.46.6.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.6/FFXIVMIDIPLAYER-BY-NUNU-v0.46.6.zip",
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.7/FFXIVMIDIPLAYER-BY-NUNU-v0.46.7.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.7/FFXIVMIDIPLAYER-BY-NUNU-v0.46.7.zip",
     "LastUpdate": "1795046400",
-    "Changelog": "Capture Studio FFmpeg compatibility: remove input-side thread_queue_size (caused encoder exit -22 on newer FFmpeg); rebuild and bundle the updated native Capture Engine rather than reusing the old executable. Includes v0.46.5 all-Bard START fixes."
+    "Changelog": "Relay duet timing diagnostics: separate connection uptime and START acknowledgement latency from measured MIDI note scheduling; report follower and conductor first/mean/worst callback delays, RTT and clock offset spread; adjustable follower trim (-250..+250ms). Preserves 0.46.6 encoder fix and all-Bard START confirmation."
   }
 ]

@@ -146,6 +146,10 @@ public sealed class Configuration : IPluginConfiguration
     public int MultiDevicePort { get; set; } = MultiDeviceEnsemble.DefaultPort;
     public int EnsembleMode { get; set; } = 0;
     public int EnsembleLeadMilliseconds { get; set; } = 5000;
+    // Only applies when this client joins a hosted ensemble as a follower.
+    // Negative values dispatch MIDI earlier; positive values dispatch later.
+    // Zero preserves unadjusted clock synchronization.
+    public int RelayFollowerTimingTrimMs { get; set; } = 0;
     // Per-file track/channel choice so clients can keep different instruments across performances.
     public Dictionary<string, List<string>> EnsemblePartsByFile { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     // v0.7's Playlist is retained as the active working copy, and migrated on startup.

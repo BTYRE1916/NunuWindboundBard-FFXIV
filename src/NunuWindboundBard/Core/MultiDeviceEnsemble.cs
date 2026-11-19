@@ -33,7 +33,8 @@ public sealed record NetworkNotice(NetworkNoticeKind Kind, string Detail = "",
 
 public sealed record NetworkPerformer(string Character, ulong ContentId, bool Ready, string Detail,
     double AgeSeconds, long Revision, bool SupportsBandSetup = false,
-    long StartSequence = 0, string StartOutcome = "No START cue sent.");
+    long StartSequence = 0, string StartOutcome = "No START cue sent.",
+    string TimingOutcome = "No actual playback timing reported yet.");
 
 /// <summary>
 /// Clock and MIDI protocol used by direct private-network connections and hosted bands.
@@ -63,6 +64,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     private Wire? currentStart;
     private double? hostClockOffsetMs;
     private double roundTripMs;
+    private double clockSpreadMs;
     private readonly List<(double When, double Offset, double Rtt)> clockSamples = new();
 
     public int RelayFollowerConnectionId { get { lock (gate) return activeRelay is null ? 0 : hostPeer?.Id ?? 0; } }
@@ -72,6 +74,8 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     public bool IsJoining { get { lock (gate) return joining; } }
     public bool HasClockSync { get { lock (gate) return hostClockOffsetMs.HasValue && clockSamples.Count >= 3; } }
     public double RoundTripMs { get { lock (gate) return roundTripMs; } }
+    /// <summary>Spread in milliseconds between low-RTT clock-offset samples; low spread is more stable.</summary>
+    public double ClockSpreadMs { get { lock (gate) return clockSpreadMs; } }
     public long SessionRevision { get { lock (gate) return currentSession?.Revision ?? 0; } }
     public string SharedSongHash { get { lock (gate) return currentSession?.Hash ?? ""; } }
     public IReadOnlyList<NetworkPerformer> Performers
@@ -81,7 +85,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             lock (gate)
                 return peers.Values.Select(p => new NetworkPerformer(p.Name, p.ContentId, p.Ready,
                     p.ReadyDetail, Math.Max(0, NowMs() - p.LastSeenMs) / 1000.0, p.ReadyRevision,
-                    p.SupportsBandSetup, p.StartSequence, p.StartOutcome))
+                    p.SupportsBandSetup, p.StartSequence, p.StartOutcome, p.TimingOutcome))
                     .OrderBy(p => p.Character, StringComparer.OrdinalIgnoreCase).ToArray();
         }
     }
@@ -122,6 +126,12 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         public double HostSendMs { get; set; }
         public double HostStartMs { get; set; }
         public int SpeedThousand { get; set; } = 1000;
+        public int TimedNoteCount { get; set; }
+        public double FirstNoteDelayMs { get; set; }
+        public double MeanNoteDelayMs { get; set; }
+        public double WorstNoteDelayMs { get; set; }
+        public double ClockRttMs { get; set; }
+        public double ClockSpreadMs { get; set; }
     }
 
     private sealed class Peer(Stream stream, string name, ulong contentId, int id)
@@ -136,6 +146,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         public long StartSequence;
         public bool StartAcknowledged;
         public string StartOutcome = "No START cue sent.";
+        public string TimingOutcome = "No actual playback timing reported yet.";
         public Channel<Wire> Outgoing { get; } = Channel.CreateUnbounded<Wire>(
             new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
         public volatile bool Ready;
@@ -479,6 +490,30 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                             peer.ReadyDetail = message.Detail.Length > 200 ? message.Detail[..200] : message.Detail;
                         }
                         break;
+                    case "StartTiming":
+                        lock (gate)
+                        {
+                            if (!peer.SupportsStartAck || currentStart is not { } timedStart ||
+                                peer.StartSequence != message.StartSequence ||
+                                !peer.StartAcknowledged ||
+                                !peer.StartOutcome.StartsWith("ARMED:", StringComparison.Ordinal) ||
+                                timedStart.StartSequence != message.StartSequence ||
+                                timedStart.Revision != message.Revision ||
+                                !string.Equals(timedStart.Hash, message.Hash, StringComparison.OrdinalIgnoreCase) ||
+                                message.TimedNoteCount < 1 || message.TimedNoteCount > 1000000 ||
+                                !ValidTimingMs(message.FirstNoteDelayMs) ||
+                                !ValidTimingMs(message.MeanNoteDelayMs) ||
+                                !ValidTimingMs(message.WorstNoteDelayMs) ||
+                                !ValidQualityMs(message.ClockRttMs) ||
+                                !ValidQualityMs(message.ClockSpreadMs)) break;
+                            peer.TimingOutcome = $"first {message.FirstNoteDelayMs:+0.0;-0.0;0.0}ms, " +
+                                $"mean {message.MeanNoteDelayMs:+0.0;-0.0;0.0}ms, " +
+                                $"worst {message.WorstNoteDelayMs:+0.0;-0.0;0.0}ms; " +
+                                $"RTT {message.ClockRttMs:0.0}ms, clock spread {message.ClockSpreadMs:0.0}ms";
+                            activeRelay?.Note($"START #{message.StartSequence} follower {peer.Id} dispatched " +
+                                $"{message.TimedNoteCount} notes; {peer.TimingOutcome}");
+                        }
+                        break;
                     case "StartAck":
                         lock (gate)
                         {
@@ -542,6 +577,12 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         }
     }
 
+    private static bool ValidTimingMs(double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value) && value >= -5000 && value <= 5000;
+
+    private static bool ValidQualityMs(double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0 && value <= 2500;
+
     private static async Task SendLoopAsync(Peer peer, CancellationToken ct)
     {
         while (await peer.Outgoing.Reader.WaitToReadAsync(ct).ConfigureAwait(false))
@@ -571,8 +612,17 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             clockSamples.RemoveAll(x => x.When < clientReceive - 30000);
             if (clockSamples.Count > 40) clockSamples.RemoveRange(0, clockSamples.Count - 40);
             var best = clockSamples.MinBy(x => x.Rtt);
-            hostClockOffsetMs = best.Offset;
             roundTripMs = best.Rtt;
+            // The single smallest RTT can carry a noisy asymmetric delay sample.
+            // Use the median of recent low-latency samples when at least three
+            // exist, otherwise retain the original minimum-RTT estimator.
+            var lowLatency = clockSamples.Where(s => s.Rtt <= best.Rtt + 25).ToArray();
+            var sortedOffsets = lowLatency.Select(s => s.Offset).OrderBy(v => v).ToArray();
+            hostClockOffsetMs = sortedOffsets.Length >= 3
+                ? (sortedOffsets[(sortedOffsets.Length - 1) / 2] + sortedOffsets[sortedOffsets.Length / 2]) / 2
+                : best.Offset;
+            clockSpreadMs = sortedOffsets.Length <= 1 ? 0 :
+                Math.Min(2500, sortedOffsets[^1] - sortedOffsets[0]);
             if (clockSamples.Count >= 3)
                 status = $"Connected to conductor; clock sync {roundTripMs:0} ms RTT.";
         }
@@ -739,6 +789,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             {
                 peer.StartSequence = msg.StartSequence;
                 peer.StartAcknowledged = false;
+                peer.TimingOutcome = "Awaiting first-note timing...";
                 peer.StartOutcome = peer.SupportsStartAck
                     ? "START queued; waiting for Bard result."
                     : "Legacy Bard: START sent, but playback confirmation is unavailable.";
@@ -836,6 +887,41 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         peer?.Send(new Wire { Type = "StartAck", StartSequence = startSequence,
             Revision = revision, Hash = hash, Ready = armed,
             Detail = detail.Length > 180 ? detail[..180] : detail });
+    }
+
+    /// <summary>
+    /// Report a follower's actual MIDI callback dispatch timing, NOT the WebSocket ACK delay.
+    /// This is measured against the scheduled MIDI note time; audible game latency
+    /// is outside our scheduler and must be measured separately.
+    /// </summary>
+    public void SendStartTiming(long startSeq, long rev, string hash, int count,
+        double firstMs, double meanMs, double worstMs)
+    {
+        if (startSeq <= 0 || count <= 0 || !ValidTimingMs(firstMs) ||
+            !ValidTimingMs(meanMs) || !ValidTimingMs(worstMs)) return;
+        Peer? peer;
+        double rtt, spread;
+        lock (gate)
+        {
+            peer = hostPeer;
+            rtt = roundTripMs;
+            spread = clockSpreadMs;
+            activeRelay?.Note($"START #{startSeq} local callbacks: first {firstMs:+0.0;-0.0;0.0}ms, " +
+                $"mean {meanMs:+0.0;-0.0;0.0}ms; RTT {rtt:0.0}ms, clock spread {spread:0.0}ms.");
+        }
+        peer?.Send(new Wire { Type = "StartTiming", StartSequence = startSeq,
+            Revision = rev, Hash = hash, TimedNoteCount = count,
+            FirstNoteDelayMs = firstMs, MeanNoteDelayMs = meanMs,
+            WorstNoteDelayMs = worstMs, ClockRttMs = rtt, ClockSpreadMs = spread });
+    }
+
+    public void NoteHostStartTiming(double firstMs, double meanMs, double worstMs, int count)
+    {
+        lock (gate)
+            if (hosting && currentStart is { } start && count > 0)
+                activeRelay?.Note($"START #{start.StartSequence} conductor callbacks: " +
+                    $"{count} notes; first {firstMs:+0.0;-0.0;0.0}ms, " +
+                    $"mean {meanMs:+0.0;-0.0;0.0}ms, worst {worstMs:+0.0;-0.0;0.0}ms.");
     }
 
     public void BroadcastStop()

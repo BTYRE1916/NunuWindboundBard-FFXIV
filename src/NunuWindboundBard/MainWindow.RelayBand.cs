@@ -83,7 +83,15 @@ public sealed partial class MainWindow
         }
         if (plugin.Network.IsConnected)
         {
-            ImGui.TextDisabled(Loc.T($"Clock synchronisation: {(plugin.Network.HasClockSync ? "READY" : "waiting for samples")} / {plugin.Network.RoundTripMs:0}ms RTT"));
+            ImGui.TextDisabled(Loc.T($"Clock synchronisation: {(plugin.Network.HasClockSync ? "READY" : "waiting for samples")} / {plugin.Network.RoundTripMs:0}ms RTT / {plugin.Network.ClockSpreadMs:0.0}ms clock spread"));
+            int trim = Math.Clamp(cfg.RelayFollowerTimingTrimMs, -250, 250);
+            ImGui.SetNextItemWidth(Math.Min(335, ImGui.GetContentRegionAvail().X));
+            if (ImGui.SliderInt(Loc.T("Follower timing trim (ms)"), ref trim, -250, 250))
+            {
+                cfg.RelayFollowerTimingTrimMs = trim;
+                cfg.Save();
+            }
+            ImGui.TextDisabled(Loc.T("Negative = your Bard earlier; positive = later. Start at 0, adjust by 20ms per duet test."));
             if (ImGui.Button(Loc.T("Leave band")))
             {
                 ResetNetworkConnection();
@@ -132,7 +140,10 @@ public sealed partial class MainWindow
             ImGui.TextColored(color, Loc.T($"{peer.Character} — {(peer.Ready ? "READY" : "WAITING")} (rev {peer.Revision})"));
             if (!peer.Ready || IsRelayBandEnabled) ImGui.TextWrapped(Loc.T(peer.Detail));
             if (IsRelayBandEnabled && peer.StartSequence > 0)
+            {
                 ImGui.TextWrapped($"START #{peer.StartSequence}: {peer.StartOutcome}");
+                ImGui.TextWrapped($"Timing: {peer.TimingOutcome}");
+            }
             if (IsRelayBandEnabled && peer.SupportsBandSetup && !peer.Ready && !HostedPlaybackBusy &&
                 plugin.Network.SessionRevision > 0 && ImGui.SmallButton(Loc.T("Retry MIDI + tracks##relayRetry") + peer.ContentId))
                 networkStatus = plugin.Network.RetryBandMember(peer.ContentId) ? "Sent the current MIDI and parts to " + peer.Character : "Performer disconnected.";

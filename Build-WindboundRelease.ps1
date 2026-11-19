@@ -20,8 +20,8 @@ $pluginDir = Join-Path $projectRoot 'src\NunuWindboundBard'
 $projectFile = Join-Path $pluginDir 'NunuWindboundBard.csproj'
 $repositoryManifest = Join-Path $projectRoot 'Plugin.json'
 $internalName = 'NunuWindboundBard'
-$version = '0.46.6.0'
-$releaseVersion = '0.46.6'
+$version = '0.46.7.0'
+$releaseVersion = '0.46.7'
 $outDir = Join-Path $projectRoot 'dist'
 $releaseName = "FFXIVMIDIPLAYER-BY-NUNU-v$releaseVersion.zip"
 $releasePath = Join-Path $outDir $releaseName
@@ -54,7 +54,7 @@ if (-not $SkipBuild) {
     & dotnet build $projectFile -c $Configuration -p:Platform=x64
     if ($LASTEXITCODE -ne 0) { throw 'Plugin build failed. No release ZIP created.' }
     if (-not $CaptureEngineDirectory) {
-        # IMPORTANT: never copy the v0.46.4 engine into a v0.46.6 release.
+        # IMPORTANT: never copy the v0.46.4 engine into a v0.46.7 release.
         # That executable still passes -thread_queue_size to FFmpeg inputs.
         if (Test-Path -LiteralPath $enginePublishDir) { Remove-Item -LiteralPath $enginePublishDir -Recurse -Force }
         New-Item -ItemType Directory -Path $enginePublishDir -Force | Out-Null
@@ -64,7 +64,7 @@ if (-not $SkipBuild) {
         $CaptureEngineDirectory = $enginePublishDir
     }
 } elseif (-not $CaptureEngineDirectory) {
-    throw '-SkipBuild requires -CaptureEngineDirectory with your freshly published v0.46.6 Capture Engine. Reusing the older engine will not fix encoder error -22.'
+    throw '-SkipBuild requires -CaptureEngineDirectory with your freshly published v0.46.7 Capture Engine. Reusing the older engine will not fix encoder error -22.'
 }
 
 $bin = Join-Path $pluginDir 'bin'
@@ -192,7 +192,7 @@ try {
     } finally { $checkZip.Dispose() }
 
     Write-Host "SUCCESS: $releasePath" -ForegroundColor Green
-    Write-Host 'Upload THIS file as the GitHub release asset for tag 0.46.6 (not the source ZIP).'
+    Write-Host 'Upload THIS file as the GitHub release asset for tag 0.46.7 (not the source ZIP).'
     if (-not $PreviousReleaseZip -and -not $FfmpegExe) {
         Write-Warning 'FFmpeg/relay support files were not imported. Use -PreviousReleaseZip for a complete install or provide -FfmpegExe.'
     }

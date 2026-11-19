@@ -134,7 +134,18 @@ try
         "lost START result is recovered and all eight Bards armed");
     Require(host.RelayReport.Contains($"START #{startSequence} retransmitted"),
         "relay diagnostics include the targeted START retry");
-    Console.WriteLine("PASS: eight-follower broadcast, all Bards armed, missing-ACK retry and shared downbeat.");
+    // Note-dispatch telemetry is separate from the START acknowledgement.
+    Require(host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("No actual playback timing") ||
+        host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("Awaiting first-note"),
+        "START ACK does not pretend to measure live playback timing");
+    followers[0].SendStartTiming(startSequence, unacknowledged!.Revision, unacknowledged.Hash,
+        24, 17.5, 11.0, 28.0);
+    await Until(() => host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("first +17.5ms"),
+        "conductor receives measured follower dispatch timing");
+    Require(host.RelayReport.Contains("clock spread") &&
+        host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("RTT"),
+        "timing report is distinct from START ACK and includes clock quality");
+    Console.WriteLine("PASS: eight-follower broadcast, all Bards armed, missing-ACK retry, shared downbeat and timing telemetry.");
     host.BroadcastStop();
     foreach (var bard in followers) await WaitNotice(bard, NetworkNoticeKind.Stop);
 

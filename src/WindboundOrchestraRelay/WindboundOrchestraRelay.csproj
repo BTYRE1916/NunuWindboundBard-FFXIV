@@ -4,8 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Configurations>Debug;Release;NunuWindboundBardMidiSuite</Configurations>
-    <Platforms>x86;AnyCPU</Platforms>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/OrchestraRelayProtocol.cs" Link="OrchestraRelayProtocol.cs" />
