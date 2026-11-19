@@ -13,6 +13,7 @@
     <Platforms>x64</Platforms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;NunuWindboundBardMidiSuite</Configurations>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/OrchestraRelayProtocol.cs" Link="Core/OrchestraRelayProtocol.cs" />
