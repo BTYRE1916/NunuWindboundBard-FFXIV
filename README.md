@@ -2,4 +2,7 @@
 
 
 [REPO] **https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json**
-(Relay srevice):  wss://nunuwindboundbard-ffxiv.onrender.com codes enrcypted and local generated per conductor 
+
+
+
+(Relay srevice):  **wss://nunuwindboundbard-ffxiv.onrender.com codes enrcypted and local generated per conductor**
