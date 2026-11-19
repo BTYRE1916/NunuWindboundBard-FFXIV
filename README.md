@@ -5,4 +5,4 @@
 
 
 
-(Relay srevice):  **wss://nunuwindboundbard-ffxiv.onrender.com codes enrcypted and local generated per conductor**
+[Relay service]  **wss://nunuwindboundbard-ffxiv.onrender.com codes enrcypted and local generated per conductor**
