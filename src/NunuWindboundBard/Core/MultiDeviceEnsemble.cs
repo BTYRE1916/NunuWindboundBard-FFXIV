@@ -490,6 +490,30 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                             peer.ReadyDetail = message.Detail.Length > 200 ? message.Detail[..200] : message.Detail;
                         }
                         break;
+                    case "StartTimingStatus":
+                        lock (gate)
+                        {
+                            // Telemetry only. Never treat a timing-status packet as an
+                            // acknowledgement, a new cue, or permission to start playback.
+                            if (!peer.SupportsStartAck || currentStart is not { } statusStart ||
+                                peer.StartSequence != message.StartSequence ||
+                                !peer.StartAcknowledged ||
+                                !peer.StartOutcome.StartsWith("ARMED:", StringComparison.Ordinal) ||
+                                statusStart.StartSequence != message.StartSequence ||
+                                statusStart.Revision != message.Revision ||
+                                !string.Equals(statusStart.Hash, message.Hash, StringComparison.OrdinalIgnoreCase) ||
+                                message.Detail is not ("SILENT_PART" or "AWAITING_NOTES") ||
+                                !ValidQualityMs(message.ClockRttMs) ||
+                                !ValidQualityMs(message.ClockSpreadMs)) break;
+                            string explanation = message.Detail == "SILENT_PART"
+                                ? "no local notes assigned (silent part)"
+                                : "no note callbacks yet at +3s (possible opening rest or stopped/unsafe output)";
+                            peer.TimingOutcome = $"{explanation}; RTT {message.ClockRttMs:0.0}ms, " +
+                                $"clock spread {message.ClockSpreadMs:0.0}ms";
+                            activeRelay?.Note($"START #{message.StartSequence} follower {peer.Id} timing status: " +
+                                peer.TimingOutcome);
+                        }
+                        break;
                     case "StartTiming":
                         lock (gate)
                         {
@@ -913,6 +937,34 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             Revision = rev, Hash = hash, TimedNoteCount = count,
             FirstNoteDelayMs = firstMs, MeanNoteDelayMs = meanMs,
             WorstNoteDelayMs = worstMs, ClockRttMs = rtt, ClockSpreadMs = spread });
+    }
+
+    /// <summary>
+    /// Say explicitly when there are no note callbacks to measure. This is not
+    /// a latency measurement; later real timing data replaces the status.
+    /// </summary>
+    public void SendStartTimingStatus(long startSeq, long rev, string hash, string code)
+    {
+        if (startSeq <= 0 || code is not ("SILENT_PART" or "AWAITING_NOTES")) return;
+        Peer? peer;
+        double rtt, spread;
+        lock (gate)
+        {
+            peer = hostPeer;
+            rtt = roundTripMs;
+            spread = clockSpreadMs;
+            activeRelay?.Note($"START #{startSeq} timing status: {code}; " +
+                $"RTT {rtt:0.0}ms, clock spread {spread:0.0}ms.");
+        }
+        peer?.Send(new Wire { Type = "StartTimingStatus", StartSequence = startSeq,
+            Revision = rev, Hash = hash, Detail = code,
+            ClockRttMs = rtt, ClockSpreadMs = spread });
+    }
+
+    public void NoteHostTimingStatus(string reason)
+    {
+        lock (gate)
+            activeRelay?.Note($"START #{currentStart?.StartSequence ?? 0} conductor timing status: {reason}");
     }
 
     public void NoteHostStartTiming(double firstMs, double meanMs, double worstMs, int count)

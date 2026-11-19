@@ -27,8 +27,10 @@ public sealed partial class MainWindow
         networkStartFeedback = "";
         lastNetworkStartTargetQpc = 0;
         lastNetworkTimingReportedSequence = 0;
+        lastNetworkTimingStatusSequence = 0;
         lastConductorCueQpc = 0;
         lastConductorTimingReported = false;
+        lastConductorTimingStatusReported = false;
     }
 
     private void DrawHostedEnsemble(EnsembleRole role)

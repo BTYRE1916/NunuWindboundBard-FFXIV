@@ -138,6 +138,21 @@ try
     Require(host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("No actual playback timing") ||
         host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("Awaiting first-note"),
         "START ACK does not pretend to measure live playback timing");
+    followers[1].SendStartTimingStatus(startSequence, unacknowledged!.Revision, unacknowledged.Hash,
+        "AWAITING_NOTES");
+    await Until(() => host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("no note callbacks yet"),
+        "conductor receives an explicit no-note status, instead of silently omitting timing");
+    Require(host.RelayReport.Contains("timing status") &&
+        host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("clock spread"),
+        "no-note status includes measured clock quality, not invented music delay");
+    followers[2].SendStartTimingStatus(startSequence, unacknowledged!.Revision,
+        unacknowledged.Hash, "SILENT_PART");
+    await Until(() => host.Performers.Single(p => p.ContentId == 4).TimingOutcome.Contains("silent part"),
+        "conductor explains why a silent part has no MIDI note timing");
+    followers[1].SendStartTiming(startSequence, unacknowledged!.Revision, unacknowledged.Hash,
+        24, 9.5, 10.0, 18.0);
+    await Until(() => host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("first +9.5ms"),
+        "real callback timing replaces the earlier no-note status after an opening rest");
     followers[0].SendStartTiming(startSequence, unacknowledged!.Revision, unacknowledged.Hash,
         24, 17.5, 11.0, 28.0);
     await Until(() => host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("first +17.5ms"),

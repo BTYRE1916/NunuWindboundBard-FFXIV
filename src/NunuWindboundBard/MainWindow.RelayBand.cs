@@ -137,7 +137,10 @@ public sealed partial class MainWindow
         foreach (var peer in performers)
         {
             var color = peer.Ready ? new Vector4(.45f, .96f, .58f, 1f) : new Vector4(1f, .77f, .38f, 1f);
-            ImGui.TextColored(color, Loc.T($"{peer.Character} — {(peer.Ready ? "READY" : "WAITING")} (rev {peer.Revision})"));
+            string displayState = peer.Ready ? "READY" :
+                IsRelayBandEnabled && peer.Detail.StartsWith("CUED / PLAYING:", StringComparison.Ordinal)
+                    ? "CUED / PLAYING" : "WAITING";
+            ImGui.TextColored(color, Loc.T($"{peer.Character} — {displayState} (rev {peer.Revision})"));
             if (!peer.Ready || IsRelayBandEnabled) ImGui.TextWrapped(Loc.T(peer.Detail));
             if (IsRelayBandEnabled && peer.StartSequence > 0)
             {

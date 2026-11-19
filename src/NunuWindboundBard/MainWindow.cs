@@ -63,8 +63,10 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool lastNetworkStartArmed;
     private long lastNetworkStartTargetQpc;
     private long lastNetworkTimingReportedSequence;
+    private long lastNetworkTimingStatusSequence;
     private long lastConductorCueQpc;
     private bool lastConductorTimingReported;
+    private bool lastConductorTimingStatusReported;
     private string networkStartFeedback = "";
     private string networkSongHash = "";
     private RemoteArrangementSettings? networkArrangement;
@@ -2180,6 +2182,9 @@ public sealed partial class MainWindow : Window, IDisposable
         catch { if (plugin.Player.IsPlaying) plugin.Player.Stop(); throw; }
         lastConductorCueQpc = silent ? 0 : localStart;
         lastConductorTimingReported = false;
+        lastConductorTimingStatusReported = false;
+        if (IsRelayBandEnabled && silent)
+            plugin.Network.NoteHostTimingStatus("silent conductor part: no local note callbacks expected");
         if (IsRelayBandEnabled) hostedTakeEndsMs = hostStartMs + song.DurationMs / Math.Max(.5, cfg.PlaybackSpeed);
         ensembleStatus = $"Multi-Device cue sent to {plugin.Network.Performers.Count} follower(s)! Starts in {countIn/1000.0:0.0}s.";
     }
@@ -2200,7 +2205,13 @@ public sealed partial class MainWindow : Window, IDisposable
             { why = "Waiting for party-track assignments."; return false; }
         if (!waitingForEnsembleCue) { why = "Enable Wait for conductor cue."; return false; }
         if (!plugin.Network.HasClockSync) { why = "Synchronising clocks..."; return false; }
-        if (plugin.Player.IsPlaying) { why = "Already playing; STOP before cue."; return false; }
+        if (plugin.Player.IsPlaying)
+        {
+            why = plugin.Player.IsEnsemblePlayback
+                ? "CUED / PLAYING: already armed for conductor START."
+                : "Already playing; STOP before cue.";
+            return false;
+        }
         if (arranged.Notes.Count == 0)
         {
             if (IsRelayBandEnabled && partyAssignmentsReceivedForCurrentMidi && !lanes.Any(l => l.Include))
@@ -2301,6 +2312,20 @@ public sealed partial class MainWindow : Window, IDisposable
                 lastConductorTimingReported = true;
             }
         }
+        if (IsRelayBandEnabled && plugin.Network.IsHosting &&
+            lastConductorCueQpc != 0 && !lastConductorTimingStatusReported &&
+            !lastConductorTimingReported &&
+            EnsembleCoordinator.RemainingSeconds(lastConductorCueQpc) < -3.0)
+        {
+            var timing = plugin.Player.Timing;
+            if (timing.OriginQpc != lastConductorCueQpc || timing.Count == 0)
+            {
+                plugin.Network.NoteHostTimingStatus(
+                    "no note callbacks yet at +3s; this is NOT an audio-latency measurement " +
+                    "(check assigned part, opening rest and Performance mode)");
+                lastConductorTimingStatusReported = true;
+            }
+        }
         if (IsRelayBandEnabled && plugin.Network.IsConnected && lastNetworkStartArmed &&
             lastNetworkStartSequence > 0 && lastNetworkTimingReportedSequence != lastNetworkStartSequence &&
             lastNetworkStartTargetQpc != 0 &&
@@ -2314,6 +2339,20 @@ public sealed partial class MainWindow : Window, IDisposable
                 lastNetworkTimingReportedSequence = lastNetworkStartSequence;
             }
         }
+        if (IsRelayBandEnabled && plugin.Network.IsConnected && lastNetworkStartArmed &&
+            lastNetworkStartSequence > 0 && lastNetworkTimingStatusSequence != lastNetworkStartSequence &&
+            lastNetworkTimingReportedSequence != lastNetworkStartSequence &&
+            lastNetworkStartTargetQpc != 0 &&
+            EnsembleCoordinator.RemainingSeconds(lastNetworkStartTargetQpc) < -3.0)
+        {
+            var timing = plugin.Player.Timing;
+            if (timing.OriginQpc != lastNetworkStartTargetQpc || timing.Count == 0)
+            {
+                plugin.Network.SendStartTimingStatus(lastNetworkStartSequence, lastNetworkStartRevision,
+                    lastNetworkStartHash, "AWAITING_NOTES");
+                lastNetworkTimingStatusSequence = lastNetworkStartSequence;
+            }
+        }
         if (!cfg.MultiDeviceEnabled || (EnsembleRole)cfg.EnsembleMode != EnsembleRole.Follower ||
             !plugin.Network.IsConnected) return;
         long now = Stopwatch.GetTimestamp();
@@ -2325,7 +2364,8 @@ public sealed partial class MainWindow : Window, IDisposable
             if (IsRelayBandEnabled && relaySetupFeedback.Length > 0)
                 reason += " " + relaySetupFeedback;
             plugin.Network.SendReady(networkRevision, networkSongHash, ready, reason, IsRelayBandEnabled ? relaySetupSequence : 0);
-            if (!ready) networkStatus = "Follower not ready: " + reason;
+            if (!ready) networkStatus = reason.StartsWith("CUED / PLAYING:", StringComparison.Ordinal)
+                ? reason : "Follower not ready: " + reason;
             else networkStatus = "READY — received MIDI, assigned parts, synced clock and armed output.";
         }
         catch (Exception ex) { networkStatus = "Follower status check: " + ex.Message; }
@@ -2443,6 +2483,12 @@ public sealed partial class MainWindow : Window, IDisposable
             lastNetworkStartArmed = armed;
             lastNetworkStartOutcome = result;
             plugin.Network.SendStartAck(notice.StartSequence, notice.Revision, notice.Hash, armed, result);
+            if (IsRelayBandEnabled && armed && !lanes.Any(l => l.Include))
+            {
+                plugin.Network.SendStartTimingStatus(notice.StartSequence, notice.Revision,
+                    notice.Hash, "SILENT_PART");
+                lastNetworkTimingStatusSequence = notice.StartSequence;
+            }
         }
     }
 

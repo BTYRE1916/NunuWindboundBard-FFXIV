@@ -13,5 +13,5 @@
     "ensemble"
   ],
   "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
-  "Changelog": "Capture Studio FFmpeg compatibility fix for encoder error -22. Native Capture Engine must be rebuilt alongside the plugin. Includes hosted all-Bard START confirmation."
+  "Changelog": "Relay diagnostics: report clock RTT/spread and explicit no-note/silent-part statuses when MIDI callback timing is not available; later note dispatch measurements replace interim status. Retains encoder fix."
 }
