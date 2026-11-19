@@ -56,6 +56,10 @@ Check(prior.RecordingFormat=="mkv", "older JSON without the new option remains M
 string collectionFile=Path.Combine(folder,"collection.json");
 StudioCollectionStore.Save(collectionFile,new StudioCollection { Output=mp4 });
 Check(StudioCollectionStore.Load(collectionFile).Output.RecordingFormat=="mp4", "recording format persists in the studio collection");
+// FFmpeg 2026+ rejects thread_queue_size on inputs (pipe:0 and named audio pipes).
+var recordArgs=OutputPipeline.Arguments(mp4,"record",Path.Combine(folder,"test.mp4"),["audio1","audio2"]);
+Check(!recordArgs.Contains("-thread_queue_size"), "no output-only thread_queue_size is passed to input pipes");
+Check(recordArgs.Contains("rawvideo") && recordArgs.Contains("f32le") && recordArgs.Count(arg=>arg=="-i")==3, "one raw-video input and two PCM audio inputs are retained");
 var streamArgs=OutputPipeline.Arguments(mp4,"stream","rtmp://example.invalid/live/test",["audio"]);
 Check(streamArgs[^2]=="flv" && !streamArgs.Contains("+faststart"), "MP4 recording preference does not change RTMP streaming");
 var replayArgs=OutputPipeline.Arguments(mp4,"replay","block-%09d.mkv",["audio"]);

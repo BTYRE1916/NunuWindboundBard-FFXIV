@@ -13,5 +13,5 @@
     "ensemble"
   ],
   "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
-  "Changelog": "Hosted Ensemble START only proceeds when all Bards report ARMED. Failed or missing START replies cancel the whole band before the scheduled downbeat."
+  "Changelog": "Capture Studio FFmpeg compatibility fix for encoder error -22. Native Capture Engine must be rebuilt alongside the plugin. Includes hosted all-Bard START confirmation."
 }

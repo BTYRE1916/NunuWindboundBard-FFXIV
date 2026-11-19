@@ -83,9 +83,12 @@ internal sealed class OutputPipeline : IDisposable
     }
     internal static string[] Arguments(StudioOutputSettings s,string kind,string path,string[] pipes)
     {
+        // FFmpeg builds from late 2026 treat -thread_queue_size as output-only.
+        // Supplying it before any input (-i pipe:0 or audio pipes) causes exit -22.
+        // Input buffering is managed by our bounded video/audio Channels instead.
         var a=new List<string>{"-hide_banner","-loglevel","warning","-nostats","-stats_period","0.25","-progress","pipe:1","-n",
-            "-thread_queue_size","8","-f","rawvideo","-pixel_format","bgra","-video_size",$"{s.Width}x{s.Height}","-framerate",s.Fps.ToString(CultureInfo.InvariantCulture),"-probesize","32","-analyzeduration","1","-fpsprobesize","0","-i","pipe:0"};
-        foreach(string pipe in pipes)a.AddRange(new[]{"-thread_queue_size","32","-f","f32le","-ar","48000","-ac","2","-probesize","32","-analyzeduration","1","-i",pipe});
+            "-f","rawvideo","-pixel_format","bgra","-video_size",$"{s.Width}x{s.Height}","-framerate",s.Fps.ToString(CultureInfo.InvariantCulture),"-probesize","32","-analyzeduration","1","-fpsprobesize","0","-i","pipe:0"};
+        foreach(string pipe in pipes)a.AddRange(new[]{"-f","f32le","-ar","48000","-ac","2","-probesize","32","-analyzeduration","1","-i",pipe});
         a.AddRange(new[]{"-map","0:v:0"});for(int i=0;i<pipes.Length;i++)a.AddRange(new[]{"-map",$"{i+1}:a:0"});
         a.AddRange(new[]{"-c:v",s.Encoder,"-b:v",s.VideoBitrate+"k","-pix_fmt","yuv420p","-g",(s.Fps*2).ToString(),"-force_key_frames","expr:gte(t,n_forced*2)"});
         if(s.Encoder=="libx264")a.AddRange(new[]{"-threads:v","4","-preset","veryfast","-tune","zerolatency","-sc_threshold","0"});
