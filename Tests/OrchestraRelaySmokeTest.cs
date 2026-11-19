@@ -120,27 +120,55 @@ try
             cue.ConnectionId == bard.RelayFollowerConnectionId &&
             cue.HostStartMs == start && bard.TryConvertHostTimeToLocalQpc(cue.HostStartMs, out _),
             "each follower receives the same correlated downbeat on its own connection");
-        // Simulate one lost acknowledgement and one follower refusing to arm.
+        // Simulate one lost acknowledgement, then accept the retry. All Bards must be armed.
         if (i == 4) unacknowledged = cue;
-        else bard.SendStartAck(cue.StartSequence, cue.Revision, cue.Hash, i != 6,
-            i == 6 ? "Performance keyboard closed" : "Playback scheduled");
+        else bard.SendStartAck(cue.StartSequence, cue.Revision, cue.Hash, true, "Playback scheduled");
     }
-    await Until(() => host.Performers.Count(p => p.StartOutcome.StartsWith("ARMED:")) == 6 &&
-        host.Performers.Count(p => p.StartOutcome.StartsWith("FAILED:")) == 1,
+    await Until(() => host.Performers.Count(p => p.StartOutcome.StartsWith("ARMED:")) == 7,
         "conductor receives seven per-Bard START results");
-    Require(host.Performers.Single(p => p.ContentId == 8).StartOutcome.Contains("Performance keyboard closed"),
-        "per-follower rejection is visible to conductor");
     var repeated = await WaitNotice(followers[4], NetworkNoticeKind.Cue);
     Require(repeated.StartSequence == startSequence && repeated.HostStartMs == start &&
         repeated.Revision == unacknowledged!.Revision, "unconfirmed follower gets same START again, not a new downbeat");
     followers[4].SendStartAck(repeated.StartSequence, repeated.Revision, repeated.Hash, true, "Playback scheduled");
-    await Until(() => host.Performers.Count(p => p.StartOutcome.StartsWith("ARMED:")) == 7,
-        "lost START result is recovered");
+    await Until(() => host.Performers.All(p => p.StartOutcome.StartsWith("ARMED:")),
+        "lost START result is recovered and all eight Bards armed");
     Require(host.RelayReport.Contains($"START #{startSequence} retransmitted"),
         "relay diagnostics include the targeted START retry");
-    Console.WriteLine("PASS: eight-follower broadcast, per-Bard acceptance/failure, missing-ACK retry and shared downbeat.");
+    Console.WriteLine("PASS: eight-follower broadcast, all Bards armed, missing-ACK retry and shared downbeat.");
     host.BroadcastStop();
     foreach (var bard in followers) await WaitNotice(bard, NetworkNoticeKind.Stop);
+
+    // One failed START result must cancel every follower, not begin a partial concert.
+    host.BroadcastStart(MultiDeviceEnsemble.NowMs() + 5000, 1000);
+    for (int i = 0; i < followers.Length; i++)
+    {
+        var cue = await WaitNotice(followers[i], NetworkNoticeKind.Cue);
+        followers[i].SendStartAck(cue.StartSequence, cue.Revision, cue.Hash, i != 6,
+            i == 6 ? "Performance keyboard closed" : "Playback scheduled");
+    }
+    var rejected = await WaitNotice(host, NetworkNoticeKind.CueAborted);
+    Require(rejected.Detail.Contains("Bard 8") && rejected.Detail.Contains("Performance keyboard closed"),
+        "conductor explains which performer rejected START");
+    Require(host.Performers.Single(p => p.ContentId == 8).StartOutcome.Contains("FAILED:") &&
+        host.Performers.Count(p => p.StartOutcome.StartsWith("CANCELLED:")) == 7,
+        "all other followers are marked cancelled when one Bard rejects");
+    foreach (var bard in followers) await WaitNotice(bard, NetworkNoticeKind.Stop);
+    Console.WriteLine("PASS: rejected START cancels the whole hosted band.");
+
+    // Simulate a permanently missing acknowledgement, even after all retransmissions.
+    double missingStart = MultiDeviceEnsemble.NowMs() + 5000;
+    host.BroadcastStart(missingStart, 1000);
+    for (int i = 0; i < followers.Length; i++)
+    {
+        var cue = await WaitNotice(followers[i], NetworkNoticeKind.Cue);
+        if (i != 3) followers[i].SendStartAck(cue.StartSequence, cue.Revision, cue.Hash, true, "Playback scheduled");
+    }
+    var missingResult = await WaitNotice(host, NetworkNoticeKind.CueAborted);
+    Require(missingResult.Detail.Contains("Bard 5") &&
+        MultiDeviceEnsemble.NowMs() < missingStart,
+        "unconfirmed follower aborts the band before the scheduled downbeat");
+    foreach (var bard in followers) await WaitNotice(bard, NetworkNoticeKind.Stop);
+    Console.WriteLine("PASS: unconfirmed START cancels the whole band before the downbeat.");
     foreach (var bard in followers)
     {
         var reference = Regex.Match(bard.RelayReport, @"relay ref ([A-F0-9]{12})");

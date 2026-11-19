@@ -2,10 +2,16 @@
   "Author": "Real Nunu",
   "Name": "Nunu's Windbound Bard",
   "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
-  "Description": "Windbound Bard MIDI suite with piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band supports join-code sessions, remote instrument and ARM controls, scheduled playback, relay diagnostics and individual follower START acknowledgements.",
+  "Description": "Windbound Bard MIDI suite with piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band supports join-code sessions, remote instrument and ARM controls, scheduled playback, relay diagnostics and all-Bard START confirmation and fail-safe cancellation.",
   "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
   "ApplicableVersion": "any",
-  "Tags": ["bard", "midi", "music", "performance", "ensemble"],
+  "Tags": [
+    "bard",
+    "midi",
+    "music",
+    "performance",
+    "ensemble"
+  ],
   "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
-  "Changelog": "Hosted Band START confirmations per performer, targeted retry of missing confirmations, duplicate prevention and visible rejection reasons."
+  "Changelog": "Hosted Ensemble START only proceeds when all Bards report ARMED. Failed or missing START replies cancel the whole band before the scheduled downbeat."
 }

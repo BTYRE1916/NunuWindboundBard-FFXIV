@@ -2251,6 +2251,14 @@ public sealed partial class MainWindow : Window, IDisposable
                             ensembleStatus = "A network performer disconnected; ensemble stopped to avoid an incomplete duet.";
                         }
                         break;
+                    case NetworkNoticeKind.CueAborted:
+                        hostedTakeEndsMs = 0;
+                        if (cfg.MultiDeviceEnabled && (EnsembleRole)cfg.EnsembleMode == EnsembleRole.Conductor &&
+                            plugin.Player.IsPlaying)
+                            plugin.Player.Stop();
+                        networkStatus = notice.Detail;
+                        ensembleStatus = notice.Detail;
+                        break;
                     case NetworkNoticeKind.BandSetup:
                         ReceiveHostedSetup(notice);
                         break;

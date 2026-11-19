@@ -3,9 +3,9 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.46.4.0",
+    "AssemblyVersion": "0.46.5.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
-    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band adds join-code sessions with Concert Director, remote instrument and ARM controls, and scheduled playback. Includes copyable relay diagnostics, Concert Director, opt-in party follow, and Shortcut Bars. START cues now report individual follower acceptance and retransmit missing confirmations.",
+    "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band adds join-code sessions with Concert Director, remote instrument and ARM controls, and scheduled playback. Includes copyable relay diagnostics, Concert Director, opt-in party follow, and Shortcut Bars. Hosted STARTs require all performers to confirm they are armed; failed or missing confirmations cancel the downbeat for the whole band.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.4/FFXIVMIDIPLAYER-BY-NUNU-v0.46.4.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.4/FFXIVMIDIPLAYER-BY-NUNU-v0.46.4.zip",
-    "LastUpdate": "1795042800",
-    "Changelog": "Hosted Band START acknowledgement per performer, targeted retry of unconfirmed START cues using the same scheduled downbeat, duplicate prevention, and visible rejection reasons."
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.5/FFXIVMIDIPLAYER-BY-NUNU-v0.46.5.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.5/FFXIVMIDIPLAYER-BY-NUNU-v0.46.5.zip",
+    "LastUpdate": "1795046400",
+    "Changelog": "Hosted Ensemble START all-Bard confirmation barrier: reject legacy followers, cancel everyone on a failed or missing confirmation before the downbeat, and show the reason to the conductor. Existing START retry/diagnostics retained."
   }
 ]

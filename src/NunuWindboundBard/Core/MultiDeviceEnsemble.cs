@@ -16,7 +16,7 @@ using System.Diagnostics;
 
 namespace NunuWindboundBard.Core;
 
-public enum NetworkNoticeKind { Connected, Disconnected, Session, Cue, Stop, Error, BandSetup }
+public enum NetworkNoticeKind { Connected, Disconnected, Session, Cue, Stop, Error, BandSetup, CueAborted }
 
 public enum BandSetupAction { None, SetInstruments, Arm, Disarm, Prepare, Unequip }
 
@@ -492,6 +492,14 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                                 (message.Detail.Length > 180 ? message.Detail[..180] : message.Detail);
                             activeRelay?.Note($"START #{message.StartSequence}: follower connection {peer.Id} " +
                                 (message.Ready ? "armed" : "rejected"));
+                            // A hosted band must not play with only a random subset of Bards.
+                            // The local conductor is also cancelled via the CueAborted notice.
+                            if (activeRelay is not null && !message.Ready)
+                                AbortRelayStartLocked(start, $"{peer.Name} rejected the cue: {message.Detail}");
+                            else if (activeRelay is not null && peers.Values.All(p =>
+                                p.StartSequence == start.StartSequence && p.StartAcknowledged &&
+                                p.StartOutcome.StartsWith("ARMED:", StringComparison.Ordinal)))
+                                activeRelay.Note($"START #{start.StartSequence}: all {peers.Count} Bards armed.");
                         }
                         break;
                 }
@@ -678,6 +686,11 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         if (connected.Length == 0) { detail = "No follower connected yet."; return false; }
         foreach (var peer in connected)
         {
+            if (activeRelay is not null && !peer.SupportsStartAck)
+            {
+                detail = $"{peer.Name} uses an old plugin without START confirmations. Upgrade every Bard before cueing.";
+                return false;
+            }
             if (!peer.Ready || peer.ReadyRevision != snapshot.Revision)
             {
                 detail = $"{peer.Name} is not ready: {peer.ReadyDetail}";
@@ -704,12 +717,15 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         Wire msg;
         Peer[] recipients;
         CancellationToken lifetime;
+        bool hosted;
         lock (gate)
         {
             if (!hosting || currentSession is not { } session || cancel is null)
                 throw new InvalidOperationException("Host and share a MIDI before START.");
             recipients = peers.Values.ToArray();
             if (recipients.Length == 0) throw new InvalidOperationException("No follower connected yet.");
+            if (activeRelay is not null && recipients.Any(p => !p.SupportsStartAck))
+                throw new InvalidOperationException("Every hosted Bard must support START confirmations. Update the older followers.");
             foreach (var peer in recipients)
             {
                 if (!peer.Ready || peer.ReadyRevision != session.Revision || NowMs() - peer.LastSeenMs > 4000)
@@ -730,10 +746,52 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             }
             activeRelay?.Note($"START #{msg.StartSequence} queued for {recipients.Length} follower(s).");
             lifetime = cancel.Token;
+            hosted = activeRelay is not null;
         }
         // Re-send only to clients that understand acknowledgements; older versions
         // would incorrectly treat retransmission as a second playback command.
         _ = RetryUnacknowledgedStartsAsync(msg, recipients, lifetime);
+        if (hosted)
+            _ = VerifyRelayStartBeforeDownbeatAsync(msg, lifetime);
+    }
+
+    // All participants must confirm playback is queued BEFORE the downbeat.
+    // Otherwise send STOP to everyone, including the local conductor through the notice queue.
+    private async Task VerifyRelayStartBeforeDownbeatAsync(Wire start, CancellationToken ct)
+    {
+        try
+        {
+            double remaining = start.HostStartMs - NowMs() - 1250;
+            if (remaining > 0)
+                await Task.Delay(TimeSpan.FromMilliseconds(remaining), ct).ConfigureAwait(false);
+            lock (gate)
+            {
+                if (!hosting || activeRelay is null || currentStart?.StartSequence != start.StartSequence)
+                    return;
+                var missing = peers.Values.Where(p =>
+                    p.StartSequence == start.StartSequence && !p.StartAcknowledged).ToArray();
+                if (missing.Length > 0)
+                    AbortRelayStartLocked(start, $"No START confirmation from {string.Join(", ", missing.Select(p => p.Name))} before the downbeat.");
+            }
+        }
+        catch (OperationCanceledException) { /* band closed or song changed */ }
+    }
+
+    // Call only while holding gate. The STOP is queued on every follower's own connection.
+    private void AbortRelayStartLocked(Wire start, string reason)
+    {
+        if (currentStart?.StartSequence != start.StartSequence) return;
+        currentStart = null;
+        foreach (var peer in peers.Values)
+        {
+            if (peer.StartSequence != start.StartSequence) continue;
+            if (!peer.StartOutcome.StartsWith("FAILED:", StringComparison.Ordinal))
+                peer.StartOutcome = "CANCELLED: " + reason;
+            peer.Send(new Wire { Type = "Stop" });
+        }
+        activeRelay?.Note($"START #{start.StartSequence} aborted for whole band: {reason}");
+        notices.Enqueue(new(NetworkNoticeKind.CueAborted,
+            $"Hosted START #{start.StartSequence} cancelled for all Bards: {reason}"));
     }
 
     private async Task RetryUnacknowledgedStartsAsync(Wire start, Peer[] recipients, CancellationToken ct)
