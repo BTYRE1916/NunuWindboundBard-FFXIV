@@ -84,14 +84,21 @@ public sealed partial class MainWindow
         if (plugin.Network.IsConnected)
         {
             ImGui.TextDisabled(Loc.T($"Clock synchronisation: {(plugin.Network.HasClockSync ? "READY" : "waiting for samples")} / {plugin.Network.RoundTripMs:0}ms RTT / {plugin.Network.ClockSpreadMs:0.0}ms clock spread"));
-            int trim = Math.Clamp(cfg.RelayFollowerTimingTrimMs, -250, 250);
+            int trim = Math.Clamp(cfg.RelayFollowerTimingTrimMs, -1500, 1500);
             ImGui.SetNextItemWidth(Math.Min(335, ImGui.GetContentRegionAvail().X));
-            if (ImGui.SliderInt(Loc.T("Follower timing trim (ms)"), ref trim, -250, 250))
+            if (ImGui.SliderInt(Loc.T("Follower timing trim (ms)"), ref trim, -1500, 1500))
             {
                 cfg.RelayFollowerTimingTrimMs = trim;
                 cfg.Save();
             }
-            ImGui.TextDisabled(Loc.T("Negative = your Bard earlier; positive = later. Start at 0, adjust by 20ms per duet test."));
+            ImGui.TextDisabled(Loc.T("Negative = your Bard earlier; positive = later. Start at 0; only correct a measured, repeatable offset. Large values can mask a different bug."));
+            if (Math.Abs(trim) > 250)
+                ImGui.TextWrapped(Loc.T("Large timing correction active. Check MIDI opening rests, clock diagnostics and FFXIV audio latency."));
+            if (ImGui.Button(Loc.T("Reset timing trim to 0 ms")))
+            {
+                cfg.RelayFollowerTimingTrimMs = 0;
+                cfg.Save();
+            }
             if (ImGui.Button(Loc.T("Leave band")))
             {
                 ResetNetworkConnection();

@@ -13,5 +13,6 @@
     "ensemble"
   ],
   "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
-  "Changelog": "Relay diagnostics: report clock RTT/spread and explicit no-note/silent-part statuses when MIDI callback timing is not available; later note dispatch measurements replace interim status. Retains encoder fix."
+  "Changelog": "Relay first-note position diagnostics and expanded follower timing calibration.",
+  "AssemblyVersion": "0.46.9.0"
 }

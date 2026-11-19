@@ -13,7 +13,7 @@ public sealed record BardPlaybackSettings(bool SendToGame,
     IReadOnlyDictionary<MidiLaneKey, int>? GuitarTones = null);
 
 public readonly record struct EnsembleDispatchTiming(long OriginQpc, int Count, double FirstMs,
-    double LastMs, double WorstMs, double MeanMs);
+    double LastMs, double WorstMs, double MeanMs, double FirstScheduledMs);
 
 /// <summary>
 /// Frame-driven, timestamp-based MIDI event scheduler. Does NOT await each note.
@@ -52,6 +52,7 @@ public sealed class PlaybackEngine : IDisposable
     private double lastDispatchDelay;
     private double worstDispatchDelay;
     private double totalDispatchDelay;
+    private double firstScheduledNoteMs;
 
     private readonly record struct ScheduledEvent(double AtMs, int Pitch,
         bool KeyDown, int Id, int Velocity, int Track, int Channel);
@@ -74,7 +75,8 @@ public sealed class PlaybackEngine : IDisposable
         get
         {
             lock (sync) return new(timingOrigin, timedNotes, firstDispatchDelay,
-                lastDispatchDelay, worstDispatchDelay, timedNotes > 0 ? totalDispatchDelay / timedNotes : 0);
+                lastDispatchDelay, worstDispatchDelay, timedNotes > 0 ? totalDispatchDelay / timedNotes : 0,
+                firstScheduledNoteMs);
         }
     }
 
@@ -94,6 +96,7 @@ public sealed class PlaybackEngine : IDisposable
                 ? null : new Dictionary<MidiLaneKey, int>(options.GuitarTones) };
             scheduledStartQpc = ensembleStartQpc;
             ResetTiming(ensembleStartQpc ?? 0);
+            firstScheduledNoteMs = notes.Min(note => note.TimeMs);
             ensembleStarted = false;
             // Keep original note timestamps; do not quantise/serialize chords.
             events = new List<ScheduledEvent>(notes.Count * 2);

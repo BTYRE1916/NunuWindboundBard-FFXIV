@@ -150,13 +150,15 @@ try
     await Until(() => host.Performers.Single(p => p.ContentId == 4).TimingOutcome.Contains("silent part"),
         "conductor explains why a silent part has no MIDI note timing");
     followers[1].SendStartTiming(startSequence, unacknowledged!.Revision, unacknowledged.Hash,
-        24, 9.5, 10.0, 18.0);
-    await Until(() => host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("first +9.5ms"),
+        24, 9.5, 10.0, 18.0, 1000.0);
+    await Until(() => host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("callback first +9.5ms") &&
+        host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("part first note at +1000.0ms"),
         "real callback timing replaces the earlier no-note status after an opening rest");
     followers[0].SendStartTiming(startSequence, unacknowledged!.Revision, unacknowledged.Hash,
-        24, 17.5, 11.0, 28.0);
-    await Until(() => host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("first +17.5ms"),
-        "conductor receives measured follower dispatch timing");
+        24, 17.5, 11.0, 28.0, 0.0);
+    await Until(() => host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("callback first +17.5ms") &&
+        host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("part first note at +0.0ms"),
+        "conductor receives measured follower dispatch timing and first scheduled MIDI note");
     Require(host.RelayReport.Contains("clock spread") &&
         host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("RTT"),
         "timing report is distinct from START ACK and includes clock quality");

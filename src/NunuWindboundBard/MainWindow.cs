@@ -2308,7 +2308,8 @@ public sealed partial class MainWindow : Window, IDisposable
             var timing = plugin.Player.Timing;
             if (timing.OriginQpc == lastConductorCueQpc && timing.Count > 0)
             {
-                plugin.Network.NoteHostStartTiming(timing.FirstMs, timing.MeanMs, timing.WorstMs, timing.Count);
+                plugin.Network.NoteHostStartTiming(timing.FirstMs, timing.MeanMs, timing.WorstMs, timing.Count,
+                    timing.FirstScheduledMs);
                 lastConductorTimingReported = true;
             }
         }
@@ -2335,7 +2336,8 @@ public sealed partial class MainWindow : Window, IDisposable
             if (timing.OriginQpc == lastNetworkStartTargetQpc && timing.Count > 0)
             {
                 plugin.Network.SendStartTiming(lastNetworkStartSequence, lastNetworkStartRevision,
-                    lastNetworkStartHash, timing.Count, timing.FirstMs, timing.MeanMs, timing.WorstMs);
+                    lastNetworkStartHash, timing.Count, timing.FirstMs, timing.MeanMs, timing.WorstMs,
+                    timing.FirstScheduledMs);
                 lastNetworkTimingReportedSequence = lastNetworkStartSequence;
             }
         }
@@ -2451,7 +2453,7 @@ public sealed partial class MainWindow : Window, IDisposable
             {
                 // Host time is first translated through clock synchronization.
                 // Per-follower trim is an intentional local audio-calibration offset.
-                int trim = IsRelayBandEnabled ? Math.Clamp(cfg.RelayFollowerTimingTrimMs, -250, 250) : 0;
+                int trim = IsRelayBandEnabled ? Math.Clamp(cfg.RelayFollowerTimingTrimMs, -1500, 1500) : 0;
                 target += (long)Math.Round(trim * Stopwatch.Frequency / 1000.0);
                 if (EnsembleCoordinator.RemainingSeconds(target) < 0.5)
                     result = "START arrived too late after applying follower timing trim.";

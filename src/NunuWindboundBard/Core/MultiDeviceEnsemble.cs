@@ -128,6 +128,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         public int SpeedThousand { get; set; } = 1000;
         public int TimedNoteCount { get; set; }
         public double FirstNoteDelayMs { get; set; }
+        public double FirstScheduledNoteMs { get; set; }
         public double MeanNoteDelayMs { get; set; }
         public double WorstNoteDelayMs { get; set; }
         public double ClockRttMs { get; set; }
@@ -526,11 +527,13 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                                 !string.Equals(timedStart.Hash, message.Hash, StringComparison.OrdinalIgnoreCase) ||
                                 message.TimedNoteCount < 1 || message.TimedNoteCount > 1000000 ||
                                 !ValidTimingMs(message.FirstNoteDelayMs) ||
+                                !ValidFirstScheduledMs(message.FirstScheduledNoteMs) ||
                                 !ValidTimingMs(message.MeanNoteDelayMs) ||
                                 !ValidTimingMs(message.WorstNoteDelayMs) ||
                                 !ValidQualityMs(message.ClockRttMs) ||
                                 !ValidQualityMs(message.ClockSpreadMs)) break;
-                            peer.TimingOutcome = $"first {message.FirstNoteDelayMs:+0.0;-0.0;0.0}ms, " +
+                            peer.TimingOutcome = $"part first note at +{message.FirstScheduledNoteMs:0.0}ms; " +
+                                $"callback first {message.FirstNoteDelayMs:+0.0;-0.0;0.0}ms, " +
                                 $"mean {message.MeanNoteDelayMs:+0.0;-0.0;0.0}ms, " +
                                 $"worst {message.WorstNoteDelayMs:+0.0;-0.0;0.0}ms; " +
                                 $"RTT {message.ClockRttMs:0.0}ms, clock spread {message.ClockSpreadMs:0.0}ms";
@@ -603,6 +606,9 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
 
     private static bool ValidTimingMs(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value) && value >= -5000 && value <= 5000;
+
+    private static bool ValidFirstScheduledMs(double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0 && value <= 86400000;
 
     private static bool ValidQualityMs(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0 && value <= 2500;
@@ -919,10 +925,11 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     /// is outside our scheduler and must be measured separately.
     /// </summary>
     public void SendStartTiming(long startSeq, long rev, string hash, int count,
-        double firstMs, double meanMs, double worstMs)
+        double firstMs, double meanMs, double worstMs, double firstScheduledMs)
     {
         if (startSeq <= 0 || count <= 0 || !ValidTimingMs(firstMs) ||
-            !ValidTimingMs(meanMs) || !ValidTimingMs(worstMs)) return;
+            !ValidTimingMs(meanMs) || !ValidTimingMs(worstMs) ||
+            !ValidFirstScheduledMs(firstScheduledMs)) return;
         Peer? peer;
         double rtt, spread;
         lock (gate)
@@ -930,12 +937,13 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             peer = hostPeer;
             rtt = roundTripMs;
             spread = clockSpreadMs;
-            activeRelay?.Note($"START #{startSeq} local callbacks: first {firstMs:+0.0;-0.0;0.0}ms, " +
+            activeRelay?.Note($"START #{startSeq} local callbacks: part first note at +{firstScheduledMs:0.0}ms; " +
+                $"first {firstMs:+0.0;-0.0;0.0}ms, " +
                 $"mean {meanMs:+0.0;-0.0;0.0}ms; RTT {rtt:0.0}ms, clock spread {spread:0.0}ms.");
         }
         peer?.Send(new Wire { Type = "StartTiming", StartSequence = startSeq,
             Revision = rev, Hash = hash, TimedNoteCount = count,
-            FirstNoteDelayMs = firstMs, MeanNoteDelayMs = meanMs,
+            FirstNoteDelayMs = firstMs, FirstScheduledNoteMs = firstScheduledMs, MeanNoteDelayMs = meanMs,
             WorstNoteDelayMs = worstMs, ClockRttMs = rtt, ClockSpreadMs = spread });
     }
 
@@ -967,12 +975,14 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             activeRelay?.Note($"START #{currentStart?.StartSequence ?? 0} conductor timing status: {reason}");
     }
 
-    public void NoteHostStartTiming(double firstMs, double meanMs, double worstMs, int count)
+    public void NoteHostStartTiming(double firstMs, double meanMs, double worstMs, int count,
+        double firstScheduledMs)
     {
         lock (gate)
-            if (hosting && currentStart is { } start && count > 0)
+            if (hosting && currentStart is { } start && count > 0 && ValidFirstScheduledMs(firstScheduledMs))
                 activeRelay?.Note($"START #{start.StartSequence} conductor callbacks: " +
-                    $"{count} notes; first {firstMs:+0.0;-0.0;0.0}ms, " +
+                    $"{count} notes; part first note at +{firstScheduledMs:0.0}ms; " +
+                    $"callback first {firstMs:+0.0;-0.0;0.0}ms, " +
                     $"mean {meanMs:+0.0;-0.0;0.0}ms, worst {worstMs:+0.0;-0.0;0.0}ms.");
     }
 
