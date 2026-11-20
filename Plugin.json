@@ -19,8 +19,8 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.9/FFXIVMIDIPLAYER-BY-NUNU-v0.47.0.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.46.9/FFXIVMIDIPLAYER-BY-NUNU-v0.47.0.zip",
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.0/FFXIVMIDIPLAYER-BY-NUNU-v0.47.0.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.0/FFXIVMIDIPLAYER-BY-NUNU-v0.47.0.zip",
     "LastUpdate": "1795068480",
     "Changelog": "Relay duet diagnostic: show the first scheduled MIDI note for each Bard beside callback delay; extended follower timing calibration to ±1500 ms with reset and warning. No automatic offset correction."
   }
