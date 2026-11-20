@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="PlaybackResetSmokeTest.cs" />
+    <Compile Include="../src/NunuWindboundBard/Core/MultiDeviceEnsembleTiming.cs" />
     <Compile Include="ConcertRecoveryChecks.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/MidiFileReader.cs" Link="MidiFileReader.cs" />
     <Compile Include="../src/NunuWindboundBard/Core/ConcertLocalSession.cs" Link="ConcertLocalSession.cs" />

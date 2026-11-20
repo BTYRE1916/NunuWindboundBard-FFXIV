@@ -13,6 +13,6 @@
     "ensemble"
   ],
   "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
-  "Changelog": "Relay first-note position diagnostics and expanded follower timing calibration.",
-  "AssemblyVersion": "0.46.9.0"
+  "Changelog": "Hosted Band timestamps clock probes at send time and restores first-note timing reports. Each follower can enter an exact timing trim and see the value used on the last START.",
+  "AssemblyVersion": "0.47.1.0"
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "windbound-orchestra-relay",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [
+      {"name": "BAND_ROOMS", "class_name": "BandRoom"},
+      {"name": "BAND_DIRECTORY", "class_name": "BandDirectory"}
+    ]
+  },
+  "migrations": [
+    {"tag": "v1", "new_sqlite_classes": ["BandRoom", "BandDirectory"]}
+  ],
+  "observability": {"enabled": true}
+}

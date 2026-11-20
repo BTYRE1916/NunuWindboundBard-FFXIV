@@ -187,7 +187,7 @@ public sealed partial class MainWindow
                 $"Follow party leader: {cfg.NativeLeaderSyncEnabled}; Party receiver active: {plugin.PartyChat.ReceiveEnabled}"));
             ImGui.TextWrapped(Loc.T(plugin.PartyChat.Diagnostics));
             if (ImGui.SmallButton(Loc.T("Copy party-command report")))
-                ImGui.SetClipboardText($"Windbound 0.18.2 / {role}\nNative Game Ensemble: {cfg.GameEnsembleEnabled}; " +
+                ImGui.SetClipboardText($"Windbound {ConcertBuild} / {role}\nNative Game Ensemble: {cfg.GameEnsembleEnabled}; " +
                     $"Leader sync: {cfg.NativeLeaderSyncEnabled}\n" +
                     plugin.PartyChat.Diagnostics + "\nFile: " + nativeFileSyncStatus +
                     "\nTracks: " + nativeTracksSyncStatus +

@@ -3,7 +3,7 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.47.0.0",
+    "AssemblyVersion": "0.47.1.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
     "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band adds join-code sessions with Concert Director, remote instrument and ARM controls, and scheduled playback. Includes copyable relay diagnostics, Concert Director, opt-in party follow, and Shortcut Bars. Hosted STARTs require all performers to confirm they are armed; failed or missing confirmations cancel the downbeat for the whole band. Hosted ensembles report measured note-dispatch timing or explain when measurements are unavailable, plus RTT and clock stability; followers can fine-tune a local timing offset for duets.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.0/FFXIVMIDIPLAYER-BY-NUNU-v0.47.0.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.0/FFXIVMIDIPLAYER-BY-NUNU-v0.47.0.zip",
-    "LastUpdate": "1795068480",
-    "Changelog": "Relay duet diagnostic: show the first scheduled MIDI note for each Bard beside callback delay; extended follower timing calibration to ±1500 ms with reset and warning. No automatic offset correction."
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.1/FFXIVMIDIPLAYER-BY-NUNU-v0.47.1.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.1/FFXIVMIDIPLAYER-BY-NUNU-v0.47.1.zip",
+    "LastUpdate": "1795165638",
+    "Changelog": "Hosted Band timestamps clock probes at send time and restores first-note timing reports. Each follower can enter an exact timing trim and see the value used on the last START."
   }
 ]

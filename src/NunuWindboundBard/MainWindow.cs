@@ -62,6 +62,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private string lastNetworkStartOutcome = "";
     private bool lastNetworkStartArmed;
     private long lastNetworkStartTargetQpc;
+    private int lastAppliedFollowerTrimMs;
     private long lastNetworkTimingReportedSequence;
     private long lastNetworkTimingStatusSequence;
     private long lastConductorCueQpc;
@@ -2301,9 +2302,9 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         // Capture actual MIDI callback timing once notes have been emitted.
         // Do not confuse time since relay connection or START ACK delay with drift.
-        if (IsRelayBandEnabled && plugin.Network.IsHosting &&
-            lastConductorCueQpc != 0 && !lastConductorTimingReported &&
-            EnsembleCoordinator.RemainingSeconds(lastConductorCueQpc) < -1.5)
+        long reportNow = Stopwatch.GetTimestamp();
+        if (IsRelayBandEnabled && plugin.Network.IsHosting && !lastConductorTimingReported &&
+            MultiDeviceEnsembleTiming.ReportDue(lastConductorCueQpc, reportNow, 1500))
         {
             var timing = plugin.Player.Timing;
             if (timing.OriginQpc == lastConductorCueQpc && timing.Count > 0)
@@ -2314,9 +2315,8 @@ public sealed partial class MainWindow : Window, IDisposable
             }
         }
         if (IsRelayBandEnabled && plugin.Network.IsHosting &&
-            lastConductorCueQpc != 0 && !lastConductorTimingStatusReported &&
-            !lastConductorTimingReported &&
-            EnsembleCoordinator.RemainingSeconds(lastConductorCueQpc) < -3.0)
+            !lastConductorTimingStatusReported && !lastConductorTimingReported &&
+            MultiDeviceEnsembleTiming.ReportDue(lastConductorCueQpc, reportNow, 3000))
         {
             var timing = plugin.Player.Timing;
             if (timing.OriginQpc != lastConductorCueQpc || timing.Count == 0)
@@ -2329,23 +2329,21 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         if (IsRelayBandEnabled && plugin.Network.IsConnected && lastNetworkStartArmed &&
             lastNetworkStartSequence > 0 && lastNetworkTimingReportedSequence != lastNetworkStartSequence &&
-            lastNetworkStartTargetQpc != 0 &&
-            EnsembleCoordinator.RemainingSeconds(lastNetworkStartTargetQpc) < -1.5)
+            MultiDeviceEnsembleTiming.ReportDue(lastNetworkStartTargetQpc, reportNow, 1500))
         {
             var timing = plugin.Player.Timing;
             if (timing.OriginQpc == lastNetworkStartTargetQpc && timing.Count > 0)
             {
                 plugin.Network.SendStartTiming(lastNetworkStartSequence, lastNetworkStartRevision,
                     lastNetworkStartHash, timing.Count, timing.FirstMs, timing.MeanMs, timing.WorstMs,
-                    timing.FirstScheduledMs);
+                    timing.FirstScheduledMs, lastAppliedFollowerTrimMs);
                 lastNetworkTimingReportedSequence = lastNetworkStartSequence;
             }
         }
         if (IsRelayBandEnabled && plugin.Network.IsConnected && lastNetworkStartArmed &&
             lastNetworkStartSequence > 0 && lastNetworkTimingStatusSequence != lastNetworkStartSequence &&
             lastNetworkTimingReportedSequence != lastNetworkStartSequence &&
-            lastNetworkStartTargetQpc != 0 &&
-            EnsembleCoordinator.RemainingSeconds(lastNetworkStartTargetQpc) < -3.0)
+            MultiDeviceEnsembleTiming.ReportDue(lastNetworkStartTargetQpc, reportNow, 3000))
         {
             var timing = plugin.Player.Timing;
             if (timing.OriginQpc != lastNetworkStartTargetQpc || timing.Count == 0)
@@ -2454,7 +2452,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 // Host time is first translated through clock synchronization.
                 // Per-follower trim is an intentional local audio-calibration offset.
                 int trim = IsRelayBandEnabled ? Math.Clamp(cfg.RelayFollowerTimingTrimMs, -1500, 1500) : 0;
-                target += (long)Math.Round(trim * Stopwatch.Frequency / 1000.0);
+                target = MultiDeviceEnsembleTiming.ApplyTrim(target, trim);
                 if (EnsembleCoordinator.RemainingSeconds(target) < 0.5)
                     result = "START arrived too late after applying follower timing trim.";
                 else
@@ -2463,7 +2461,11 @@ public sealed partial class MainWindow : Window, IDisposable
                     cfg.Save();
                     StartSong(target);
                     armed = plugin.Player.IsPlaying;
-                    if (armed) lastNetworkStartTargetQpc = target;
+                    if (armed)
+                    {
+                        lastNetworkStartTargetQpc = target;
+                        lastAppliedFollowerTrimMs = trim;
+                    }
                     result = armed
                         ? $"Playback queued ({EnsembleCoordinator.RemainingSeconds(target):0.0}s; timing trim {trim:+0;-0;0}ms)."
                         : "Playback rejected locally: " + status;

@@ -8,6 +8,7 @@ namespace WindboundCaptureEngine;
 // recording timeline, replay ring and controller state. No OBS runtime is loaded.
 internal sealed class StudioEngine : IDisposable
 {
+    private static readonly string RuntimeDescription = $"Windbound native {typeof(StudioEngine).Assembly.GetName().Version} · Windows Graphics Capture / D3D11 / WASAPI";
     private readonly object gate=new();
     private readonly string profile;
     private readonly FfmpegRuntime runtime;
@@ -186,7 +187,7 @@ internal sealed class StudioEngine : IDisposable
         return new StudioSnapshot{Connected=true,Busy=SavingReplay,Recording=record?.Active==true,RecordingStarting=record?.Starting==true,Paused=record?.Paused==true,
             Streaming=stream?.Active==true&&stream?.Starting!=true,StreamingStarting=stream?.Starting==true,Replay=replay?.Active==true,OutputStopping=new[]{record,stream,replay}.Any(o=>o?.Stopping==true),
             RecordingMilliseconds=record?.Milliseconds??0,RecordingBytes=record?.Bytes??0,DroppedFrames=(stream?.Dropped??0)+(record?.Dropped??0),FreeDiskGiB=free,
-            Message=message,RuntimeVersion="Windbound native 0.42.4 · Windows Graphics Capture / D3D11 / WASAPI",LastSavedFile=lastSaved,LastReplayFile=lastReplay,ProgramScene=collection.ProgramScene,Output=collection.Output,
+            Message=message,RuntimeVersion=RuntimeDescription,LastSavedFile=lastSaved,LastReplayFile=lastReplay,ProgramScene=collection.ProgramScene,Output=collection.Output,
             RecordingFormats=[new("mkv","MKV"),new("mp4","MP4")],SupportsHdPreview=true,PreviewError=previewError,
             Scenes=collection.Scenes.Select(s=>s with{Sources=s.Sources.Select(source=>{var info=renderer.Inspect(source.Id);string audio=mixer.Status(source.Id);return source with{Width=info.Size.Width,Height=info.Size.Height,PeakDb=mixer.Peak(source.Id),Status=string.Join(" ",new[]{info.Status,audio}.Where(x=>x.Length>0))};}).ToList()}).ToArray(),Inputs=SourceCatalog.Inputs,Filters=SourceCatalog.Filters,Encoders=runtime.Encoders};
     }

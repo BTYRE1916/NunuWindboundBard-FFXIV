@@ -128,6 +128,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         public int SpeedThousand { get; set; } = 1000;
         public int TimedNoteCount { get; set; }
         public double FirstNoteDelayMs { get; set; }
+        public int? AppliedTrimMs { get; set; }
         public double FirstScheduledNoteMs { get; set; }
         public double MeanNoteDelayMs { get; set; }
         public double WorstNoteDelayMs { get; set; }
@@ -180,6 +181,10 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
 
     private static async Task WriteAsync(Stream stream, Wire message, CancellationToken ct)
     {
+        // A peer may have a MIDI transfer ahead of the clock probe in its send queue.
+        // Timestamp at the writer so that local queue time does not bias clock offset.
+        if (message.Type == "Ping") message.ClientTimeMs = NowMs();
+        else if (message.Type == "Pong") message.HostSendMs = NowMs();
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
         if (bytes.Length > MaxFrameBytes) throw new InvalidDataException("The network message is too large.");
         byte[] header = new byte[4];
@@ -470,15 +475,15 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         while (!token.IsCancellationRequested)
         {
             Wire message = await ReadAsync(peer.Stream, token).ConfigureAwait(false);
-            Volatile.Write(ref peer.LastSeenMs, NowMs());
+            double receivedMs = NowMs();
+            Volatile.Write(ref peer.LastSeenMs, receivedMs);
             if (isHostSide)
             {
                 switch (message.Type)
                 {
                     case "Ping":
-                        double received = NowMs();
                         peer.Send(new Wire { Type = "Pong", ClientTimeMs = message.ClientTimeMs,
-                            HostReceiveMs = received, HostSendMs = NowMs() });
+                            HostReceiveMs = receivedMs });
                         break;
                     case "Ready":
                         lock (gate)
@@ -526,13 +531,15 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                                 timedStart.Revision != message.Revision ||
                                 !string.Equals(timedStart.Hash, message.Hash, StringComparison.OrdinalIgnoreCase) ||
                                 message.TimedNoteCount < 1 || message.TimedNoteCount > 1000000 ||
+                                message.AppliedTrimMs is < -1500 or > 1500 ||
                                 !ValidTimingMs(message.FirstNoteDelayMs) ||
                                 !ValidFirstScheduledMs(message.FirstScheduledNoteMs) ||
                                 !ValidTimingMs(message.MeanNoteDelayMs) ||
                                 !ValidTimingMs(message.WorstNoteDelayMs) ||
                                 !ValidQualityMs(message.ClockRttMs) ||
                                 !ValidQualityMs(message.ClockSpreadMs)) break;
-                            peer.TimingOutcome = $"part first note at +{message.FirstScheduledNoteMs:0.0}ms; " +
+                            peer.TimingOutcome = MultiDeviceEnsembleTiming.DescribeTrim(message.AppliedTrimMs, message.FirstNoteDelayMs) +
+                                $"part first note at +{message.FirstScheduledNoteMs:0.0}ms; " +
                                 $"callback first {message.FirstNoteDelayMs:+0.0;-0.0;0.0}ms, " +
                                 $"mean {message.MeanNoteDelayMs:+0.0;-0.0;0.0}ms, " +
                                 $"worst {message.WorstNoteDelayMs:+0.0;-0.0;0.0}ms; " +
@@ -570,7 +577,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             {
                 switch (message.Type)
                 {
-                    case "Pong": UpdateClock(message); break;
+                    case "Pong": UpdateClock(message, receivedMs); break;
                     case "Session":
                         if (message.Data.Length > MaxMidiBytes * 4 / 3 + 128 ||
                             !IsHexHash(message.Hash) || message.Revision <= 0 || message.Arrangement is null)
@@ -624,14 +631,13 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     {
         while (!ct.IsCancellationRequested)
         {
-            peer.Send(new Wire { Type = "Ping", ClientTimeMs = NowMs() });
+            peer.Send(new Wire { Type = "Ping" });
             await Task.Delay(750, ct).ConfigureAwait(false);
         }
     }
 
-    private void UpdateClock(Wire msg)
+    private void UpdateClock(Wire msg, double clientReceive)
     {
-        double clientReceive = NowMs();
         double rtt = clientReceive - msg.ClientTimeMs - (msg.HostSendMs - msg.HostReceiveMs);
         double offset = ((msg.HostReceiveMs - msg.ClientTimeMs) +
                          (msg.HostSendMs - clientReceive)) / 2.0;
@@ -925,9 +931,9 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     /// is outside our scheduler and must be measured separately.
     /// </summary>
     public void SendStartTiming(long startSeq, long rev, string hash, int count,
-        double firstMs, double meanMs, double worstMs, double firstScheduledMs)
+        double firstMs, double meanMs, double worstMs, double firstScheduledMs, int? appliedTrimMs = null)
     {
-        if (startSeq <= 0 || count <= 0 || !ValidTimingMs(firstMs) ||
+        if (startSeq <= 0 || count <= 0 || appliedTrimMs is < -1500 or > 1500 || !ValidTimingMs(firstMs) ||
             !ValidTimingMs(meanMs) || !ValidTimingMs(worstMs) ||
             !ValidFirstScheduledMs(firstScheduledMs)) return;
         Peer? peer;
@@ -937,13 +943,15 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             peer = hostPeer;
             rtt = roundTripMs;
             spread = clockSpreadMs;
-            activeRelay?.Note($"START #{startSeq} local callbacks: part first note at +{firstScheduledMs:0.0}ms; " +
+            activeRelay?.Note($"START #{startSeq} local callbacks: " +
+                MultiDeviceEnsembleTiming.DescribeTrim(appliedTrimMs, firstMs) +
+                $"part first note at +{firstScheduledMs:0.0}ms; " +
                 $"first {firstMs:+0.0;-0.0;0.0}ms, " +
                 $"mean {meanMs:+0.0;-0.0;0.0}ms; RTT {rtt:0.0}ms, clock spread {spread:0.0}ms.");
         }
         peer?.Send(new Wire { Type = "StartTiming", StartSequence = startSeq,
             Revision = rev, Hash = hash, TimedNoteCount = count,
-            FirstNoteDelayMs = firstMs, FirstScheduledNoteMs = firstScheduledMs, MeanNoteDelayMs = meanMs,
+            AppliedTrimMs = appliedTrimMs, FirstNoteDelayMs = firstMs, FirstScheduledNoteMs = firstScheduledMs, MeanNoteDelayMs = meanMs,
             WorstNoteDelayMs = worstMs, ClockRttMs = rtt, ClockSpreadMs = spread });
     }
 
@@ -982,7 +990,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             if (hosting && currentStart is { } start && count > 0 && ValidFirstScheduledMs(firstScheduledMs))
                 activeRelay?.Note($"START #{start.StartSequence} conductor callbacks: " +
                     $"{count} notes; part first note at +{firstScheduledMs:0.0}ms; " +
-                    $"callback first {firstMs:+0.0;-0.0;0.0}ms, " +
+                    $"first callback vs shared note {firstMs:+0.0;-0.0;0.0}ms, " +
                     $"mean {meanMs:+0.0;-0.0;0.0}ms, worst {worstMs:+0.0;-0.0;0.0}ms.");
     }
 

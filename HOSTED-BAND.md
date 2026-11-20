@@ -1,4 +1,6 @@
-# Windbound Bard v0.46.4 hosted bands
+# Windbound Bard v0.47.1 hosted bands
+
+For a Cloudflare-hosted session, see [the Cloudflare relay setup guide](CloudflareRelay/README.md).
 
 ## Join a band
 
@@ -92,3 +94,15 @@ In another terminal, run the conductor and eight-follower smoke test:
 ```text
 dotnet run --project Tests/OrchestraRelaySmokeTest.csproj -- ws://127.0.0.1:48523 Samples/Bard-37-Note-Calibration.mid
 ```
+
+## Cloudflare relay trial (new)
+
+The full source now includes a `CloudflareRelay/` Worker and SQLite-backed Durable Objects implementation of the same **/v1/host**, **/v1/join**, and **/v1/attach** WebSocket protocol. Each conductor uses a separately isolated room and the same join code format. It does not depend on FFXIV party membership. **Cloudflare is a test option; the existing .NET/Render relay remains available.**
+
+To deploy, open `CloudflareRelay/README.md`. From `CloudflareRelay/`, run `npm install`, `npx wrangler login`, `npm test`, then `npx wrangler deploy`. Cloudflare supplies the actual `*.workers.dev` URL. Enter its `wss://` form in the plugin's **Band relay address** field on the conductor; followers paste the normal join code. No new plugin DLL is needed to select the Cloudflare URL. This is not yet live-tested, and changing relay providers does not by itself correct cross-machine clock-offset bugs.
+
+## Comparing a two-PC start
+
+On the follower, enter the signed timing trim before the conductor sends a fresh START. The panel shows the trim used for the last take and the value saved for the next one. Use a negative value to advance a late follower. A new cue is required for changes to take effect.
+
+After both Bards have played for at least two seconds, the conductor can open **Relay diagnostics → Copy relay report**. Compare **first callback vs shared note** for the same START number and matching parts. The follower's signed value includes its applied trim and uses its estimate of the conductor clock. Each callback timestamps the plugin's call into the game. To compare audible onsets, record both Bards together from a single in-game listener. The existing Cloudflare Worker supports this update.

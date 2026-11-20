@@ -155,10 +155,13 @@ try
         host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("part first note at +1000.0ms"),
         "real callback timing replaces the earlier no-note status after an opening rest");
     followers[0].SendStartTiming(startSequence, unacknowledged!.Revision, unacknowledged.Hash,
-        24, 17.5, 11.0, 28.0, 0.0);
+        24, 17.5, 11.0, 28.0, 0.0, -50);
     await Until(() => host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("callback first +17.5ms") &&
         host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("part first note at +0.0ms"),
         "conductor receives measured follower dispatch timing and first scheduled MIDI note");
+    Require(host.RelayReport.Contains("Applied trim -50ms, first callback vs shared note -32.5ms") &&
+        !host.Performers.Single(p => p.ContentId == 3).TimingOutcome.Contains("Applied trim"),
+        "new followers report against the shared note, and old followers do not invent a trim");
     Require(host.RelayReport.Contains("clock spread") &&
         host.Performers.Single(p => p.ContentId == 2).TimingOutcome.Contains("RTT"),
         "timing report is distinct from START ACK and includes clock quality");

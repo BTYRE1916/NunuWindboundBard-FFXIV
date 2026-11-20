@@ -76,8 +76,40 @@ static class Program
         Require(flow.Poll(false, p.CompletedSuccessfully, true, true).Kind == SongFlowActionKind.None,
             "Auto Next fired after manual reset.");
         Console.WriteLine("PASS: rewind after finish, new MIDI, active MIDI, note-off thread, STOP, ensemble countdown and Auto Next cancel.");
+        CheckHostedTiming();
         ConcertRecoveryChecks.Run();
         return 0;
+    }
+
+    static void CheckHostedTiming()
+    {
+        long downbeat = Stopwatch.GetTimestamp();
+        long second = Stopwatch.Frequency;
+        Require(!MultiDeviceEnsembleTiming.ReportDue(0, downbeat, 1500) &&
+            !MultiDeviceEnsembleTiming.ReportDue(downbeat, downbeat - second, 1500) &&
+            !MultiDeviceEnsembleTiming.ReportDue(downbeat, downbeat + second, 1500) &&
+            MultiDeviceEnsembleTiming.ReportDue(downbeat, downbeat + 2 * second, 1500) &&
+            !MultiDeviceEnsembleTiming.ReportDue(downbeat, downbeat + 2 * second, 3000) &&
+            MultiDeviceEnsembleTiming.ReportDue(downbeat, downbeat + 3 * second, 3000),
+            "Hosted reports must run after the downbeat, including the no-notes report.");
+
+        var notes = new[] { new BardNote(0, 60, 0, 100, 2000) };
+        var settings = new BardPlaybackSettings(true, "", 1, 20);
+        using var early = new PlaybackEngine();
+        using var late = new PlaybackEngine();
+        long shared = Stopwatch.GetTimestamp() + second / 2;
+        long earlyTarget = MultiDeviceEnsembleTiming.ApplyTrim(shared, -1000);
+        long lateTarget = MultiDeviceEnsembleTiming.ApplyTrim(shared, 1000);
+        Require(earlyTarget == shared - second && lateTarget == shared + second &&
+            MultiDeviceEnsembleTiming.ApplyTrim(shared, 0) == shared, "Signed follower trim in wall-clock ms.");
+        early.Start(notes, settings, () => true, earlyTarget);
+        late.Start(notes, settings, () => true, lateTarget);
+        early.Update(true);
+        late.Update(true);
+        Require(early.Timing.Count == 1 && early.Timing.OriginQpc == earlyTarget &&
+            late.Timing.Count == 0 && late.Timing.OriginQpc == lateTarget,
+            "Copied notes with earlier and later trim dispatch on their respective timelines.");
+        Console.WriteLine("PASS: copied-track follower START, signed trim and post-downbeat reporting.");
     }
 
     static void ExpectRewound(PlaybackEngine p, string label)

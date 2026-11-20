@@ -86,12 +86,14 @@ public sealed partial class MainWindow
             ImGui.TextDisabled(Loc.T($"Clock synchronisation: {(plugin.Network.HasClockSync ? "READY" : "waiting for samples")} / {plugin.Network.RoundTripMs:0}ms RTT / {plugin.Network.ClockSpreadMs:0.0}ms clock spread"));
             int trim = Math.Clamp(cfg.RelayFollowerTimingTrimMs, -1500, 1500);
             ImGui.SetNextItemWidth(Math.Min(335, ImGui.GetContentRegionAvail().X));
-            if (ImGui.SliderInt(Loc.T("Follower timing trim (ms)"), ref trim, -1500, 1500))
+            if (ImGui.InputInt(Loc.T("Follower timing trim (ms)"), ref trim, 5, 20))
             {
-                cfg.RelayFollowerTimingTrimMs = trim;
+                cfg.RelayFollowerTimingTrimMs = Math.Clamp(trim, -1500, 1500);
                 cfg.Save();
             }
-            ImGui.TextDisabled(Loc.T("Negative = your Bard earlier; positive = later. Start at 0; only correct a measured, repeatable offset. Large values can mask a different bug."));
+            ImGui.TextWrapped(Loc.T("A negative value starts your Bard earlier. A positive value starts it later. Changes apply on the next START."));
+            if (lastNetworkStartTargetQpc != 0)
+                ImGui.TextWrapped(Loc.T($"START #{lastNetworkStartSequence} used {lastAppliedFollowerTrimMs:+0;-0;0} ms. Next START uses {cfg.RelayFollowerTimingTrimMs:+0;-0;0} ms."));
             if (Math.Abs(trim) > 250)
                 ImGui.TextWrapped(Loc.T("Large timing correction active. Check MIDI opening rests, clock diagnostics and FFXIV audio latency."));
             if (ImGui.Button(Loc.T("Reset timing trim to 0 ms")))
