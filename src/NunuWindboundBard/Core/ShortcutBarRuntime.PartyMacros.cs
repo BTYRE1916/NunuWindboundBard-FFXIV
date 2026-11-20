@@ -13,6 +13,49 @@ internal sealed partial class ShortcutBarRuntime
     private long partyMacroPermissionAt;
     private long nextPartyMacroCheck;
 
+    private ulong hostedMacroCharacter;
+
+    internal bool UsesHostedMacros => plugin.Config.MultiDeviceEnabled && plugin.Config.MultiDeviceUseRelay &&
+        !plugin.Config.GameEnsembleEnabled;
+    private bool IsHostedFollower => UsesHostedMacros && plugin.Config.EnsembleMode == (int)EnsembleRole.Follower;
+
+    internal void SetHostedMacroPermission(bool allow)
+    {
+        int connection = plugin.Network.RelayFollowerConnectionId;
+        ulong character = allow && IsHostedFollower && Plugin.ClientState.IsLoggedIn
+            ? PartyRoster.GetLocalContentId(Plugin.Objects, Plugin.Party) : 0;
+        if (plugin.Network.SetHostedMacroPermission(connection, allow && character != 0))
+            hostedMacroCharacter = character;
+    }
+
+    private void RefreshHostedMacroPermission()
+    {
+        if (hostedMacroCharacter == 0) return;
+        if (!plugin.Network.HostedMacrosAllowed) hostedMacroCharacter = 0;
+        else if (!IsHostedFollower || !Plugin.ClientState.IsLoggedIn) SetHostedMacroPermission(false);
+    }
+
+    internal void ReceiveHostedMacro(NetworkNotice notice)
+    {
+        if (!IsHostedFollower || !CanRun() || hostedMacroCharacter == 0) return;
+        if (hostedMacroCharacter != PartyRoster.GetLocalContentId(Plugin.Objects, Plugin.Party))
+        {
+            SetHostedMacroPermission(false);
+            return;
+        }
+        if (!plugin.Network.TryConsumeHostedMacro(notice, out int slot)) return;
+        try
+        {
+            ExecuteMacro(slot);
+            status = $"Hosted Band macro //pm{slot} submitted locally.";
+        }
+        catch (Exception error)
+        {
+            status = $"Hosted Band macro //pm{slot} skipped: {error.Message}";
+            Plugin.Log.Warning(status);
+        }
+    }
+
     private readonly record struct MacroParty(ulong Local, ulong Leader, string RosterTag);
 
     internal bool AcceptsPartyMacros => permittedMacroParty.HasValue;
@@ -62,6 +105,24 @@ internal sealed partial class ShortcutBarRuntime
 
     private unsafe void BroadcastPartyMacro(int slot)
     {
+        if (UsesHostedMacros)
+        {
+            if (plugin.Config.EnsembleMode != (int)EnsembleRole.Conductor)
+                throw new InvalidOperationException("Only the Hosted Band conductor can send a band macro.");
+            var delivery = plugin.Network.BroadcastHostedMacro(slot);
+            string sent = $"Hosted Band macro //pm{slot} sent to {delivery.Sent}/{delivery.Connected} followers.";
+            try
+            {
+                ExecuteMacro(slot);
+                status = sent + " Submitted locally.";
+            }
+            catch (Exception error)
+            {
+                status = sent + " Conductor skipped: " + error.Message;
+            }
+            return;
+        }
+
         if (plugin.Config.EnsembleMode != (int)EnsembleRole.Conductor ||
             GetMacroParty() is not { } party || party.Local != party.Leader)
             throw new InvalidOperationException("Select Conductor with Native Ensemble and Follow Party Leader enabled, and make this bard the FFXIV party leader.");

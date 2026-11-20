@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ using System.Diagnostics;
 
 namespace NunuWindboundBard.Core;
 
-public enum NetworkNoticeKind { Connected, Disconnected, Session, Cue, Stop, Error, BandSetup, CueAborted }
+public enum NetworkNoticeKind { Connected, Disconnected, Session, Cue, Stop, Error, BandSetup, CueAborted, HostedMacro }
 
 public enum BandSetupAction { None, SetInstruments, Arm, Disarm, Prepare, Unequip }
 
@@ -24,17 +25,26 @@ public sealed record RemoteArrangementSettings(bool RepairOctaves, int ChordStra
     int GlobalTranspose, int MinimumGapMs, int ArpeggioSpacingMs,
     Dictionary<string, int> Octaves);
 
+internal sealed record HostedMacroCue(int Slot, long Sequence, long Epoch, double ExpiresMs);
+
 public sealed record NetworkNotice(NetworkNoticeKind Kind, string Detail = "",
     string Name = "", string Hash = "", byte[]? Midi = null,
     RemoteArrangementSettings? Arrangement = null,
     Dictionary<string, ulong>? Assignments = null,
     long Revision = 0, double HostStartMs = 0, int SpeedThousand = 1000, BandSetupAction Setup = BandSetupAction.None,
-    int Instrument = 0, long SetupSequence = 0, int ConnectionId = 0, long StartSequence = 0);
+    int Instrument = 0, long SetupSequence = 0, int ConnectionId = 0, long StartSequence = 0)
+{
+    internal HostedMacroCue? SavedMacro { get; init; }
+}
 
 public sealed record NetworkPerformer(string Character, ulong ContentId, bool Ready, string Detail,
     double AgeSeconds, long Revision, bool SupportsBandSetup = false,
     long StartSequence = 0, string StartOutcome = "No START cue sent.",
-    string TimingOutcome = "No actual playback timing reported yet.");
+    string TimingOutcome = "No actual playback timing reported yet.")
+{
+    public bool SupportsHostedMacros { get; init; }
+    public bool AllowsHostedMacros { get; init; }
+}
 
 /// <summary>
 /// Clock and MIDI protocol used by direct private-network connections and hosted bands.
@@ -85,7 +95,8 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             lock (gate)
                 return peers.Values.Select(p => new NetworkPerformer(p.Name, p.ContentId, p.Ready,
                     p.ReadyDetail, Math.Max(0, NowMs() - p.LastSeenMs) / 1000.0, p.ReadyRevision,
-                    p.SupportsBandSetup, p.StartSequence, p.StartOutcome, p.TimingOutcome))
+                    p.SupportsBandSetup, p.StartSequence, p.StartOutcome, p.TimingOutcome)
+                    { SupportsHostedMacros = p.SupportsHostedMacros, AllowsHostedMacros = p.AllowsHostedMacros })
                     .OrderBy(p => p.Character, StringComparer.OrdinalIgnoreCase).ToArray();
         }
     }
@@ -99,6 +110,14 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
     private sealed record Wire
     {
         public Wire() { }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool SupportsHostedMacros { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public long MacroEpoch { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public long MacroSequence { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? MacroSlot { get; set; }
         public int Version { get; set; } = ProtocolVersion;
         public bool SupportsBandSetup { get; set; }
         public bool SupportsStartAck { get; set; }
@@ -144,6 +163,11 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         public int Id { get; } = id;
         public bool SupportsBandSetup { get; init; }
         public bool SupportsStartAck { get; init; }
+        public bool SupportsHostedMacros { get; init; }
+        public bool AllowsHostedMacros;
+        public long MacroEpoch;
+        public long MacroSequence;
+        public long LastConsumedMacro;
         public long SetupSequence;
         public long StartSequence;
         public bool StartAcknowledged;
@@ -155,7 +179,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
         public volatile string ReadyDetail = "Not ready";
         public long ReadyRevision;
         public double LastSeenMs = NowMs();
-        public void Send(Wire message) => Outgoing.Writer.TryWrite(message);
+        public bool Send(Wire message) => Outgoing.Writer.TryWrite(message);
         public void Close()
         {
             Outgoing.Writer.TryComplete();
@@ -314,7 +338,8 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                     stage, hello.ContentId)))
                 throw new UnauthorizedAccessException("Invalid session code/stage or player identity.");
             string proof = ComputeProof(code, "server", nonce, hello.ClientNonce, stage, hello.ContentId);
-            await WriteAsync(stream, new Wire { Type = "Welcome", Proof = proof }, handshakeTimeout.Token).ConfigureAwait(false);
+            await WriteAsync(stream, new Wire { Type = "Welcome", Proof = proof,
+                SupportsHostedMacros = trace is not null && hello.SupportsHostedMacros }, handshakeTimeout.Token).ConfigureAwait(false);
             lock (gate)
             {
                 ct.ThrowIfCancellationRequested();
@@ -326,6 +351,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                 }
                 peer = new Peer(stream, hello.Character, hello.ContentId, Interlocked.Increment(ref nextPeerId))
                 { SupportsBandSetup = trace is not null && hello.SupportsBandSetup,
+                    SupportsHostedMacros = trace is not null && hello.SupportsHostedMacros,
                     SupportsStartAck = hello.SupportsStartAck };
                 peers[peer.Id] = peer;
                 if (currentSession is { } session) peer.Send(session);
@@ -385,6 +411,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             await WriteAsync(stream, new Wire
             {
                 Type = "Hello", SupportsBandSetup = trace is not null, SupportsStartAck = true,
+                SupportsHostedMacros = trace is not null,
                 Stage = stage, Character = character, ContentId = contentId,
                 ClientNonce = clientNonce,
                 Proof = ComputeProof(code, "client", challenge.Nonce, clientNonce, stage, contentId)
@@ -398,7 +425,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                 ct.ThrowIfCancellationRequested();
                 if (cancel is null || cancel.Token != ct) return;
                 peer = new Peer(stream, "Conductor", 0, Interlocked.Increment(ref nextPeerId))
-                { SupportsBandSetup = trace is not null };
+                { SupportsBandSetup = trace is not null, SupportsHostedMacros = trace is not null && welcome.SupportsHostedMacros };
                 hostPeer = peer;
                 joining = false;
                 status = "Connected! Synchronising clocks and receiving MIDI...";
@@ -548,6 +575,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
                                 $"{message.TimedNoteCount} notes; {peer.TimingOutcome}");
                         }
                         break;
+                    case "MacroPermission": ReceiveMacroPermission(peer, message); break;
                     case "StartAck":
                         lock (gate)
                         {
@@ -577,6 +605,7 @@ public sealed partial class MultiDeviceEnsemble : IDisposable
             {
                 switch (message.Type)
                 {
+                    case "SavedMacro": ReceiveHostedMacro(peer, message, receivedMs); break;
                     case "Pong": UpdateClock(message, receivedMs); break;
                     case "Session":
                         if (message.Data.Length > MaxMidiBytes * 4 / 3 + 128 ||

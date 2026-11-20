@@ -2279,6 +2279,9 @@ public sealed partial class MainWindow : Window, IDisposable
                         networkStatus = notice.Detail;
                         ensembleStatus = notice.Detail;
                         break;
+                    case NetworkNoticeKind.HostedMacro:
+                        plugin.Shortcuts.ReceiveHostedMacro(notice);
+                        break;
                     case NetworkNoticeKind.BandSetup:
                         ReceiveHostedSetup(notice);
                         break;

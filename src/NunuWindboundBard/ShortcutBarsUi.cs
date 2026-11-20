@@ -30,6 +30,7 @@ internal sealed partial class ShortcutBarsUi(Plugin plugin, Action openEditor)
     }
 
     internal void Update() => runtime.Update(Settings.Bars.Count > 0);
+    internal void ReceiveHostedMacro(NetworkNotice notice) => runtime.ReceiveHostedMacro(notice);
     internal void ReceivePartyMacro(PartyCueEnvelope envelope) => runtime.ReceivePartyMacro(envelope);
     internal void ToggleVisibility() => allBarsVisible = !allBarsVisible;
 

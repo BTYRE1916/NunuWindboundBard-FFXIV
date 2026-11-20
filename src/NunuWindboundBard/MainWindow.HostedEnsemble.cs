@@ -50,6 +50,7 @@ public sealed partial class MainWindow
                 relaySetupFeedback = "";
             }
             ImGui.EndDisabled();
+            plugin.Shortcuts.DrawHostedMacroPermission();
             DrawHostedLocalArm();
             ImGui.Checkbox(Loc.T("Wait for conductor cue"), ref waitingForEnsembleCue);
             DrawPartyAssignmentControls(role);

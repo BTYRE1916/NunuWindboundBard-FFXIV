@@ -3,7 +3,7 @@
     "Author": "Real Nunu",
     "Name": "Nunu's Windbound Bard",
     "InternalName": "NunuWindboundBard",
-    "AssemblyVersion": "0.47.3.0",
+    "AssemblyVersion": "0.47.4.0",
     "Punchline": "MIDI Editor, Bard Workbench, native ensembles, and concert capture.",
     "Description": "Windbound Bard MIDI suite with a piano roll, MIDI Workbench, native ensembles and MP4 concert capture. Hosted Band adds join-code sessions with Concert Director, remote instrument and ARM controls, and scheduled playback. Includes copyable relay diagnostics, Concert Director, opt-in party follow, and Shortcut Bars. Hosted STARTs require all performers to confirm they are armed; failed or missing confirmations cancel the downbeat for the whole band. Hosted ensembles report measured note-dispatch timing or explain when measurements are unavailable, plus RTT and clock stability; followers can fine-tune a local timing offset for duets.",
     "RepoUrl": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV",
@@ -19,9 +19,9 @@
     "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.3/FFXIVMIDIPLAYER-BY-NUNU-v0.47.3.zip",
-    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.3/FFXIVMIDIPLAYER-BY-NUNU-v0.47.3.zip",
-    "LastUpdate": "1795172093",
-    "Changelog": "Network followers use the conductor’s playback speed for the current take without saving plugin settings during START. A failed START now records the exception in the follower’s Dalamud log."
+    "DownloadLinkInstall": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.4/FFXIVMIDIPLAYER-BY-NUNU-v0.47.4.zip",
+    "DownloadLinkUpdate": "https://github.com/BTYRE1916/NunuWindboundBard-FFXIV/releases/download/0.47.4/FFXIVMIDIPLAYER-BY-NUNU-v0.47.4.zip",
+    "LastUpdate": "1795181979",
+    "Changelog": "Hosted Band conductors can use //pm shortcuts to run a saved FFXIV macro slot on every connected bard who allows it. Individual and Shared slots work across parties and PCs."
   }
 ]

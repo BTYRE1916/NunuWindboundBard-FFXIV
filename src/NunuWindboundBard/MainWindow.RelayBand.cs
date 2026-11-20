@@ -151,6 +151,10 @@ public sealed partial class MainWindow
                     ? "CUED / PLAYING" : "WAITING";
             ImGui.TextColored(color, Loc.T($"{peer.Character} — {displayState} (rev {peer.Revision})"));
             if (!peer.Ready || IsRelayBandEnabled) ImGui.TextWrapped(Loc.T(peer.Detail));
+            if (IsRelayBandEnabled)
+                ImGui.TextDisabled(peer.SupportsHostedMacros
+                    ? peer.AllowsHostedMacros ? "Saved macros allowed" : "Saved macros off"
+                    : "Saved macros require v0.47.4 or later");
             if (IsRelayBandEnabled && peer.StartSequence > 0)
             {
                 ImGui.TextWrapped($"START #{peer.StartSequence}: {peer.StartOutcome}");

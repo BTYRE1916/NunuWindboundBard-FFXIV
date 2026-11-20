@@ -13,6 +13,6 @@
     "ensemble"
   ],
   "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
-  "Changelog": "Network followers use the conductor’s playback speed for the current take without saving plugin settings during START. A failed START now records the exception in the follower’s Dalamud log.",
-  "AssemblyVersion": "0.47.3.0"
+  "Changelog": "Hosted Band conductors can use //pm shortcuts to run a saved FFXIV macro slot on every connected bard who allows it. Individual and Shared slots work across parties and PCs.",
+  "AssemblyVersion": "0.47.4.0"
 }

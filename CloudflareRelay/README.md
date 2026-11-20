@@ -29,7 +29,7 @@ Hosted Band defaults to `wss://windbound-orchestra-relay.nunu-orchestra-2026-472
    `https://windbound-orchestra-relay.YOUR-SUBDOMAIN.workers.dev`
    Use **the same hostname but `wss://`**, without any trailing path:
    `wss://windbound-orchestra-relay.YOUR-SUBDOMAIN.workers.dev`
-5. In Windbound Bard v0.47.3, the **conductor** opens **BAND → Ensemble**, disables **Use FFXIV native Ensemble**, enables **Multi-Device → Use hosted band with join code**, selects **Conductor**, pastes the `wss://` URL into **Band relay address**, and clicks **Host Band → Copy band join code**. Each follower selects **Follower**, pastes the code, and clicks **Join with Code**. The join code already contains the Cloudflare URL. Edea can host from Lyon while Nunu joins from Glasgow, without an in-game party.
+5. In Windbound Bard v0.47.4, the **conductor** opens **BAND → Ensemble**, disables **Use FFXIV native Ensemble**, enables **Multi-Device → Use hosted band with join code**, selects **Conductor**, pastes the `wss://` URL into **Band relay address**, and clicks **Host Band → Copy band join code**. Each follower selects **Follower**, pastes the code, and clicks **Join with Code**. The join code already contains the Cloudflare URL. Edea can host from Lyon while Nunu joins from Glasgow, without an in-game party.
 6. Keep `wss://nunuwindboundbard-ffxiv.onrender.com` available in the conductor's relay address field as a fallback. **Do not remove the Render deployment** until Cloudflare passes your duet and octet tests.
 
 Do not enter `https://` in the Windbound relay address setting. Do not append `/v1/host`: the plugin appends the correct WebSocket route automatically.

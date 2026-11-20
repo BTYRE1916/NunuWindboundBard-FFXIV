@@ -22,12 +22,8 @@ internal sealed partial class ShortcutBarsUi
         ImGui.TextWrapped("Right-click a bar or button to edit it. Bind Ctrl, Shift or Alt with F1–F12 for a radial menu or a visibility toggle.");
         if ((EnsembleRole)plugin.Config.EnsembleMode == EnsembleRole.Follower)
         {
-            bool allowed = runtime.AcceptsPartyMacros;
-            ImGui.BeginDisabled(!allowed && !runtime.CanAcceptPartyMacros);
-            if (ImGui.Checkbox("Accept saved-macro cues from this party leader", ref allowed))
-                runtime.SetPartyMacroPermission(allowed);
-            ImGui.EndDisabled();
-            ImGui.TextWrapped("Party macro cues use your own FFXIV macro slots. Enable Native Ensemble and Follow Party Leader in BAND → Ensemble. Permission resets when the party changes.");
+            if (runtime.UsesHostedMacros) DrawHostedMacroPermission();
+            else DrawPartyMacroPermission();
         }
         if (runtime.Status.Length > 0) ImGui.TextWrapped(runtime.Status);
         if (editorStatus.Length > 0) ImGui.TextWrapped(editorStatus);
@@ -44,6 +40,27 @@ internal sealed partial class ShortcutBarsUi
             ImGui.EndTabItem();
         }
         ImGui.EndTabBar();
+    }
+
+    internal void DrawHostedMacroPermission()
+    {
+        bool allowed = plugin.Network.HostedMacrosAllowed;
+        ImGui.BeginDisabled(!plugin.Network.CanAllowHostedMacros);
+        if (ImGui.Checkbox("Allow saved macros from this band conductor", ref allowed))
+            runtime.SetHostedMacroPermission(allowed);
+        ImGui.EndDisabled();
+        if (plugin.Network.IsConnected && !plugin.Network.CanAllowHostedMacros)
+            ImGui.TextDisabled("The conductor needs v0.47.4 or later for hosted macros.");
+    }
+
+    private void DrawPartyMacroPermission()
+    {
+        bool allowed = runtime.AcceptsPartyMacros;
+        ImGui.BeginDisabled(!allowed && !runtime.CanAcceptPartyMacros);
+        if (ImGui.Checkbox("Accept saved-macro cues from this party leader", ref allowed))
+            runtime.SetPartyMacroPermission(allowed);
+        ImGui.EndDisabled();
+        ImGui.TextWrapped("Party macro cues use your own FFXIV macro slots. Enable Native Ensemble and Follow Party Leader in BAND → Ensemble. Permission resets when the party changes.");
     }
 
     private void DrawBarManager()
@@ -301,7 +318,7 @@ internal sealed partial class ShortcutBarsUi
             if (item.Kind == ShortcutKind.Command)
             {
                 changed |= ImGui.InputTextMultiline("##commands", ref commands, 4096, new Vector2(-1, 110));
-                ImGui.TextWrapped("One command per line. Use /wait 1, //m7 for a local Individual macro, or //pm7 for the conductor to cue that slot across the party. Add 100 for a Shared slot.");
+                ImGui.TextWrapped("One command per line. Use /wait 1, //m7 for a local Individual macro, or //pm7 for the conductor to cue that slot across the hosted band or native party. Add 100 for a Shared slot.");
             }
         }
 

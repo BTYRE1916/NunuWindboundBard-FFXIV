@@ -74,6 +74,7 @@ internal sealed partial class ShortcutBarRuntime
 
     internal void Update(bool hasBars)
     {
+        RefreshHostedMacroPermission();
         RefreshPartyMacroPermission();
         canActivate = hasBars && IsReadyForInput();
         var next = Interlocked.Exchange(ref requested, null);
