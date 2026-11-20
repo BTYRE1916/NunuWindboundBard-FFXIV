@@ -2,3 +2,6 @@
 
 
 [REPO] **https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Plugin.json**
+
+
+[WSS]  **wss://windbound-orchestra-relay.nunu-orchestra-2026-4728.workers.dev**
