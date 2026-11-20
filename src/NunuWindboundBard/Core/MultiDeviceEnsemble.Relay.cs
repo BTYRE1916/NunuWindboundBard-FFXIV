@@ -17,7 +17,7 @@ public sealed partial class MultiDeviceEnsemble
     public void HostBand(string relayAddress, string stage)
     {
         var trace = relayDiagnostics.Begin("Conductor");
-        Uri relay = RelayBandConnection.ReadRelayAddress(relayAddress);
+        Uri relay = RelayBandConnection.ReadHostRelayAddress(relayAddress);
         string secret = NewSessionCode();
         ValidateStageAndCode(stage, secret);
         Stop();

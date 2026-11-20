@@ -57,6 +57,26 @@ try
     (string Engine, string Ffmpeg) Resolve(object value, string? directory) =>
         ((string, string))resolve.Invoke(value, [directory])!;
 
+    const string defaultRelay = "wss://windbound-orchestra-relay.nunu-orchestra-2026-4728.workers.dev";
+    var reader = assembly.GetType("NunuWindboundBard.Core.RelayBandConnection", true)!
+        .GetMethod("ReadHostRelayAddress", BindingFlags.NonPublic | BindingFlags.Static)!;
+    Uri HostRelay(object settings) =>
+        (Uri)reader.Invoke(null, [Get(settings, "MultiDeviceRelayAddress")])!;
+    Check((string?)Get(config, "MultiDeviceRelayAddress") == defaultRelay &&
+          HostRelay(config) == new Uri(defaultRelay), "new conductors start with the Windbound relay");
+    Check(!(bool)Get(config, "MultiDeviceEnabled")! && !(bool)Get(config, "MultiDeviceUseRelay")!,
+        "setting a default URL leaves network hosting opt-in");
+    foreach (string settingsJson in new[] { "{}", """{"MultiDeviceRelayAddress":null}""",
+        """{"MultiDeviceRelayAddress":""}""", """{"MultiDeviceRelayAddress":"  "}""" })
+        Check(HostRelay(JsonSerializer.Deserialize(settingsJson, configType)!) == new Uri(defaultRelay),
+            "missing or blank legacy address resolves to the default for hosting");
+    const string alternate = "wss://other.example/stage";
+    object custom = JsonSerializer.Deserialize(JsonSerializer.Serialize(new { MultiDeviceRelayAddress = alternate }), configType)!;
+    Check(HostRelay(custom) == new Uri(alternate) && (string?)Get(custom, "MultiDeviceRelayAddress") == alternate,
+        "saved custom relay stays selected");
+    Set(custom, "MultiDeviceRelayAddress", "");
+    Check(HostRelay(custom) == new Uri(defaultRelay), "clearing a custom relay restores the default");
+
     string directory = new FileInfo(Path.Combine(Path.GetTempPath(), "memory-plugin-test", "0.42.3.0", "NunuWindboundBard.dll")).DirectoryName!;
     var bundled = (Engine: Path.Combine(directory, "CaptureEngine", "WindboundCaptureEngine.exe"),
         Ffmpeg: Path.Combine(directory, "CaptureEngine", "ffmpeg.exe"));

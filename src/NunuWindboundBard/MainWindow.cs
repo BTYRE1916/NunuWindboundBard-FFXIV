@@ -1138,7 +1138,7 @@ public sealed partial class MainWindow : Window, IDisposable
         catch (Exception error) { status = "Could not play after instrument switch: " + error.Message; }
     }
 
-    private void StartSong(long? ensembleStartQpc = null)
+    private void StartSong(long? ensembleStartQpc = null, double? networkCueSpeed = null)
     {
         try
         {
@@ -1193,19 +1193,19 @@ public sealed partial class MainWindow : Window, IDisposable
                 status = $"Preparing {InstrumentCatalog.Display(wanted)}; MIDI will start automatically when Performance is ready.";
                 return;
             }
-            StartSongCore(ensembleStartQpc);
+            StartSongCore(ensembleStartQpc, networkCueSpeed);
         }
-        catch (Exception error) { status = "Can't start: " + error.Message; }
+        catch (Exception error) when (networkCueSpeed is null) { status = "Can't start: " + error.Message; }
     }
 
-    private void StartSongCore(long? ensembleStartQpc)
+    private void StartSongCore(long? ensembleStartQpc, double? networkCueSpeed = null)
     {
         StopStageMovementBeforeMusic();
         if (arranged is null) throw new InvalidOperationException("No prepared MIDI available.");
         if (outputArmed && !plugin.IsGameOutputSafe())
             throw new InvalidOperationException("Open expanded 37-note Bard Performance before playing. Focus is not required.");
         plugin.Player.Start(arranged.Notes, new BardPlaybackSettings(outputArmed,
-            cfg.PerformanceKeys, cfg.PlaybackSpeed, cfg.KeyHoldMs,
+            cfg.PerformanceKeys, networkCueSpeed ?? cfg.PlaybackSpeed, cfg.KeyHoldMs,
             cfg.GuitarToneOverridesEnabled, GetActiveToneOverrides()), plugin.IsGameOutputSafe,
             ensembleStartQpc);
         songFlow.MarkStarted();
@@ -2457,9 +2457,8 @@ public sealed partial class MainWindow : Window, IDisposable
                     result = "START arrived too late after applying follower timing trim.";
                 else
                 {
-                    cfg.PlaybackSpeed = notice.SpeedThousand / 1000.0f;
-                    cfg.Save();
-                    StartSong(target);
+                    // A network cue owns the speed of this take. The local speed preference belongs to the player.
+                    StartSong(target, notice.SpeedThousand / 1000.0);
                     armed = plugin.Player.IsPlaying;
                     if (armed)
                     {
@@ -2474,6 +2473,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         catch (Exception ex)
         {
+            Plugin.Log.Warning(ex, $"Windbound follower failed to process network START #{notice.StartSequence} (revision {notice.Revision}).");
             result = "Local START processing failed: " + ex.Message;
         }
         ensembleStatus = (armed ? "Network START accepted: " : "Network START failed: ") + result;

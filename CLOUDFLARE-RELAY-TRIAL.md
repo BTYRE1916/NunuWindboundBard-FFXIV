@@ -1,6 +1,6 @@
-# Windbound Cloudflare Relay Trial for v0.47.1
+# Windbound Cloudflare Relay Trial for v0.47.3
 
-Windbound Bard **v0.47.1** includes the optional Cloudflare Workers relay source. A conductor can enter the deployed Worker’s `wss://` address in Hosted Band and share the join code with followers. See [the Windows build guide](BUILD-v0.47.1.md) for the plugin installer.
+Windbound Bard **v0.47.3** includes the optional Cloudflare Workers relay source. Hosted Band uses `wss://windbound-orchestra-relay.nunu-orchestra-2026-4728.workers.dev` by default. A conductor can enter a custom URL for a different deployment. See [the Windows build guide](BUILD-v0.47.3.md) for the plugin installer.
 
 **Deploy guide:** `CloudflareRelay/README.md`
 

@@ -56,14 +56,14 @@ public sealed partial class MainWindow
                 }
                 return;
             }
-            var address = cfg.MultiDeviceRelayAddress ?? "";
+            var address = string.IsNullOrWhiteSpace(cfg.MultiDeviceRelayAddress) ? "" : cfg.MultiDeviceRelayAddress;
             ImGui.SetNextItemWidth(Math.Min(380, ImGui.GetContentRegionAvail().X));
-            if (ImGui.InputText(Loc.T("Band relay address"), ref address, 320))
+            if (ImGui.InputTextWithHint(Loc.T("Band relay address"), RelayBandConnection.DefaultHostRelayAddress, ref address, 320))
             {
                 cfg.MultiDeviceRelayAddress = address;
                 cfg.Save();
             }
-            ImGui.TextWrapped(Loc.T("Enter your hosted relay's wss:// address. Followers only need the join code."));
+            ImGui.TextWrapped(Loc.T("Clear the address to use the Windbound relay, or enter a custom wss:// address. Followers only need the join code."));
             if (ImGui.Button(Loc.T("Host Band")))
             {
                 try

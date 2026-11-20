@@ -1,11 +1,11 @@
-# Windbound Bard v0.47.1 hosted bands
+# Windbound Bard v0.47.3 hosted bands
 
 For a Cloudflare-hosted session, see [the Cloudflare relay setup guide](CloudflareRelay/README.md).
 
 ## Join a band
 
 1. Update Windbound Bard on each performer through the Dalamud repository. Open **BAND → Ensemble**, turn off **Use FFXIV native Ensemble**, then turn on **Enable Multi-Device** and **Use hosted band with join code**.
-2. Set the host to **Conductor**. Enter the band relay's `wss://` address once, choose a stage name, click **Host Band**, then click **Copy band join code**. Share the code privately with the band.
+2. Set the host to **Conductor**. Choose a stage name, click **Host Band**, then click **Copy band join code**. The default address is `wss://windbound-orchestra-relay.nunu-orchestra-2026-4728.workers.dev`. A saved custom relay stays selected. Clear its address to return to the Windbound relay. Share the code privately with the band.
 3. Set other performers to **Follower**. Paste the code in **Band join code** and click **Join with Code**. The code includes the relay address. Performers can stay outside the FFXIV party.
 4. Open **Concert Director — Hosted Band** under the connection controls to prepare the performers.
 
@@ -97,7 +97,7 @@ dotnet run --project Tests/OrchestraRelaySmokeTest.csproj -- ws://127.0.0.1:4852
 
 ## Cloudflare relay trial (new)
 
-The full source now includes a `CloudflareRelay/` Worker and SQLite-backed Durable Objects implementation of the same **/v1/host**, **/v1/join**, and **/v1/attach** WebSocket protocol. Each conductor uses a separately isolated room and the same join code format. It does not depend on FFXIV party membership. **Cloudflare is a test option; the existing .NET/Render relay remains available.**
+The full source now includes a `CloudflareRelay/` Worker and SQLite-backed Durable Objects implementation of the same **/v1/host**, **/v1/join**, and **/v1/attach** WebSocket protocol. Each conductor uses a separately isolated room and the same join code format. It does not depend on FFXIV party membership. Windbound uses the project’s Cloudflare Worker by default. Conductors can also enter their own relay address.
 
 To deploy, open `CloudflareRelay/README.md`. From `CloudflareRelay/`, run `npm install`, `npx wrangler login`, `npm test`, then `npx wrangler deploy`. Cloudflare supplies the actual `*.workers.dev` URL. Enter its `wss://` form in the plugin's **Band relay address** field on the conductor; followers paste the normal join code. No new plugin DLL is needed to select the Cloudflare URL. This is not yet live-tested, and changing relay providers does not by itself correct cross-machine clock-offset bugs.
 

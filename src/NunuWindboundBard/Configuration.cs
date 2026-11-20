@@ -141,7 +141,7 @@ public sealed class Configuration : IPluginConfiguration
     // Private session code is intentionally held only in memory, not saved in config.
     public bool MultiDeviceEnabled { get; set; } = false;
     public bool MultiDeviceUseRelay { get; set; }
-    public string MultiDeviceRelayAddress { get; set; } = "";
+    public string MultiDeviceRelayAddress { get; set; } = RelayBandConnection.DefaultHostRelayAddress;
     public string MultiDeviceHostAddress { get; set; } = "";
     public int MultiDevicePort { get; set; } = MultiDeviceEnsemble.DefaultPort;
     public int EnsembleMode { get; set; } = 0;

@@ -13,6 +13,6 @@
     "ensemble"
   ],
   "IconUrl": "https://raw.githubusercontent.com/BTYRE1916/NunuWindboundBard-FFXIV/master/Assets/windbound-icon.ico",
-  "Changelog": "Hosted Band timestamps clock probes at send time and restores first-note timing reports. Each follower can enter an exact timing trim and see the value used on the last START.",
-  "AssemblyVersion": "0.47.1.0"
+  "Changelog": "Network followers use the conductor’s playback speed for the current take without saving plugin settings during START. A failed START now records the exception in the follower’s Dalamud log.",
+  "AssemblyVersion": "0.47.3.0"
 }

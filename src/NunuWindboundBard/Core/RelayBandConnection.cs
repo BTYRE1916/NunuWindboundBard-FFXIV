@@ -39,6 +39,11 @@ internal sealed record RelayBandInvite(string Relay, string Room, string Stage, 
 
 internal static class RelayBandConnection
 {
+    internal const string DefaultHostRelayAddress = "wss://windbound-orchestra-relay.nunu-orchestra-2026-4728.workers.dev";
+
+    internal static Uri ReadHostRelayAddress(string? value) =>
+        ReadRelayAddress(string.IsNullOrWhiteSpace(value) ? DefaultHostRelayAddress : value);
+
     internal static Uri ReadRelayAddress(string? value)
     {
         if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri) ||
